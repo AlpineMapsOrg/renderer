@@ -8,7 +8,7 @@
 |---|---|
 | `nodes/MpmSolverNode.h/.cpp` | The solver. Owns particles, grid and sim state on the GPU; runs the substep loop. |
 | `nodes/GeoRegionNode.h/.cpp` | Emits a region AABB from lat/lon + extent, so a scenario needs no GPX file. |
-| `nodes/AvaFrameSandboxNode.h/.cpp` | AvaFrame sandbox: loads a dataset prepared by `mpm-mls-doc/avaframe/prepare_dataset.py` (DEM, release, com1DFA footprint) and feeds the solver in metres. Defines `SandboxTerrain`. |
+| `nodes/AvaFrameSandboxNode.h/.cpp` | AvaFrame sandbox: loads a dataset prepared by `mpm-mls-doc/avaframe/prepare_dataset.py` or the panel's download (`AvaFrameData`) (DEM, release, com1DFA footprint) and feeds the solver in metres. Defines `SandboxTerrain`. |
 | `shaders/mpm_common.wgsl` | Shared bindings, structs, terrain sampling, B-spline kernel, 3×3 SVD, matrix helpers. Included by every kernel. |
 | `shaders/mpm_material.wgsl` | Constitutive-model dispatcher: `switch` on `settings.constitutive_model`. |
 | `shaders/mpm_material_stomakhin.wgsl` | Stomakhin 2013: fixed corotated + SV clamp + exponential hardening. |
@@ -31,6 +31,7 @@
 |---|---|
 | `avalanche/AvalanchePanel.h/.cpp` | Sidebar panel: location picker + transport + main knobs. **Owns the animation driver.** Also the sandbox dataset picker. |
 | `avalanche/SandboxView.h/.cpp` | 2D window for sandbox runs: hillshade, release, com1DFA outline, particle raster, domain box. |
+| `avalanche/AvaFrameData.h/.cpp` | "Download AvaFrame data" in the panel: downloads the five real test avalanches from AvaFrame's repository (release 2.1) and prepares them. A C++ port of `prepare_dataset.py` for these five, with byte-identical rasters. |
 | `compute/nodes/MpmSolverNodeRenderer.h/.cpp` | Node-editor settings panel (full parameter set). |
 | `resources/graphs/mpm_avalanche_simulation.json` | Ready-to-run graph preset. |
 | `resources/graphs/mpm_avaframe_sandbox.json` | Sandbox preset: `AvaFrameSandboxNode` → `MpmSolverNode`, no map nodes. |

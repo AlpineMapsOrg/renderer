@@ -75,6 +75,7 @@ if (ALP_WEBGPU_APP_ENABLE_COMPUTE)
         compute/nodes/MpmSolverNodeRenderer.h compute/nodes/MpmSolverNodeRenderer.cpp
         avalanche/AvalanchePanel.h avalanche/AvalanchePanel.cpp
         avalanche/SandboxView.h avalanche/SandboxView.cpp
+        avalanche/AvaFrameData.h avalanche/AvaFrameData.cpp
     )
 endif()
 

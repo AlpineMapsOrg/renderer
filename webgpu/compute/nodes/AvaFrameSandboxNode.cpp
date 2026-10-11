@@ -453,7 +453,7 @@ void AvaFrameSandboxNode::run_impl()
     const QDir dir(QString::fromStdString(m_settings.dataset_path));
     QFile meta_file(dir.filePath("dataset.json"));
     if (!meta_file.open(QIODevice::ReadOnly)) {
-        fail_run("AvaFrameSandboxNode: no dataset.json in " + m_settings.dataset_path + " - run mpm-mls-doc/avaframe/prepare_dataset.py first.");
+        fail_run("AvaFrameSandboxNode: no dataset.json in " + m_settings.dataset_path + " - download the AvaFrame data in the Avalanche panel, or run mpm-mls-doc/avaframe/prepare_dataset.py.");
         return;
     }
     const QJsonObject meta = QJsonDocument::fromJson(meta_file.readAll()).object();

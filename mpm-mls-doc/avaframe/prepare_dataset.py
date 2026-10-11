@@ -27,6 +27,10 @@ Usage (from the repository root, with the venv in mpm-mls-doc/avaframe):
     mpm-mls-doc/avaframe/.venv/bin/python mpm-mls-doc/avaframe/prepare_dataset.py --real
     mpm-mls-doc/avaframe/.venv/bin/python mpm-mls-doc/avaframe/prepare_dataset.py --all
 
+The app has a C++ port of this script for the five real datasets, which downloads its inputs
+from AvaFrame's repository: apps/webgpu_app/avalanche/AvaFrameData.cpp ("Download AvaFrame
+data" in the Avalanche panel). Its output is byte-identical; keep the two in step.
+
 Only ESRI ASCII grids are read (GeoTIFF datasets such as avaAlr are skipped with a note).
 Real datasets are in MGI / Austria Lambert (EPSG:31287). Synthetic ones either have no .prj or
 ship the same .prj with local coordinates (outside Austria); both get no geolocation and no map

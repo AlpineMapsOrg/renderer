@@ -40,6 +40,7 @@ class Node;
 namespace webgpu_app {
 
 class NodeGraphPanel;
+class AvaFrameDownload;
 
 /// Sidebar controls for the MLS-MPM avalanche solver.
 ///
@@ -160,8 +161,9 @@ private:
     void apply_pacing(webgpu_compute::nodes::MpmSolverNode& solver);
     void draw_performance(webgpu_compute::nodes::MpmSolverNode& solver);
 
-    /// AvaFrame sandbox (see AvaFrameSandboxNode): datasets prepared by
-    /// mpm-mls-doc/avaframe/prepare_dataset.py, listed from <root>/index.json.
+    /// AvaFrame sandbox (see AvaFrameSandboxNode): datasets prepared by the download in the
+    /// panel (AvaFrameData) or by mpm-mls-doc/avaframe/prepare_dataset.py, listed from
+    /// <root>/index.json.
     struct SandboxDataset {
         std::string name;
         std::vector<std::string> scenarios;
@@ -177,6 +179,11 @@ private:
     /// reseed. The suggestion needs the loaded data, so this runs after the graph, not before.
     void configure_sandbox_solver(const webgpu_compute::nodes::AvaFrameSandboxNode& sandbox, webgpu_compute::nodes::MpmSolverNode& solver);
     void draw_sandbox_section(webgpu_compute::nodes::AvaFrameSandboxNode& sandbox);
+    /// "Download AvaFrame data": the button, a confirmation popup (external data, takes a while)
+    /// and the progress of a running download.
+    void draw_avaframe_download();
+    /// A finished download: list the datasets again and load the selected one.
+    void avaframe_download_finished(bool ok);
     /// Reads the solver's peak rasters back and writes them next to the dataset
     /// (write_sandbox_result). Asynchronous; the outcome lands in m_sandbox_status.
     void export_sandbox_result(const std::string& stopped_by);
@@ -238,6 +245,7 @@ private:
     bool m_sandbox_stopped = false; // this run has come to rest (paused once, exported once), until the next reset
     float m_sandbox_last_time = 0.0f; // simulated time last frame; going back means a reset
     std::string m_sandbox_status;
+    AvaFrameDownload* m_avaframe_download = nullptr; // child of this panel, created on first use
     std::string m_last_export; // directory of the last finished export, or "error: ..."
 
     QString m_batch_file;

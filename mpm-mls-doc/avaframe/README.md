@@ -45,6 +45,35 @@ mpm-mls-doc/avaframe/.venv/bin/python mpm-mls-doc/avaframe/prepare_dataset.py --
 | `<name>/preview_<scenario>.png` | Check image: hillshade, release (cyan), com1DFA footprint outline (green), AIMEC path (red) |
 | `<name>/overlay/*.png` + `*_aabb.txt` | Real datasets only: com1DFA peak thickness and release area, reprojected to EPSG:3857 |
 
+### In the app, without Python
+
+The Avalanche panel can prepare the five real datasets itself. In the sandbox section, click
+**Download AvaFrame data...**. A popup says that the data is external and takes a while, and asks
+before anything is fetched. `apps/webgpu_app/avalanche/AvaFrameData.cpp` is a C++ port of this
+script for those five datasets. It does the following:
+
+- **Download.** About 40 MB of raw files from AvaFrame's GitHub repository, pinned to the commit
+  of release 2.1. GitHub serves them with CORS, so the web build can fetch them too. weBIGeo
+  does not redistribute anything.
+- **Output.** It writes the same files into the sandbox folder and merges its entries into
+  `index.json`, so other datasets listed there stay.
+- **Root folder.**
+  - Native builds from a source tree: `extern/avaframe_sandbox`.
+  - Elsewhere: the app's data folder.
+  - The web build: browser memory, so a page reload needs the download again.
+- **Projection.** Instead of pyproj, it uses the same pipeline written out: inverse Lambert
+  conformal conic on Bessel 1841, then "MGI to WGS 84 (8)".
+- **Existing runs.** Unlike the script, it deletes nothing, so the runs in `<dataset>/mpm/` stay.
+- **Not ported:** the preview and overlay PNGs, which the app draws itself, and the synthetic
+  datasets. Those still need the script.
+
+Checked against this script's output on all five datasets:
+- **Rasters.** Every `.asc` is byte-identical: DEM, release and the reference rasters. Exact
+  ties such as 1053.5625 are rounded to even, as Python's `%.3f` does.
+- **JSON.** `dataset.json`, `path.json`, `params.json` and the index entries have the same
+  content.
+- **Projection.** It agrees with pyproj to within 0.05 mm.
+
 To view an overlay, load the `.png` in the Overlays panel → Texture overlay. The panel finds
 the `_aabb.txt` next to it by name. Its format is four lines (x_min, y_min, x_max, y_max) in weBIGeo world
 coordinates, the same as the app's exports.

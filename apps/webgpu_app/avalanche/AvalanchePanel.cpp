@@ -18,6 +18,7 @@
 
 #include "AvalanchePanel.h"
 
+#include "AvaFrameData.h"
 #include "compute/NodeGraphPanel.h"
 #include <IconsFontAwesome5.h>
 #ifdef __EMSCRIPTEN__
@@ -30,6 +31,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QStandardPaths>
 #include <imgui.h>
 #include <algorithm>
 #include <cmath>
@@ -103,8 +105,9 @@ constexpr const char* MPM_GRAPH_PRESET = ":/graphs/mpm_avalanche_simulation.json
 constexpr const char* SANDBOX_GRAPH_PRESET = ":/graphs/mpm_avaframe_sandbox.json";
 constexpr const char* TRAJECTORIES_SANDBOX_GRAPH_PRESET = ":/graphs/trajectories_avaframe_sandbox.json";
 
-// Where prepare_dataset.py writes the sandbox datasets. Native builds from a source tree only;
-// elsewhere the folder has to be entered in the panel.
+// Where prepare_dataset.py writes the sandbox datasets, in native builds from a source tree.
+// Elsewhere (web, iOS, an installed app) the download in the panel writes into the app's data
+// folder instead; in the web build that is browser memory, gone after a reload.
 #ifdef ALP_SOURCE_DIR
 constexpr const char* DEFAULT_SANDBOX_ROOT = ALP_SOURCE_DIR "/extern/avaframe_sandbox";
 #else
@@ -172,6 +175,8 @@ void AvalanchePanel::load_startup_settings()
 #endif
     if (m_sandbox_root.empty())
         m_sandbox_root = DEFAULT_SANDBOX_ROOT;
+    if (m_sandbox_root.empty())
+        m_sandbox_root = QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)).filePath("avaframe_sandbox").toStdString();
     scan_sandbox_datasets();
 #ifndef __EMSCRIPTEN__
     // Restore the dataset by name: the list may have changed since.
@@ -372,7 +377,7 @@ void AvalanchePanel::scan_sandbox_datasets()
     m_sandbox_scan_error.clear();
     QFile index(QDir(QString::fromStdString(m_sandbox_root)).filePath("index.json"));
     if (m_sandbox_root.empty() || !index.open(QIODevice::ReadOnly)) {
-        m_sandbox_scan_error = "No index.json in the sandbox folder - run mpm-mls-doc/avaframe/prepare_dataset.py --all.";
+        m_sandbox_scan_error = "No AvaFrame datasets yet - download them below (or run mpm-mls-doc/avaframe/prepare_dataset.py).";
         return;
     }
     for (const auto& value : QJsonDocument::fromJson(index.readAll()).object()["datasets"].toArray()) {
@@ -542,6 +547,87 @@ void AvalanchePanel::export_sandbox_result(const std::string& stopped_by)
     });
 }
 
+void AvalanchePanel::draw_avaframe_download()
+{
+    constexpr const char* POPUP = "Download AvaFrame data";
+    if (m_avaframe_download != nullptr && m_avaframe_download->running()) {
+        ImGui::ProgressBar(m_avaframe_download->progress(), ImVec2(-FLT_MIN, 0.0f));
+        ImGui::TextWrapped("%s", qPrintable(m_avaframe_download->status()));
+        if (ImGui::Button("Cancel download"))
+            m_avaframe_download->cancel();
+        return;
+    }
+    if (ImGui::Button(m_sandbox_datasets.empty() ? "Download AvaFrame data..." : "Download AvaFrame data again..."))
+        ImGui::OpenPopup(POPUP);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Downloads AvaFrame's five real test avalanches from its GitHub repository\n"
+                          "and prepares them for the sandbox (asks first).");
+    if (m_avaframe_download != nullptr) {
+        const auto state = m_avaframe_download->state();
+        if (state == AvaFrameDownload::State::Failed)
+            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "%s", qPrintable(m_avaframe_download->status()));
+        else if (state == AvaFrameDownload::State::Done || state == AvaFrameDownload::State::Cancelled)
+            ImGui::TextDisabled("%s", qPrintable(m_avaframe_download->status()));
+    }
+
+    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    if (!ImGui::BeginPopupModal(POPUP, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+        return;
+    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 32.0f);
+    ImGui::TextUnformatted("This downloads AvaFrame's five real test avalanches (Kontertal, Gallreide, Hintertux, Wolfsgruben, "
+                           "Madlein) and prepares them for the sandbox: terrain, release areas and the com1DFA reference results.");
+    ImGui::Spacing();
+    ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "External data");
+    ImGui::TextUnformatted("The files come from AvaFrame's public repository on GitHub (OpenNHM/AvaFrame, release 2.1). They are not "
+                           "part of weBIGeo, and AvaFrame may move or remove them at any time; then the download fails.");
+    ImGui::Spacing();
+    ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "This takes a while");
+    ImGui::TextUnformatted("About 40 MB of text rasters, then converting them. On a slow connection that can take several minutes.");
+    ImGui::Spacing();
+#ifdef __EMSCRIPTEN__
+    ImGui::TextDisabled("Kept in the browser's memory; a reload of the page needs the download again.");
+#else
+    ImGui::TextDisabled("Saved to %s. Existing runs there are kept.", m_sandbox_root.c_str());
+#endif
+    ImGui::TextDisabled("Data sources: terrain Land Tirol - data.tirol.gv.at (CC BY 4.0); release areas: Austrian Torrent and "
+                        "Avalanche Service (WLV), provided to AvaFrame.");
+    ImGui::PopTextWrapPos();
+    ImGui::Spacing();
+    if (ImGui::Button("Download")) {
+        if (m_avaframe_download == nullptr) {
+            m_avaframe_download = new AvaFrameDownload(this);
+            connect(m_avaframe_download, &AvaFrameDownload::finished, this, &AvalanchePanel::avaframe_download_finished);
+        }
+        m_avaframe_download->start(QString::fromStdString(m_sandbox_root));
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel"))
+        ImGui::CloseCurrentPopup();
+    ImGui::EndPopup();
+}
+
+void AvalanchePanel::avaframe_download_finished(bool ok)
+{
+    if (!ok)
+        return;
+    // Keep the selected dataset if it is still listed; the scan sorts the list anew.
+    const std::string selected = m_sandbox_dataset < int(m_sandbox_datasets.size()) ? m_sandbox_datasets[size_t(m_sandbox_dataset)].name : std::string {};
+    scan_sandbox_datasets();
+    const auto found = std::find_if(m_sandbox_datasets.begin(), m_sandbox_datasets.end(), [&](const auto& d) { return d.name == selected; });
+    if (found != m_sandbox_datasets.end()) {
+        m_sandbox_dataset = int(found - m_sandbox_datasets.begin());
+        m_sandbox_scenario = std::clamp(m_sandbox_scenario, 0, int(found->scenarios.size()) - 1);
+    } else {
+        m_sandbox_dataset = 0;
+        m_sandbox_scenario = 0;
+    }
+    // Its files may have been rewritten: load it again.
+    m_sandbox_configured.clear();
+    if (find_node<nodes::AvaFrameSandboxNode>() != nullptr)
+        m_scenario_error = apply_sandbox_dataset() ? std::string {} : std::string { "Could not load the sandbox dataset." };
+}
+
 void AvalanchePanel::draw_sandbox_section(nodes::AvaFrameSandboxNode& sandbox)
 {
     ImGui::TextDisabled("AvaFrame sandbox: the solver runs on AvaFrame's DEM, not on the map.");
@@ -567,6 +653,7 @@ void AvalanchePanel::draw_sandbox_section(nodes::AvaFrameSandboxNode& sandbox)
             m_scenario_error = apply_sandbox_dataset() ? std::string {} : std::string { "Could not load the sandbox dataset." };
         }
     }
+    draw_avaframe_download();
 
     if (const nodes::SandboxTerrain* t = sandbox.terrain()) {
         ImGui::TextDisabled("DEM %ux%u @ %.1f m, release %.0f m3 on %.2f ha, reference %s", t->grid_size.x, t->grid_size.y, t->cellsize,
@@ -1019,7 +1106,7 @@ void AvalanchePanel::draw_panel()
             load_sandbox();
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Run the solver on an AvaFrame test case (DEM and release area) instead of the map,\n"
-                              "for comparison with com1DFA. Datasets: mpm-mls-doc/avaframe/prepare_dataset.py.");
+                              "for comparison with com1DFA. The datasets are downloaded from AvaFrame there.");
 
         ImGui::Separator();
     }
