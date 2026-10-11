@@ -921,6 +921,11 @@ void AvalanchePanel::draw_performance(nodes::MpmSolverNode& solver)
 
 void AvalanchePanel::draw_panel()
 {
+    // The buttons below can load another preset ("Back to the map", "AvaFrame sandbox"), which
+    // replaces the graph and destroys every node in it, the solver included. Once that happened,
+    // stop drawing this frame; the next one finds the new nodes.
+    const auto* graph_at_start = m_graph_panel->node_graph();
+    const auto graph_replaced = [&] { return m_graph_panel->node_graph() != graph_at_start; };
     auto* solver = find_solver();
     if (!ImGui::CollapsingHeader(ICON_FA_SNOWFLAKE "  Avalanche", ImGuiTreeNodeFlags_DefaultOpen))
         return;
@@ -979,6 +984,8 @@ void AvalanchePanel::draw_panel()
         ImGui::Separator();
     }
 
+    if (graph_replaced())
+        return;
     const bool ready = solver->has_valid_inputs();
     if (!ready) {
         m_playing = false;
