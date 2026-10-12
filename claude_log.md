@@ -230,6 +230,38 @@ Each batch run now sets 0.8 × CFL for its own grid, and all MPM runs were redon
 - **First draft corrected:** it called that pattern a size effect, but avaHit (268 000 m³) fits
   at 0.55. The doc now relates it to com1DFA's travel angle instead.
 
+### 12. Entrainment research: a snow cover made of particles (2026-10-12)
+
+**Request:** assess the idea of seeding particles along the whole path, held by friction and
+picked up by the flow. First from the implemented papers, then for feasibility in our sim.
+Write the report in Notion.
+
+**Done:** Notion page "Entrainment with a particle snow cover — research and feasibility
+(12.10.2026)", under Avalanche Sim, and a short pointer in `07-constitutive-models.md` §7.
+
+**Sources read in full or in large parts** (PDFs via a scratch pypdf venv):
+- Gaume et al., ISSW 2024 O2.5;
+- Kyburz et al. 2024 (Salezer);
+- Li et al. 2024 (Communications Earth & Environment);
+- Li et al. 2020 (The Cryosphere), via the web page;
+- the com1DFA entrainment theory page.
+
+Li et al. 2022 is known only from its abstract and the ISSW summary. Cicoira et al. 2022 is
+cited, not read.
+
+**Conclusions:**
+- **The idea is the state of the art,** but it needs a cover at least 1–2 cells thick. Our
+  cells are 5–12.5 m, as tall as they are wide.
+- **Why it fails literally here:**
+  - Coulomb μ 0.47 holds a cover only below about 25°.
+  - The cover and the flow share one node layer and the friction band.
+- **Feasible: dormant cover particles** (mass < 0), woken in G2P, which behaves like
+  com1DFA's plowing mode.
+- **Cost:** with the AvaFrame ENT areas at 0.3 m, the cover adds 10–82 % particles
+  (+6–54 k). A uniform cover over the whole DEM needs 0.3–3.1 M particles.
+
+**Nothing implemented.**
+
 ### 11. prepare_dataset.py ported to C++, behind a download button (2026-10-11)
 
 **Request:** port the preparation script to C++, trigger it from a button, and show a popup

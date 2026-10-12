@@ -439,6 +439,21 @@ growing"; the fixed-point range still holds. Rate law needs research (Sovilla-st
 erosion ∝ velocity is the usual starting point). The CCC papers explicitly exclude
 entrainment and blame their velocity discrepancies on it — state that.
 
+**Research 2026-10-12** (Notion: "Entrainment with a particle snow cover — research and
+feasibility").
+- **The precedent.** Covering the path with an erodible snow cover of MPM particles is how
+  Gaume's group does it (Li 2022, Li 2024, Kyburz 2024). It needs a cover at least 1–2 cells
+  thick, 0.1–0.7 m cells, 0.4–23 M particles and 3–53 h of CPU time.
+- **Why the literal idea fails here:**
+  - μ 0.47 holds a resting cover only below about 25°;
+  - at 5–12.5 m cells the cover and the flow share the first node layer and the friction band.
+- **Recommended instead: dormant cover particles** (negative mass), woken in G2P by flow on
+  their nodes. This is Kyburz's "activation" idea, and at our resolution it amounts to
+  com1DFA's plowing mode.
+  - Cover from AvaFrame's ENT shapefiles (0.3 m): +10–82 % particles.
+  - Validation: AvaFrame's hockey and helix entrainment benchmarks, and com1DFA runs with
+    entrainment on the five real avalanches.
+
 **8. Comparison to com1DFA / Flow-Py** (v3.0's final stage) — needs 6 first.
 
 ## 5. Sources
