@@ -208,6 +208,9 @@ private:
     void finish_batch();
     /// Frames a geolocated sandbox dataset on the map (emits camera_requested).
     void frame_on_map(const webgpu_compute::nodes::SandboxTerrain& terrain);
+    /// Puts the camera close to the flow on the map (its centre of mass, steeply from the
+    /// south, distance in metres), for the 3D particles. Does nothing before the first readback.
+    void look_at_flow(const webgpu_compute::nodes::MpmSolverNode& solver, double distance_metres);
     /// Frames a map scenario's domain once the solver has scanned its terrain (the altitude to
     /// look at comes from that scan), so picking a location also takes the camera there.
     void frame_scenario_when_ready(webgpu_compute::nodes::MpmSolverNode& solver);

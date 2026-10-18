@@ -46,11 +46,19 @@ namespace webgpu_engine {
 class AvalancheRenderer {
 public:
     enum class ColourMode : uint32_t { Snow = 0, Speed = 1 };
+    /// Spheres, or ellipsoids stretched along the particle's current strain rate: the
+    /// symmetric part of its velocity gradient (the APIC matrix C), integrated over a short
+    /// window. They show where the flow shears, stretches or compacts right now. Not the
+    /// accumulated deformation: the solver keeps only the elastic part of F, which stays
+    /// within about 1 % for snow, and the total deformation of a flow grows without bound.
+    enum class Shape : uint32_t { Spheres = 0, StrainRate = 1 };
 
     struct Settings {
         bool enabled = true;
         ColourMode colour_mode = ColourMode::Snow;
         float radius_scale = 0.6f; // sphere radius as a share of the particle spacing
+        Shape shape = Shape::Spheres;
+        float strain_window = 0.15f; // [s] time over which the strain rate stretches an ellipsoid
         float min_pixel_radius = 1.5f; // [px] far away, particles keep at least this size
         float speed_max = 60.0f; // [m/s] top of the speed colour scale
     };
@@ -100,7 +108,7 @@ private:
         float min_pixel_radius = 1.5f;
         float speed_max = 60.0f;
         uint32_t particle_count = 0u;
-        float padding = 0.0f;
+        float strain_window = 0.0f; // [s], 0 = spheres
     };
 
     webgpu::Context* m_ctx = nullptr;

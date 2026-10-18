@@ -281,6 +281,13 @@ include `extern/...`). Do not commit the symlink.
 **Map-mode verification:** Hintertux at 132 s, lit particle deposit and release. It used a
 temporary test build without the first-run notice; the preset was restored and rebuilt.
 
+**Step 3, strain-rate ellipsoids, done the same day.**
+- **The plan's premise was wrong:** the solver stores only the elastic F, about 1 % for snow, so
+  F-ellipsoids would look like spheres. The user chose the strain-rate variant (from C).
+- **Added:** a "Look at the flow" camera button.
+- **Verified:** Hintertux at 77 s shows stretched moving particles, through a temporary
+  auto-framing test build that was reverted.
+
 **Approach that failed:** posting a click to the app's process (`CGEvent.postToPid`) does not
 reach SDL in the background. I did not move the user's real mouse.
 

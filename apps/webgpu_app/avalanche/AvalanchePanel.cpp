@@ -458,6 +458,21 @@ void AvalanchePanel::configure_sandbox_solver(const nodes::AvaFrameSandboxNode& 
         frame_on_map(*terrain);
 }
 
+void AvalanchePanel::look_at_flow(const nodes::MpmSolverNode& solver, double distance_metres)
+{
+    const auto* view = solver.particle_view();
+    const auto& state = solver.last_state();
+    if (!view->placed || !state.valid)
+        return;
+    // Centre of mass from solver metres to world: xy through the particle view, z like the
+    // terrain (world units are 1/cos(latitude) metres, heights included).
+    const glm::dvec3 com = state.centre_of_mass;
+    const glm::dvec2 world_xy = glm::dvec2(view->world_from_metres * glm::dvec3(com.x, com.y, 1.0));
+    const double world_per_metre = 1.0 / std::cos(glm::radians(nucleus::srs::world_to_lat_long(world_xy).x));
+    const glm::dvec3 look_at(world_xy, com.z * world_per_metre);
+    emit camera_requested(look_at + glm::normalize(glm::dvec3(0.0, -0.6, 1.0)) * distance_metres * world_per_metre, look_at);
+}
+
 void AvalanchePanel::frame_on_map(const nodes::SandboxTerrain& terrain)
 {
     if (!terrain.sandbox_to_world)
@@ -1217,9 +1232,26 @@ void AvalanchePanel::draw_panel()
                 view.colour_mode = webgpu_engine::AvalancheRenderer::ColourMode(colour);
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Speed: viridis from 0 to %.0f m/s.", double(view.speed_max));
+            if (ImGui::Button("Look at the flow"))
+                look_at_flow(*solver, 400.0);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Moves the camera to 400 m from the snow's centre of mass, steeply from the south.");
             ImGui::SliderFloat("Particle size", &view.radius_scale, 0.2f, 2.0f, "%.2f x spacing");
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Sphere radius as a share of the particle spacing (the release volume per particle).");
+            int shape = int(view.shape);
+            if (ImGui::Combo("Particle shape", &shape, "Spheres\0Strain-rate ellipsoids\0"))
+                view.shape = webgpu_engine::AvalancheRenderer::Shape(shape);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Ellipsoids stretch each particle along its current strain rate (the symmetric part of\n"
+                                  "its velocity gradient): elongated where the flow stretches or shears, flattened where it\n"
+                                  "compacts. They show what the flow does now, not how far it has deformed.");
+            if (view.shape == webgpu_engine::AvalancheRenderer::Shape::StrainRate) {
+                ImGui::SliderFloat("Strain window", &view.strain_window, 0.02f, 1.0f, "%.2f s", ImGuiSliderFlags_Logarithmic);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("How long the current strain rate acts on the shape. Longer shows weaker strain;\n"
+                                      "each axis is capped at +/-70 %%.");
+            }
         }
         ImGui::Separator();
     }

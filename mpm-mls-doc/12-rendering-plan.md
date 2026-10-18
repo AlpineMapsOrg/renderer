@@ -81,8 +81,24 @@ haze on them like on the terrain.
      shader, with exact depth, packed albedo and normal.
    - Radius from the particle volume, with a minimum pixel size.
    - Colour modes: white, speed, plastic state, release.
-3. **Ellipsoids from F**, as PhysGaussian does: covariance = F · rest · Fᵀ, with the stretch
-   clamped.
+3. **Strain-rate ellipsoids.** Done 2026-10-18. The plan said "ellipsoids from F", as
+   PhysGaussian does, but the solver stores only the *elastic* part of F, and that stays within
+   about 1 % for snow:
+   - Stomakhin clamps it to −2.5 % / +0.75 %.
+   - Cam Clay sees kPa stresses against E = 3 MPa.
+   - The total deformation of a flow grows without bound.
+
+   So the ellipsoid comes from the particle's current strain rate instead: the symmetric part D
+   of its APIC velocity gradient C. Shape = I + window · D, with the window shortened so no axis
+   changes by more than 70 %, and the volume normalised.
+   - The ray is solved in the ellipsoid's unit-sphere space.
+   - Panel: "Particle shape" (spheres / strain-rate ellipsoids) and "Strain window".
+   - **New button, "Look at the flow":** puts the camera 400 m from the centre of mass. It
+     needs the correct world z, altitude / cos(latitude).
+
+   **Verified in map mode** (Hintertux, 77 s): moving particles show as ellipsoids stretched
+   along the flow, resting ones as spheres. The check used a temporary test build that framed
+   the camera automatically, since then removed.
 4. **Flow surface.**
    - A compute pass per solver chunk: the top particle height above the terrain per column
      (atomic max), smoothing, normals.

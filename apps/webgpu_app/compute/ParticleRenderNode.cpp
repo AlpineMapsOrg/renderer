@@ -72,6 +72,8 @@ void ParticleRenderNode::serialize_settings(QJsonObject& out) const
     out["enabled"] = renderer->settings.enabled;
     out["colour_mode"] = int(renderer->settings.colour_mode);
     out["radius_scale"] = double(renderer->settings.radius_scale);
+    out["shape"] = int(renderer->settings.shape);
+    out["strain_window"] = double(renderer->settings.strain_window);
 }
 
 void ParticleRenderNode::deserialize_settings(const QJsonObject& in)
@@ -83,6 +85,10 @@ void ParticleRenderNode::deserialize_settings(const QJsonObject& in)
         s.colour_mode = webgpu_engine::AvalancheRenderer::ColourMode(std::clamp(in["colour_mode"].toInt(), 0, 1));
     if (in.contains("radius_scale"))
         s.radius_scale = float(in["radius_scale"].toDouble(s.radius_scale));
+    if (in.contains("shape"))
+        s.shape = webgpu_engine::AvalancheRenderer::Shape(std::clamp(in["shape"].toInt(), 0, 1));
+    if (in.contains("strain_window"))
+        s.strain_window = float(in["strain_window"].toDouble(s.strain_window));
 }
 
 } // namespace webgpu_compute::nodes

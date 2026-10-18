@@ -97,6 +97,7 @@ void AvalancheRenderer::draw(WGPURenderPassEncoder render_pass, const nucleus::c
     c.min_pixel_radius = std::max(settings.min_pixel_radius, 0.0f);
     c.speed_max = std::max(settings.speed_max, 1.0f);
     c.particle_count = frame->particle_count;
+    c.strain_window = settings.shape == Shape::StrainRate ? std::max(settings.strain_window, 0.0f) : 0.0f;
     m_config->update_gpu_data(m_ctx->queue());
 
     // The solver reallocates its buffer when the particle count or grid changes.
