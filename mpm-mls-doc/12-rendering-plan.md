@@ -142,6 +142,31 @@ haze on them like on the terrain.
 timestamp queries, and the web build. The 2D raster stays the default until the 3D view is
 verified.
 
+## With the screen-space snow overlay (checked 2026-10-18)
+
+`ScreenSpaceSnowOverlay` paints snow by slope (0–45°) and altitude (above a snow line), from
+the G-buffer position and normal only.
+
+**With it on, the 3D avalanche does not fit in yet** (Hintertux; screenshots in the report):
+- **Default snow line, 1000 m:** the whole terrain is flat white, the avalanche included. It
+  cannot be seen.
+- **Snow line 2000 m:** below it the avalanche reads well. In the snowy track it nearly
+  disappears, and it looks greyer than the flat-white overlay snow.
+
+**Causes:**
+1. The overlay paints our G-buffer pixels too; it cannot tell terrain from avalanche.
+2. White on white has no contrast.
+3. The overlay is composited after lighting, so it is flat and unlit, while the avalanche is
+   lit.
+
+**Proposed fixes:**
+1. A marker in the G-buffer overlay slot for avalanche pixels, which the snow (and height-line)
+   overlays skip.
+2. A cool tint plus a silhouette outline on snow, or speed colours while the overlay is on.
+3. Composite the snow overlay before lighting.
+
+None of this is implemented yet.
+
 ## Not chosen now
 
 - **Marching cubes:** the band grid is too coarse for a 1–5 m flow, and a finer grid every frame
