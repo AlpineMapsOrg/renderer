@@ -124,9 +124,17 @@ haze on them like on the terrain.
    **Verified in map mode** (Hintertux, 74 s): a continuous lit blanket over the dense core,
    particles above it as front and spray.
 
-   **Open:** small isolated patches where 2–3 particles share a column. Possible fixes: raise
-   the minimum count or smooth wider. The 2D density overlay still draws on top; it can be
-   hidden in the Overlays panel.
+   **Fixed the same day:**
+   - **Isolated patches:** a column now joins the blanket only where its 3×3 neighbourhood
+     holds at least 8 particles (`surface_min_count`). Stray pairs stay particles.
+   - **2D density overlay:** hidden while "3D particles" is on.
+     - Overlays got an `enabled` flag (`Overlay.h`). `OverlayRenderer` builds its ping-pong
+       chain from the enabled ones only.
+     - `OverlayRenderNode::set_overlay_enabled` is set by the Avalanche panel each frame in the
+       map graph.
+
+   **Verified:** Hintertux at 74 s shows no discs and no scattered patches; one blob remains,
+   over a genuinely dense cluster.
 5. **Optional:** transparent splats or a ray-marched grid volume for powder; screen-space depth
    smoothing.
 

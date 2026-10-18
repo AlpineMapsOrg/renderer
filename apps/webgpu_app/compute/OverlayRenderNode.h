@@ -52,6 +52,9 @@ public:
     ~OverlayRenderNode() override;
 
     void set_settings(const OverlaySettings& settings) { m_settings = settings; }
+    /// Shows or hides the overlay this node feeds (e.g. the 2D density raster while the 3D
+    /// particles are drawn). No effect before its first run.
+    void set_overlay_enabled(bool enabled);
     const OverlaySettings& get_settings() const { return m_settings; }
     void serialize_settings(QJsonObject& out) const override
     {

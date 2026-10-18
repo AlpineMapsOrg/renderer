@@ -37,6 +37,9 @@ public:
 
     std::string name;
 
+    // Hidden overlays are skipped entirely (the ping-pong chain is built from the enabled ones).
+    bool enabled = true;
+
     virtual ~Overlay() = default;
     // Initialization code for GPU Ressources goes here. Needs to be called after creation.
     virtual void init(Context& ctx) = 0;

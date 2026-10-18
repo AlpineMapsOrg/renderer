@@ -296,6 +296,13 @@ temporary test build without the first-run notice; the preset was restored and r
 - **Verified:** Hintertux at 74 s, via a temporary test build that was reverted.
 - **Open:** isolated small patches.
 
+**Fixes after step 4 (user):**
+- **Patches:** a 3×3 neighbourhood count of at least 8 is needed for a column to join the
+  surface.
+- **Overlay:** the 2D density overlay is hidden while the 3D particles are on, through a new
+  `Overlay::enabled`. The ping-pong chain uses only the enabled overlays.
+- **Verified:** with the temporary test build, reverted afterwards.
+
 **Approach that failed:** posting a click to the app's process (`CGEvent.postToPid`) does not
 reach SDL in the background. I did not move the user's real mouse.
 

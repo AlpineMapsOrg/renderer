@@ -20,6 +20,7 @@
 
 #include "AvaFrameData.h"
 #include "compute/NodeGraphPanel.h"
+#include "compute/OverlayRenderNode.h"
 #include "compute/ParticleRenderNode.h"
 #include <IconsFontAwesome5.h>
 #ifdef __EMSCRIPTEN__
@@ -952,6 +953,12 @@ void AvalanchePanel::finish_batch()
 
 void AvalanchePanel::draw()
 {
+    // In the map graph, the 3D particles replace the 2D density overlay: show one or the other.
+    if (auto* particles = find_node<nodes::ParticleRenderNode>()) {
+        if (auto* overlay = find_node<nodes::OverlayRenderNode>())
+            overlay->set_overlay_enabled(!particles->renderer_settings().enabled);
+    }
+
     if (auto* solver = find_solver(); solver != nullptr && find_node<nodes::AvaFrameSandboxNode>() == nullptr)
         frame_scenario_when_ready(*solver);
 
@@ -1223,7 +1230,7 @@ void AvalanchePanel::draw_panel()
         ImGui::Checkbox("3D particles", &view.enabled);
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Draws every particle as a small sphere on the map, lit like the terrain.\n"
-                              "The 2D density overlay stays; hide it in the Overlays panel.");
+                              "It replaces the 2D density overlay, which comes back when this is off.");
         if (view.enabled) {
             ImGui::SameLine();
             int colour = int(view.colour_mode);
@@ -1234,8 +1241,9 @@ void AvalanchePanel::draw_panel()
                 ImGui::SetTooltip("Speed: viridis from 0 to %.0f m/s.", double(view.speed_max));
             ImGui::Checkbox("Flow surface", &view.surface);
             if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("A snow blanket over the grid columns that hold at least %u particles: the dense core\n"
-                                  "as one continuous mass. Particles above it stay visible as the front and spray.",
+                ImGui::SetTooltip("A snow blanket over the dense part of the flow (at least %u particles in the 3x3 grid\n"
+                                  "columns around a point): the core as one continuous mass. Particles above it and in\n"
+                                  "thin parts stay visible as the front and spray.",
                     view.surface_min_count);
             ImGui::SameLine();
             if (ImGui::Button("Look at the flow"))

@@ -27,7 +27,7 @@ struct SurfaceConfig {
     dx: f32, // [m] node spacing
     radius: f32, // [m] particle radius: the surface lies this far above the top particle centre
     particle_count: u32,
-    min_count: u32, // particles a column needs to count as covered
+    min_count: u32, // particles the 3x3 columns around a column need for it to count as covered
     colour_mode: u32, // 0 snow, 1 speed
     speed_max: f32, // [m/s]
     region_size: vec2f, // [m] the terrain's extent, for uv = metres / region_size

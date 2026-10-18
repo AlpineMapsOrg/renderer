@@ -146,8 +146,13 @@ void OverlayRenderer::draw_bucket(const WGPUCommandEncoder& command_encoder,
     const WGPUBindGroup& camera_bg,
     glm::uvec2 output_size)
 {
+    std::vector<Overlay*> enabled;
+    for (auto* overlay : bucket) {
+        if (overlay->enabled)
+            enabled.push_back(overlay);
+    }
     // Start on T[N % 2] so the final write lands on index 0
-    int current = static_cast<int>(bucket.size() % 2);
+    int current = static_cast<int>(enabled.size() % 2);
 
     // Clear the start texture
     WGPURenderPassColorAttachment clear_attachment {};
@@ -163,7 +168,7 @@ void OverlayRenderer::draw_bucket(const WGPUCommandEncoder& command_encoder,
         webgpu::raii::RenderPassEncoder clear_pass(command_encoder, clear_pass_desc);
     }
 
-    for (auto& overlay : bucket) {
+    for (auto* overlay : enabled) {
         const int target = current ^ 1;
         overlay->draw(command_encoder,
             position_view,

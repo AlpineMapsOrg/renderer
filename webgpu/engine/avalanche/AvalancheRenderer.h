@@ -68,7 +68,7 @@ public:
         float min_pixel_radius = 1.5f; // [px] far away, particles keep at least this size
         float speed_max = 60.0f; // [m/s] top of the speed colour scale
         bool surface = true; // the flow surface over the covered columns
-        uint32_t surface_min_count = 2; // particles a column needs to belong to the surface
+        uint32_t surface_min_count = 8; // particles in the 3x3 columns around a column for it to belong to the surface
     };
 
     /// One frame's particles. world_from_metres maps particle.position.xy (metres) to world

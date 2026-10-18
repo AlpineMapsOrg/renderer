@@ -47,6 +47,15 @@ OverlayRenderNode::~OverlayRenderNode()
         overlay->link_texture(nullptr);
 }
 
+void OverlayRenderNode::set_overlay_enabled(bool enabled)
+{
+    auto overlay = m_result_overlay.lock();
+    if (!overlay || overlay->enabled == enabled)
+        return;
+    overlay->enabled = enabled;
+    m_context->request_redraw();
+}
+
 void OverlayRenderNode::run_impl()
 {
     if (input_socket("texture").is_socket_connected() && input_socket("region aabb").is_socket_connected()) {
