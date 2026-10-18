@@ -21,6 +21,7 @@
 #pragma once
 
 #include "UniformBufferObjects.h"
+#include "avalanche/AvalancheRenderer.h"
 #include "atmosphere/AtmosphereRenderer.h"
 #include "cloud/CloudRenderer.h"
 #include "nucleus/EngineContext.h"
@@ -55,6 +56,9 @@ public:
     TrackRenderer* track_renderer() const;
     void set_track_renderer(std::shared_ptr<TrackRenderer> new_track_renderer);
 
+    AvalancheRenderer* avalanche_renderer() const;
+    void set_avalanche_renderer(std::shared_ptr<AvalancheRenderer> new_avalanche_renderer);
+
     webgpu::Context& webgpu_ctx() { return *m_webgpu_ctx_ptr; }
     void set_webgpu_ctx(webgpu::Context& ctx);
 
@@ -82,6 +86,7 @@ private:
     std::shared_ptr<AtmosphereRenderer> m_atmosphere_renderer;
     std::shared_ptr<OverlayRenderer> m_overlay_renderer;
     std::shared_ptr<TrackRenderer> m_track_renderer;
+    std::shared_ptr<AvalancheRenderer> m_avalanche_renderer;
     // std::shared_ptr<TextureLayer> m_ortho_layer;
 };
 

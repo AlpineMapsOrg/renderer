@@ -60,6 +60,7 @@ set(SOURCES
 if (ALP_WEBGPU_APP_ENABLE_COMPUTE)
     list(APPEND SOURCES
         compute/OverlayRenderNode.h compute/OverlayRenderNode.cpp
+        compute/ParticleRenderNode.h compute/ParticleRenderNode.cpp
         compute/NodeGraphPanel.h compute/NodeGraphPanel.cpp
         compute/nodes/NodeRenderer.h compute/nodes/NodeRenderer.cpp
         compute/nodes/NodeRendererFactory.h compute/nodes/NodeRendererFactory.cpp

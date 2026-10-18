@@ -30,6 +30,7 @@
 | File | Purpose |
 |---|---|
 | `avalanche/AvalanchePanel.h/.cpp` | Sidebar panel: location picker + transport + main knobs. **Owns the animation driver.** Also the sandbox dataset picker. |
+| `compute/ParticleRenderNode.h/.cpp` | Terminal node: hands the solver's `particle view` to the engine's `AvalancheRenderer` (3D particles on the map). See [12-rendering-plan.md](12-rendering-plan.md). |
 | `avalanche/SandboxView.h/.cpp` | 2D window for sandbox runs: hillshade, release, com1DFA outline, particle raster, domain box. |
 | `avalanche/AvaFrameData.h/.cpp` | "Download AvaFrame data" in the panel: downloads the five real test avalanches from AvaFrame's repository (release 2.1) and prepares them. A C++ port of `prepare_dataset.py` for these five, with byte-identical rasters. |
 | `compute/nodes/MpmSolverNodeRenderer.h/.cpp` | Node-editor settings panel (full parameter set). |

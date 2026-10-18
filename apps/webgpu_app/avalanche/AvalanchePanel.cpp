@@ -20,6 +20,7 @@
 
 #include "AvaFrameData.h"
 #include "compute/NodeGraphPanel.h"
+#include "compute/ParticleRenderNode.h"
 #include <IconsFontAwesome5.h>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -1200,6 +1201,28 @@ void AvalanchePanel::draw_panel()
     draw_performance(*solver);
 
     ImGui::Separator();
+
+    // --- 3D view of the particles (ParticleRenderNode -> AvalancheRenderer) ---
+    if (auto* particles = find_node<nodes::ParticleRenderNode>()) {
+        auto& view = particles->renderer_settings();
+        ImGui::Checkbox("3D particles", &view.enabled);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Draws every particle as a small sphere on the map, lit like the terrain.\n"
+                              "The 2D density overlay stays; hide it in the Overlays panel.");
+        if (view.enabled) {
+            ImGui::SameLine();
+            int colour = int(view.colour_mode);
+            ImGui::SetNextItemWidth(110 * ui::UI_SCALE);
+            if (ImGui::Combo("##particle_colour", &colour, "Snow\0Speed\0"))
+                view.colour_mode = webgpu_engine::AvalancheRenderer::ColourMode(colour);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Speed: viridis from 0 to %.0f m/s.", double(view.speed_max));
+            ImGui::SliderFloat("Particle size", &view.radius_scale, 0.2f, 2.0f, "%.2f x spacing");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Sphere radius as a share of the particle spacing (the release volume per particle).");
+        }
+        ImGui::Separator();
+    }
 
     // --- Playback speed and detail ---
     if (ImGui::Combo("Pacing", reinterpret_cast<int*>(&m_pacing), "Manual\0Smooth (60 fps)\0Balanced (30 fps)\0Fast simulation\0"))

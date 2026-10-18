@@ -131,6 +131,7 @@ MpmSolverNode::MpmSolverNode(webgpu::Context& ctx, const MpmSolverSettings& sett
               OutputSocket(*this, "density buffer", data_type<webgpu::raii::RawBuffer<uint32_t>*>(), [this]() { return m_density_buffer.get(); }),
               OutputSocket(*this, "raster dimensions", data_type<glm::uvec2>(), [this]() { return m_output_dimensions; }),
               OutputSocket(*this, "particle buffer", data_type<webgpu::raii::RawBuffer<uint32_t>*>(), [this]() { return m_particle_buffer.get(); }),
+              OutputSocket(*this, "particle view", data_type<const MpmParticleView*>(), [this]() { return &m_particle_view; }),
           })
     , m_ctx(&ctx)
     , m_settings { settings }
@@ -301,6 +302,8 @@ bool MpmSolverNode::ensure_resources()
     m_output_texture = create_output_texture(m_ctx->device(), raster_resolution, raster_resolution);
 
     m_allocated_particles = num_particles;
+    m_particle_view.particles = m_particle_buffer.get();
+    m_particle_view.particle_count = num_particles;
     m_allocated_grid_res = grid_res;
     m_allocated_raster_resolution = raster_resolution;
     m_output_dimensions = glm::uvec2(raster_resolution);
@@ -503,6 +506,24 @@ void MpmSolverNode::update_gpu_settings(
     // can be placed on the map. In the sandbox these are sandbox metres.
     const glm::dvec2 domain_min = region_aabb.min + glm::dvec2(domain_origin) / to_metres;
     m_domain_aabb = { domain_min, domain_min + glm::dvec2(double(domain_size)) / to_metres };
+
+    // Where a renderer puts the particles: the inverse of the metre conversion above, or the
+    // sandbox's own placement on the map.
+    if (sandbox != nullptr) {
+        m_particle_view.placed = sandbox->sandbox_to_world.has_value();
+        m_particle_view.world_from_metres = sandbox->sandbox_to_world.value_or(glm::dmat3(1.0));
+    } else {
+        const double world_per_metre = 1.0 / to_metres;
+        m_particle_view.placed = true;
+        m_particle_view.world_from_metres
+            = glm::dmat3(glm::dvec3(world_per_metre, 0.0, 0.0), glm::dvec3(0.0, world_per_metre, 0.0), glm::dvec3(region_aabb.min, 1.0));
+    }
+    // Spacing of the seeded particles: the release volume shared out. On the map the release
+    // is a disc of slab thickness (an upper bound, seeding keeps only the release slopes).
+    const double release_volume = sandbox != nullptr
+        ? sandbox->release_volume
+        : glm::pi<double>() * double(m_settings.release_radius) * double(m_settings.release_radius) * double(m_settings.slab_thickness);
+    m_particle_view.particle_spacing = float(std::cbrt(release_volume / double(std::max(m_settings.num_particles, 1u))));
 }
 
 void MpmSolverNode::write_initial_state()

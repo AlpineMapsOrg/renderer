@@ -139,6 +139,16 @@
                 "node": "Select Tiles",
                 "socket": "region"
             }
+        },
+        {
+            "from": {
+                "node": "MPM Solver",
+                "socket": "particle view"
+            },
+            "to": {
+                "node": "Particles 3D",
+                "socket": "particle view"
+            }
         }
     ],
     "first_run_notice": "WARNING: RESEARCH PREVIEW\n\nThis MLS-MPM snow simulation is for educational and illustrative purposes only.\nIt is not calibrated against real snowpack or terrain conditions and must NOT be\nused for route planning or any avalanche safety decision.\n\nUse the Avalanche section of the sidebar to run it: pick a location, press Play.",
@@ -282,6 +292,16 @@
                 ]
             },
             "type": "TileStitchNode"
+        },
+        {
+            "enabled": true,
+            "name": "Particles 3D",
+            "type": "ParticleRenderNode",
+            "settings": {
+                "enabled": true,
+                "colour_mode": 0,
+                "radius_scale": 0.6
+            }
         }
     ],
     "ui": {
@@ -338,6 +358,12 @@
                 "position": [
                     112.0,
                     668.0
+                ]
+            },
+            "Particles 3D": {
+                "position": [
+                    980.0,
+                    650.0
                 ]
             }
         }

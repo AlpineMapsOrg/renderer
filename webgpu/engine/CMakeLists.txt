@@ -29,6 +29,7 @@ set(SOURCES
     tile_mesh/TileMeshRenderer.h tile_mesh/TileMeshRenderer.cpp
     cloud/CloudRenderer.h cloud/CloudRenderer.cpp
     track/TrackRenderer.h track/TrackRenderer.cpp
+    avalanche/AvalancheRenderer.h avalanche/AvalancheRenderer.cpp
     atmosphere/AtmosphereRenderer.h atmosphere/AtmosphereRenderer.cpp
     overlay/OverlayRenderer.h overlay/OverlayRenderer.cpp
     overlay/Overlay.h
@@ -79,6 +80,7 @@ qt_add_resources(webgpu_engine "shaders"
         "${SHADER_BASE_DIR}/render_tiles.wgsl"
         "${SHADER_BASE_DIR}/render_atmosphere.wgsl"
         "${SHADER_BASE_DIR}/render_lines.wgsl"
+        "${SHADER_BASE_DIR}/render_avalanche.wgsl"
         "${SHADER_BASE_DIR}/compose_pass.wgsl"
         "${SHADER_BASE_DIR}/screen_pass_vert.wgsl"
         "${SHADER_BASE_DIR}/render_clouds.wgsl"

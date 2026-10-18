@@ -230,6 +230,60 @@ Each batch run now sets 0.8 × CFL for its own grid, and all MPM runs were redon
 - **First draft corrected:** it called that pattern a size effect, but avaHit (268 000 m³) fits
   at 0.55. The doc now relates it to com1DFA's travel angle instead.
 
+### 13. Rendering research and plan, new worktree branch (2026-10-18)
+
+**Request:** start a worktree branch for the rendering ("Partikelsystemrendering, potentiell
+aggregierte Partikel"), research MPM and particle rendering, report with options, link in
+Notion.
+
+**Done:**
+- Worktree `.claude/worktrees/mpm-rendering` on branch `worktree-mpm-rendering`, from main
+  (`836dbcec`).
+- Report [Avalanche Particle Rendering](https://claude.ai/artifact/PWiuxTHUn9LvobGEQpksXj),
+  linked on the Notion rendering page and the overview.
+- Plan in `mpm-mls-doc/12-rendering-plan.md`.
+
+**Decision proposed:**
+- G-buffer geometry, so the avalanche is lit like the terrain.
+- Sphere impostors, then ellipsoids from the deformation gradient F (PhysGaussian's covariance
+  idea).
+- A draped flow surface aggregated per grid column (as Vicari et al. 2025 do for GIS).
+- Transparent powder later.
+- Not chosen: marching cubes (grid too coarse) and screen-space triangulation.
+
+**Sources:** some were read through search summaries only (the WebGPU-Ocean write-up blocked
+direct access); the report says which.
+
+**Implemented the same day: steps 1–2 (plumbing, sphere impostors).** The user asked to start
+and allowed edits to existing files. Details are in `mpm-mls-doc/12-rendering-plan.md`
+("Status").
+
+- **Solver:** `MpmParticleView` (a "particle view" output).
+- **App:** a `ParticleRenderNode`.
+- **Engine:** `AvalancheRenderer` and `render_avalanche.wgsl`, drawn in the G-buffer pass.
+- **Panel:** the "3D particles" controls.
+- **Validator:** `validate_wgsl.py` extended to engine shaders.
+
+**Worktree build:** `extern` is symlinked to the main checkout's (prebuilt Dawn, sources that
+include `extern/...`). Do not commit the symlink.
+
+**Verified:**
+- tint validates all shaders.
+- The macOS debug build compiles.
+- A sandbox batch run on avaKot (25 s) shows the lit particles at the front on the map, with
+  no WebGPU errors.
+- Prefs and `imgui.ini` were restored, and the test run folder was deleted.
+
+**Not verified:** the web build, a close-up.
+
+**Map mode is the target** (user, same day). The node was removed from the sandbox preset.
+
+**Map-mode verification:** Hintertux at 132 s, lit particle deposit and release. It used a
+temporary test build without the first-run notice; the preset was restored and rebuilt.
+
+**Approach that failed:** posting a click to the app's process (`CGEvent.postToPid`) does not
+reach SDL in the background. I did not move the user's real mouse.
+
 ### 12. Entrainment research: a snow cover made of particles (2026-10-12)
 
 **Request:** assess the idea of seeding particles along the whole path, held by friction and

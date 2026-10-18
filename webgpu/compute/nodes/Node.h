@@ -33,6 +33,7 @@ namespace webgpu_compute::nodes {
 
 class Node;
 struct SandboxTerrain; // AvaFrameSandboxNode.h
+struct MpmParticleView; // MpmSolverNode.h
 
 using DataType = size_t;
 
@@ -45,7 +46,8 @@ using Data = std::variant<const std::vector<radix::tile::Id>*,
     const radix::geometry::Aabb<2, double>*,
     const radix::geometry::Aabb<3, double>*,
     glm::uvec2,
-    const SandboxTerrain*>;
+    const SandboxTerrain*,
+    const MpmParticleView*>;
 
 using SocketIndex = size_t;
 

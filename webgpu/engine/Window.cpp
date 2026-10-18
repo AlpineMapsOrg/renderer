@@ -181,6 +181,10 @@ void Window::paint(webgpu::Framebuffer* framebuffer, WGPUCommandEncoder command_
         const auto culled_draw_list = drawing::sort(drawing::cull(draw_list, m_camera), m_camera.position());
 
         m_context->tile_mesh_renderer()->draw(render_pass->handle(), m_camera, culled_draw_list);
+
+        // The MPM avalanche particles, into the same G-buffer (lit and hazed like the terrain).
+        if (auto* avalanche = m_context->avalanche_renderer())
+            avalanche->draw(render_pass->handle(), m_camera);
     }
 
     // render clouds

@@ -169,6 +169,8 @@ void Context::internal_initialise()
         m_overlay_renderer->init(*this);
     if (m_track_renderer)
         m_track_renderer->init(webgpu_ctx());
+    if (m_avalanche_renderer)
+        m_avalanche_renderer->init(webgpu_ctx());
     // if (m_ortho_layer)
     //     m_ortho_layer->init();
 }
@@ -177,6 +179,7 @@ void Context::internal_destroy()
 {
     // this is necessary for a clean shutdown (and we want a clean shutdown for the ci integration test).
     // m_ortho_layer.reset();
+    m_avalanche_renderer.reset();
     m_track_renderer.reset();
     m_overlay_renderer.reset();
     m_cloud_renderer.reset();
@@ -222,6 +225,14 @@ void Context::set_track_renderer(std::shared_ptr<TrackRenderer> new_track_render
 {
     Q_ASSERT(!is_alive()); // only set before init is called.
     m_track_renderer = std::move(new_track_renderer);
+}
+
+AvalancheRenderer* Context::avalanche_renderer() const { return m_avalanche_renderer.get(); }
+
+void Context::set_avalanche_renderer(std::shared_ptr<AvalancheRenderer> new_avalanche_renderer)
+{
+    assert(!is_alive()); // only set before init is called.
+    m_avalanche_renderer = std::move(new_avalanche_renderer);
 }
 
 void Context::set_webgpu_ctx(webgpu::Context& ctx) { m_webgpu_ctx_ptr = &ctx; }
