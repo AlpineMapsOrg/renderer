@@ -1232,6 +1232,12 @@ void AvalanchePanel::draw_panel()
                 view.colour_mode = webgpu_engine::AvalancheRenderer::ColourMode(colour);
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Speed: viridis from 0 to %.0f m/s.", double(view.speed_max));
+            ImGui::Checkbox("Flow surface", &view.surface);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("A snow blanket over the grid columns that hold at least %u particles: the dense core\n"
+                                  "as one continuous mass. Particles above it stay visible as the front and spray.",
+                    view.surface_min_count);
+            ImGui::SameLine();
             if (ImGui::Button("Look at the flow"))
                 look_at_flow(*solver, 400.0);
             if (ImGui::IsItemHovered())

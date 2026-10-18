@@ -56,7 +56,9 @@ void ParticleRenderNode::run_impl()
                 const auto* view = std::get<data_type<const MpmParticleView*>()>(socket.get_connected_data());
                 if (view == nullptr || !view->placed || view->particles == nullptr)
                     return std::nullopt;
-                return webgpu_engine::AvalancheRenderer::Frame { view->particles, view->particle_count, view->world_from_metres, view->particle_spacing };
+                return webgpu_engine::AvalancheRenderer::Frame {
+                    view->particles, view->particle_count, view->world_from_metres, view->particle_spacing, view->domain_origin, view->dx, view->columns,
+                    view->height_texture, view->region_size };
             },
             this);
         m_context->request_redraw();
@@ -74,6 +76,7 @@ void ParticleRenderNode::serialize_settings(QJsonObject& out) const
     out["radius_scale"] = double(renderer->settings.radius_scale);
     out["shape"] = int(renderer->settings.shape);
     out["strain_window"] = double(renderer->settings.strain_window);
+    out["surface"] = renderer->settings.surface;
 }
 
 void ParticleRenderNode::deserialize_settings(const QJsonObject& in)
@@ -89,6 +92,8 @@ void ParticleRenderNode::deserialize_settings(const QJsonObject& in)
         s.shape = webgpu_engine::AvalancheRenderer::Shape(std::clamp(in["shape"].toInt(), 0, 1));
     if (in.contains("strain_window"))
         s.strain_window = float(in["strain_window"].toDouble(s.strain_window));
+    if (in.contains("surface"))
+        s.surface = in["surface"].toBool(s.surface);
 }
 
 } // namespace webgpu_compute::nodes

@@ -524,6 +524,11 @@ void MpmSolverNode::update_gpu_settings(
         ? sandbox->release_volume
         : glm::pi<double>() * double(m_settings.release_radius) * double(m_settings.release_radius) * double(m_settings.slab_thickness);
     m_particle_view.particle_spacing = float(std::cbrt(release_volume / double(std::max(m_settings.num_particles, 1u))));
+    m_particle_view.domain_origin = data.domain_origin;
+    m_particle_view.dx = data.dx;
+    m_particle_view.columns = glm::uvec2(data.grid_res);
+    m_particle_view.height_texture = &height_texture;
+    m_particle_view.region_size = region_size;
 }
 
 void MpmSolverNode::write_initial_state()

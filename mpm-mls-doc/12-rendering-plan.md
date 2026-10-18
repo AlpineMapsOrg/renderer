@@ -99,11 +99,34 @@ haze on them like on the terrain.
    **Verified in map mode** (Hintertux, 77 s): moving particles show as ellipsoids stretched
    along the flow, resting ones as spheres. The check used a temporary test build that framed
    the camera automatically, since then removed.
-4. **Flow surface.**
-   - A compute pass per solver chunk: the top particle height above the terrain per column
-     (atomic max), smoothing, normals.
-   - A grid mesh over the domain, drawn into the G-buffer.
-   - Particles above the surface stay visible as spray.
+4. **Flow surface.** Done 2026-10-18 (map mode). Three passes per frame, all in
+   `AvalancheRenderer`:
+   - **Bin** (`avalanche_surface_bin.wgsl`, compute, before the G-buffer pass): per solver
+     grid column, the highest and lowest particle altitude, the count and the top speed, as
+     atomics on a zeroed buffer.
+   - **Depth** (`avalanche_surface_depth.wgsl`, compute): flow depth = top particle + radius −
+     the solver's own terrain at the column. It is 0 where a column has fewer than
+     `surface_min_count` (2) particles. The terrain sampling is shared with the solver's
+     (`avalanche_surface_terrain.wgsl`; `MpmParticleView` now carries the height texture and the
+     region size).
+   - **Draw** (`render_avalanche_surface.wgsl`): one quad per grid cell into the G-buffer.
+     - Each vertex sits at terrain + depth smoothed over 3×3 (1-2-1). Empty columns count as 0,
+       so the blanket thins towards its edge.
+     - Fragments thinner than 5 cm are discarded: the outline is a smooth contour, not the
+       grid's squares.
+     - Normals come from neighbouring blanket heights.
+   - **Panel:** "Flow surface" toggle, on by default.
+
+   **History:** a first version placed edge vertices at the lowest neighbouring particle
+   instead of the terrain. It cut into slopes and showed the grid's squares, which is why the
+   depth pass exists.
+
+   **Verified in map mode** (Hintertux, 74 s): a continuous lit blanket over the dense core,
+   particles above it as front and spray.
+
+   **Open:** small isolated patches where 2–3 particles share a column. Possible fixes: raise
+   the minimum count or smooth wider. The 2D density overlay still draws on top; it can be
+   hidden in the Overlays panel.
 5. **Optional:** transparent splats or a ray-marched grid volume for powder; screen-space depth
    smoothing.
 

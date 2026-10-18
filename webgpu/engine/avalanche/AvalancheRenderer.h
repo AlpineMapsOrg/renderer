@@ -25,8 +25,10 @@
 #include <webgpu/base/Buffer.h>
 #include <webgpu/base/Context.h>
 #include <webgpu/base/raii/BindGroup.h>
+#include <webgpu/base/raii/CombinedComputePipeline.h>
 #include <webgpu/base/raii/Pipeline.h>
 #include <webgpu/base/raii/RawBuffer.h>
+#include <webgpu/base/raii/TextureWithSampler.h>
 
 namespace nucleus::camera {
 class Definition;
@@ -42,7 +44,11 @@ namespace webgpu_engine {
 /// The engine does not know the solver (webgpu_compute). An app-side node sets a source
 /// callback that hands over the particle buffer every frame; the buffer layout is the
 /// solver's struct Particle (mpm_common.wgsl), 32 words per particle, position first.
-/// See mpm-mls-doc/12-rendering-plan.md.
+///
+/// Optionally a flow surface over the particles: prepare() bins them into the solver's grid
+/// columns (a compute pass, before the G-buffer pass), and draw() lays a blanket over the
+/// covered columns, so the dense core reads as a continuous snow mass while particles above it
+/// show the front and the spray. See mpm-mls-doc/12-rendering-plan.md.
 class AvalancheRenderer {
 public:
     enum class ColourMode : uint32_t { Snow = 0, Speed = 1 };
@@ -61,6 +67,8 @@ public:
         float strain_window = 0.15f; // [s] time over which the strain rate stretches an ellipsoid
         float min_pixel_radius = 1.5f; // [px] far away, particles keep at least this size
         float speed_max = 60.0f; // [m/s] top of the speed colour scale
+        bool surface = true; // the flow surface over the covered columns
+        uint32_t surface_min_count = 2; // particles a column needs to belong to the surface
     };
 
     /// One frame's particles. world_from_metres maps particle.position.xy (metres) to world
@@ -70,6 +78,12 @@ public:
         uint32_t particle_count = 0;
         glm::dmat3 world_from_metres = glm::dmat3(1.0);
         float particle_spacing = 1.0f; // [m]
+        glm::vec2 domain_origin = glm::vec2(0.0f); // [m] the solver's grid node (0, 0)
+        float dx = 1.0f; // [m] its node spacing
+        glm::uvec2 columns = glm::uvec2(0u); // its nodes in x and y
+        // The solver's terrain (R32Float metres, uv = metres / region_size, v south), for the surface.
+        const webgpu::raii::TextureWithSampler* height_texture = nullptr;
+        glm::vec2 region_size = glm::vec2(1.0f); // [m]
     };
     using Source = std::function<std::optional<Frame>()>;
 
@@ -95,9 +109,12 @@ public:
 
     Settings settings;
 
-    /// Records the draw into a G-buffer render pass whose groups 0 (shared config) and 1
+    /// Fetches this frame's particles and, for the flow surface, records the binning compute
+    /// pass. Call before the G-buffer render pass; draw() uses what it fetched.
+    void prepare(WGPUCommandEncoder encoder, const nucleus::camera::Definition& camera);
+    /// Records the draws into a G-buffer render pass whose groups 0 (shared config) and 1
     /// (camera) are already bound.
-    void draw(WGPURenderPassEncoder render_pass, const nucleus::camera::Definition& camera);
+    void draw(WGPURenderPassEncoder render_pass);
 
 private:
     struct GpuConfig {
@@ -110,6 +127,21 @@ private:
         uint32_t particle_count = 0u;
         float strain_window = 0.0f; // [s], 0 = spheres
     };
+    // avalanche_surface_common.wgsl
+    struct SurfaceConfig {
+        glm::vec4 xy_from_metres = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+        glm::vec2 offset_cws = glm::vec2(0.0f);
+        glm::vec2 domain_origin = glm::vec2(0.0f);
+        glm::uvec2 columns = glm::uvec2(0u);
+        float dx = 1.0f;
+        float radius = 1.0f;
+        uint32_t particle_count = 0u;
+        uint32_t min_count = 2u;
+        uint32_t colour_mode = 0u;
+        float speed_max = 60.0f;
+        glm::vec2 region_size = glm::vec2(1.0f);
+        glm::uvec2 height_dim = glm::uvec2(1u);
+    };
 
     webgpu::Context* m_ctx = nullptr;
     Source m_source;
@@ -118,6 +150,23 @@ private:
     std::unique_ptr<webgpu::Buffer<GpuConfig>> m_config;
     std::unique_ptr<webgpu::raii::BindGroup> m_bind_group;
     WGPUBuffer m_bound_particles = nullptr; // the buffer m_bind_group refers to
+
+    std::optional<Frame> m_frame; // fetched by prepare() for this frame's draw()
+
+    /* Flow surface: per-column accumulators (avalanche_surface_common.wgsl), the binning
+     * compute pipeline and the surface render pipeline. */
+    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_bin_pipeline;
+    std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_surface_pipeline;
+    std::unique_ptr<webgpu::Buffer<SurfaceConfig>> m_surface_config;
+    std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_columns;
+    std::unique_ptr<webgpu::raii::RawBuffer<float>> m_depth; // per column: flow depth [m], top speed [m/s]
+    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_depth_pipeline;
+    std::unique_ptr<webgpu::raii::BindGroup> m_bin_bind_group;
+    std::unique_ptr<webgpu::raii::BindGroup> m_depth_bind_group;
+    std::unique_ptr<webgpu::raii::BindGroup> m_surface_bind_group;
+    WGPUBuffer m_bin_bound_particles = nullptr;
+    WGPUTexture m_bound_height = nullptr; // the height texture the depth and surface bind groups use
+    bool m_surface_ready = false; // prepare() binned this frame's particles
 };
 
 } // namespace webgpu_engine

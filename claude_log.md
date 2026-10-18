@@ -288,6 +288,14 @@ temporary test build without the first-run notice; the preset was restored and r
 - **Verified:** Hintertux at 77 s shows stretched moving particles, through a temporary
   auto-framing test build that was reverted.
 
+**Step 4, flow surface, done the same day.**
+- **Design:** bin → depth (solver terrain) → draped grid mesh with 3×3 smoothing and a 5 cm
+  contour.
+- **First attempt:** used the lowest particle as "ground"; it cut into slopes and looked blocky.
+  Replaced by the depth pass.
+- **Verified:** Hintertux at 74 s, via a temporary test build that was reverted.
+- **Open:** isolated small patches.
+
 **Approach that failed:** posting a click to the app's process (`CGEvent.postToPid`) does not
 reach SDL in the background. I did not move the user's real mouse.
 

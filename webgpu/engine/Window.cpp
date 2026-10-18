@@ -169,6 +169,10 @@ void Window::paint(webgpu::Framebuffer* framebuffer, WGPUCommandEncoder command_
     // render atmosphere to color buffer
     m_context->atmosphere_renderer()->draw(command_encoder, m_camera_bind_group->handle());
 
+    // The avalanche renderer's compute work (binning for the flow surface) runs before the pass.
+    if (auto* avalanche = m_context->avalanche_renderer())
+        avalanche->prepare(command_encoder, m_camera);
+
     // render tiles to geometry buffers
     {
         std::unique_ptr<webgpu::raii::RenderPassEncoder> render_pass = m_gbuffer->begin_render_pass(command_encoder);
@@ -184,7 +188,7 @@ void Window::paint(webgpu::Framebuffer* framebuffer, WGPUCommandEncoder command_
 
         // The MPM avalanche particles, into the same G-buffer (lit and hazed like the terrain).
         if (auto* avalanche = m_context->avalanche_renderer())
-            avalanche->draw(render_pass->handle(), m_camera);
+            avalanche->draw(render_pass->handle());
     }
 
     // render clouds

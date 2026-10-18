@@ -70,6 +70,15 @@ struct MpmParticleView {
     glm::dmat3 world_from_metres = glm::dmat3(1.0);
     bool placed = false; // false for a synthetic sandbox dataset, which has no place on the map
     float particle_spacing = 1.0f; // [m] cube root of the release volume per particle
+    /* The solver's grid columns (nodes at domain_origin + index * dx, in metres), for renderers
+     * that aggregate the particles per column, like the flow surface. */
+    glm::vec2 domain_origin = glm::vec2(0.0f);
+    float dx = 1.0f;
+    glm::uvec2 columns = glm::uvec2(0u);
+    /* The terrain the solver runs on (R32Float, altitudes in metres, uv = metres / region_size
+     * with v pointing south), so a renderer can drape things over the same ground. */
+    const webgpu::raii::TextureWithSampler* height_texture = nullptr;
+    glm::vec2 region_size = glm::vec2(1.0f); // [m]
 };
 
 class MpmSolverNode : public Node {
