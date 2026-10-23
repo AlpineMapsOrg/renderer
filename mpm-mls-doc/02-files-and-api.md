@@ -25,12 +25,27 @@
 | `shaders/mpm_splat.wgsl` | Accumulates particles into a density raster. |
 | `shaders/mpm_rasterize.wgsl` | Density raster → RGBA texture. |
 
+### Rendering (`webgpu/engine/`)
+
+The 3D avalanche on the map (map mode only; the sandbox keeps its 2D view). Design, history
+and verification: [12-rendering-plan.md](12-rendering-plan.md).
+
+| File | Purpose |
+|---|---|
+| `avalanche/AvalancheRenderer.h/.cpp` | Draws the particles and the flow surface. `prepare()` (compute: splat + field, before the G-buffer pass), `draw()` (particles + surface into the G-buffer), `draw_transparent()` (Powder, after compose). Fed by a source callback (`Frame`), not by the solver directly. |
+| `shaders/render_avalanche.wgsl` | Particles as sphere or strain-rate-ellipsoid impostors in the G-buffer, optionally as 8/27 detail (child) particles. Writes the avalanche marker into the overlay slot. |
+| `shaders/render_avalanche_powder.wgsl` | Powder: large soft transparent blobs with per-particle noise, blended over the lit frame, faded against the G-buffer depth. |
+| `shaders/avalanche_surface_splat.wgsl` | Flow surface 1/3: B-spline splat of particle volume onto the render grid (fixed-point atomics). |
+| `shaders/avalanche_surface_field.wgsl` | Flow surface 2/3: depth, blanket height, speed, and the persistent peak depth (track). |
+| `shaders/render_avalanche_surface.wgsl` | Flow surface 3/3: the draped blanket and the track into the G-buffer. |
+| `shaders/avalanche_surface_common.wgsl`, `avalanche_surface_terrain.wgsl` | Shared uniform/layouts, B-spline, avalanche marker; the solver's terrain sampled like `mpm_common`. |
+
 ### App side (`apps/webgpu_app/`)
 
 | File | Purpose |
 |---|---|
 | `avalanche/AvalanchePanel.h/.cpp` | Sidebar panel: location picker + transport + main knobs. **Owns the animation driver.** Also the sandbox dataset picker. |
-| `compute/ParticleRenderNode.h/.cpp` | Terminal node: hands the solver's `particle view` to the engine's `AvalancheRenderer` (3D particles on the map). See [12-rendering-plan.md](12-rendering-plan.md). |
+| `compute/ParticleRenderNode.h/.cpp` | Terminal node "Particles 3D": hands the solver's `particle view` to the engine's `AvalancheRenderer`, serialises its settings, and owns the "Avalanche snow cover" overlay (`sync_snow_cover()`, snow line fitted to the solver's terrain scan). See [12-rendering-plan.md](12-rendering-plan.md). |
 | `avalanche/SandboxView.h/.cpp` | 2D window for sandbox runs: hillshade, release, com1DFA outline, particle raster, domain box. |
 | `avalanche/AvaFrameData.h/.cpp` | "Download AvaFrame data" in the panel: downloads the five real test avalanches from AvaFrame's repository (release 2.1) and prepares them. A C++ port of `prepare_dataset.py` for these five, with byte-identical rasters. |
 | `compute/nodes/MpmSolverNodeRenderer.h/.cpp` | Node-editor settings panel (full parameter set). |
@@ -43,13 +58,18 @@
 |---|---|
 | `webgpu/compute/CMakeLists.txt` | Source + shader resource entries. |
 | `webgpu/compute/NodeRegistry.cpp` | `register_node()` for `MpmSolverNode`, `GeoRegionNode`, `AvaFrameSandboxNode`. |
-| `webgpu/compute/nodes/Node.h` | `const SandboxTerrain*` added to the socket data variant. |
+| `webgpu/compute/nodes/Node.h` | `const SandboxTerrain*` and `const MpmParticleView*` (the solver's `particle view` output) added to the socket data variant. |
 | `apps/webgpu_app/CMakeLists.txt` | Source entries. |
 | `apps/webgpu_app/compute/nodes/NodeRendererFactory.cpp` | `dynamic_cast` branch for the solver renderer. |
 | `apps/webgpu_app/compute/NodeGraphPanel.h` | Added `node_graph()` accessor so other panels can reach the graph. |
 | `apps/webgpu_app/compute/NodeGraphPanel.cpp` | Preset list entry. |
 | `apps/webgpu_app/ImGuiManager.cpp` | Registers `AvalanchePanel` (guarded by `ALP_WEBGPU_APP_ENABLE_COMPUTE`). |
 | `apps/webgpu_app/resources.qrc` | Graph resource. |
+| `webgpu/engine/Context.h/.cpp`, `apps/webgpu_app/RenderingContext.cpp` | The engine context owns an `AvalancheRenderer` (`avalanche_renderer()`); the app creates it and registers `ParticleRenderNode`. |
+| `webgpu/engine/Window.cpp` | Calls the renderer: `prepare()` before the G-buffer pass, `draw()` after the tiles, `draw_transparent()` after compose (before the track lines). |
+| `webgpu/engine/overlay/Overlay.h`, `OverlayRenderer.cpp` | `Overlay::enabled`: disabled overlays are left out of the ping-pong chain (the 2D density overlay hides while the 3D view is on). |
+| `apps/webgpu_app/compute/OverlayRenderNode.h/.cpp` | `set_overlay_enabled()`, used by the Avalanche panel. |
+| `webgpu/engine/overlay/ScreenSpaceSnowOverlay.h/.cpp`, `shaders/overlays/screen_space_snow.wgsl`, `apps/webgpu_app/overlay/ScreenSpaceSnowOverlayImGuiRenderer.cpp` | Snow skips pixels carrying the avalanche marker (binds the G-buffer overlay slot); new `patches` setting (slider "Patches"): thin snow as sparse noise patches instead of a translucent veil. |
 
 **Adding a node touches exactly three places** (per `docs/webgpu_app_dev.md`): the `Node`
 subclass, one line in `NodeRegistry`, and optionally a `NodeRenderer` + factory branch.
@@ -85,8 +105,11 @@ See `mpm-mls-doc/avaframe/README.md`.
 
 **Out:** `texture` (RGBA result), `domain aabb` (wire to the overlay's region input —
 the result covers the *domain*, not the whole region), `density buffer` (`RawBuffer<u32>*`),
-`raster dimensions` (`uvec2`), `particle buffer` (`RawBuffer<u32>*` — **this is the hook for
-a future 3D particle renderer**, no CPU readback needed).
+`raster dimensions` (`uvec2`), `particle buffer` (`RawBuffer<u32>*`), and `particle view`
+(`const MpmParticleView*`): what the 3D renderer needs without CPU readback — the buffer
+and count, the metres → world affine, particle spacing, the grid (origin, dx, columns), the
+solver's height texture and region size, and `reset_count` (changes on Reset; clears the
+track). Kept current across reallocations.
 
 ### Methods
 
@@ -160,6 +183,13 @@ the CFL bound of the new stiffness (`MpmSolverNode::max_stable_dt()`, which the 
 enforces on every run). Seven presets: Stomakhin, Li 2021 Cases I–V (named "… parameters":
 the notes say what Li observed), and a Drucker–Prager cold-dense alternative. The sidebar
 warns when the last run touched the box (band ceiling or walls).
+
+**3D view (map graph, "Particles 3D" node).** Controls under the transport: "3D particles"
+(+ colour), "Flow surface", "Look at the flow" (camera 400 m from the centre of mass),
+"Track", "Snow cover", "Surface detail", particle shape (spheres / strain-rate ellipsoids /
+Powder, the default) with size, detail particles or powder size/opacity, strain window.
+`draw()` hides the 2D density overlay while the 3D view is on and calls
+`ParticleRenderNode::sync_snow_cover()` with the solver's terrain range every frame.
 
 Play/Pause deliberately exists **only here** — two things calling `rerun()` per frame would
 race. The node renderer keeps Step and Reset, which are one-shot and safe.

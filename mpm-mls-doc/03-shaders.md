@@ -290,3 +290,21 @@ hard-coding a constant means the display rescales itself when particle count or 
 change.
 
 Empty texels are written fully transparent.
+
+## Rendering shaders (engine, not solver kernels)
+
+The 3D view on the map lives in `webgpu/engine/shaders/` and only *reads* the particle buffer;
+nothing here feeds back into the simulation. Run by `AvalancheRenderer` each frame. Design
+and verification: [12-rendering-plan.md](12-rendering-plan.md).
+
+| Shader | Stage | What it does |
+|---|---|---|
+| `avalanche_surface_splat` | compute, 256×1×1 over particles | Quadratic B-spline (the solver's, at its dx) splat of each particle's volume (spacing³) onto a render grid 1–4× finer than the solver's; per node Σw, Σw·speed, Σw·height above terrain as fixed-point atomics. Particles more than 2 dx up are faded out. |
+| `avalanche_surface_field` | compute, 16×16×1 over render nodes | Depth = Σw·V/dx², blanket height = 2·mean height + radius (tapered at the edge), mean speed, persistent peak depth (track, cleared on reset). |
+| `render_avalanche_surface` | render, G-buffer | One quad per render cell, rejected unless a corner reaches min_depth; discard below the contour; track albedo at the rim and where only the peak depth remains. |
+| `render_avalanche` | render, G-buffer | Sphere / strain-rate-ellipsoid impostors (vertex pulling, ray–ellipsoid, `frag_depth`), optional detail particles. |
+| `render_avalanche_powder` | render, after compose | Soft transparent blobs with per-particle noise, premultiplied "over", faded by the share of the ray path in front of the G-buffer depth. |
+
+All avalanche fragments write `AVALANCHE_MARKER` (`0x00FFFFFF`) into the G-buffer overlay slot,
+so `overlays/screen_space_snow.wgsl` leaves them alone. `scripts/validate_wgsl.py` checks these
+shaders together with the kernels.

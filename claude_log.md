@@ -381,6 +381,15 @@ mid-turn: "possibly also just more sparse with a noise texture".
 **Powder is now the default particle shape** (user). `Settings::shape` = Powder; the map preset
 sets no shape, so it applies there.
 
+**Docs brought up to date, towards main (same day).** The other session's docs fixes (PR #10,
+branch `claude/dreamy-sagan-1uw3da`) were merged into `mpm-rendering`.
+- `README` (doc table, pipeline, status), `02-files-and-api` (rendering files, modified engine
+  files, the `particle view` output, panel 3D controls), `03-shaders` (rendering shaders),
+  `06-verification` §5b (rendering checks; §5 now points at the AvaFrame comparison),
+  `12-rendering-plan` status.
+- Merging PR #10 into main from here was refused by the permission check (merge without
+  review). Left for the user.
+
 ### 12. Entrainment research: a snow cover made of particles (2026-10-12)
 
 **Request:** assess the idea of seeding particles along the whole path, held by friction and

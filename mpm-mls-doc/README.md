@@ -31,6 +31,7 @@ from the sources when writing the report. Full list in [refs.md](refs.md).
 | [10-benchmark-results.md](10-benchmark-results.md) | Every checked-in benchmark result as a table: Apple M5 (Chrome/Metal) and SwiftShader, per material, per stage. Generated from `bench/results/*.json`. |
 | [report-fixed-point-energy-pump.md](report-fixed-point-energy-pump.md) | Standalone write-up of the fixed-point blow-up investigation. |
 | [11-avaframe-comparison.md](11-avaframe-comparison.md) | **AvaFrame comparison**: MPM variants, com4FlowPy and the weBIGeo trajectory model against com1DFA on five real avalanches, rated with AIMEC. Setup, tables, findings, limits. |
+| [12-rendering-plan.md](12-rendering-plan.md) | **3D rendering on the map**: particles (ellipsoids, detail particles, powder), the mass-splat flow surface, track and snow cover. Research, decisions, what was tried and rejected, verification per step. |
 | [avaframe/](avaframe/README.md) | **AvaFrame comparison, phase 1**: prepares AvaFrame's test cases (DEM, release, com1DFA reference rasters, AIMEC path, map overlays) for comparing against the MPM solver. |
 | [refs.md](refs.md) | Bibliography. |
 
@@ -47,7 +48,8 @@ Region ─→ Select Tiles ─→ Request Height ─→ Stitch Tiles ─→ Heig
                                                                            │                              │
                                                                            └──────────────┬───────────────┘
                                                                                           ↓
-                                                                                     MPM Solver ─→ Overlay
+                                                                                     MPM Solver ─┬─→ Overlay       (2D density raster)
+                                                                                                 └─→ Particles 3D  (AvalancheRenderer, map graph)
 ```
 
 One node execution = `substeps_per_run` MPM steps. Re-running continues from the current
@@ -68,9 +70,12 @@ a picker for stored locations.
 
 Known gaps, honestly:
 
-- **Output is a 2D top-down density raster**, not 3D particles. The proposal's Phase 5
-  (a real `AvalancheRenderer` in `webgpu/engine/`) is not implemented. The node already
-  exposes a raw `particle buffer` socket so a renderer can bind it without CPU readback.
+- **3D rendering on the map** (2026-10-23, [12-rendering-plan.md](12-rendering-plan.md)):
+  an `AvalancheRenderer` in `webgpu/engine/` draws a draped flow surface from a B-spline
+  mass splat, a track where the flow has been, a lit snow cover that thins to patches below
+  the snow line, and the particles as soft powder (default), ellipsoids or spheres. The 2D
+  density raster remains the output in the sandbox and when the 3D view is off. Not
+  measured yet: the GPU cost of the renderer; not tested: the web build.
 - **Parameters are Stomakhin's paper values**, authored for metre-scale snow. At the default
   12.5 m grid cells the released slab is sub-cell and the flow reads more fluid than slab-like.
   See [05-tuning.md](05-tuning.md).

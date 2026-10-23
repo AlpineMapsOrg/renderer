@@ -30,9 +30,19 @@ A hybrid:
 
 Everything opaque goes into the G-buffer.
 
-## Status (2026-10-18)
+## Status (2026-10-23)
 
-Steps 1 and 2 are implemented and run on macOS.
+Steps 1–8 are implemented and run on macOS; merged towards main with this document.
+
+**What the map shows by default** ("Particles 3D" node, all lit like the terrain):
+- **Flow surface:** a blanket from a B-spline mass splat on a 3× finer render grid (step 6).
+- **Track:** a duller layer where the flow has been (step 7).
+- **Snow cover:** lit snow around the avalanche, thinning to patches below a snow line fitted
+  to the terrain (step 7).
+- **Particles as Powder:** soft, cloudy, transparent blobs over the surface (step 8).
+  Spheres, strain-rate ellipsoids (step 3) and detail particles (step 5) stay selectable.
+
+The rest of this section is the state after steps 1–2 (2026-10-18), kept as history.
 
 **Target: map mode.** Only the map graph (`mpm_avalanche_simulation.json`) has the "Particles 3D"
 node, so the panel controls appear only there. The sandbox keeps its 2D view and map overlay:
@@ -64,9 +74,12 @@ haze on them like on the terrain.
   toggle, colour (snow / speed) and size.
 - `validate_wgsl.py` now also checks engine shaders (`render_avalanche`).
 
-**Not verified yet:**
+**Not verified yet** (still true on 2026-10-23):
 - The web build.
-- A close-up from a low camera; the automated views are from the scenario's framing, about 5 km away.
+- The GPU cost of the renderer (surface passes, detail particles, Powder overdraw).
+- Scenarios other than Hintertux for steps 5–8.
+
+(Close-ups from a low camera are done since step 3: "Look at the flow".)
 
 ## Steps
 

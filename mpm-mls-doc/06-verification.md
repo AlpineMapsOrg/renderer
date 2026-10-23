@@ -317,6 +317,34 @@ domain-centre readout matches the intended coordinates.
 implementation, or measured runout. The proposal is explicit that this is educational, and
 that should stay explicit in the report.
 
+*Since 2026-10-11* there is a comparison against a reference implementation: AvaFrame's
+com1DFA on five real avalanches, rated with AIMEC ([11-avaframe-comparison.md](11-avaframe-comparison.md)).
+Still no comparison against observed runouts.
+
+## 5b. 3D rendering on the map (2026-10-18 to 2026-10-23)
+
+Rendering only reads the particle buffer, so it cannot change a result; what was checked is
+that it shows the flow faithfully. Method, because the app needs a window:
+- A temporary test build without the first-run notice, with the camera framed on the flow at
+  a fixed simulated time and the simulation paused.
+- Settings switched from code between captures of the same frame, for A/B comparisons. A
+  camera nudge of 0.5 m forces the redraw: the app only repaints on change.
+- Window captures by process id.
+- The user's preferences and `imgui.ini` were backed up and restored, and the test build was
+  reverted each time.
+
+| Check | Result |
+|---|---|
+| Particles lie on the rendered terrain | Yes: map mode runs on weBIGeo's own height texture; z = altitude / cos(latitude) as in `render_tiles`. |
+| Ellipsoids follow the flow | Stretched along the flow where it moves, spheres at rest (Hintertux 77 s). |
+| Flow surface: 1× vs 3× render grid, same frame | 3× gives a smooth outline, 1× is faceted; a burst during playback shows no popping. |
+| Holes over bumps: no airborne cut-off, then a 1-particle threshold, same frame | Holes stay: no particles within 12 m. A property of the flow, not of the renderer. |
+| Track + snow cover vs neither, same frame | The path stays readable where the flow thinned; avalanche pixels are not painted over by the snow. |
+| Powder vs ellipsoids, same frame | A soft haze over the flow, no hard intersections with terrain or surface. |
+
+**Not checked:** the web build, the GPU cost of the renderer, and steps 5–8 on scenarios
+other than Hintertux. Details per step: [12-rendering-plan.md](12-rendering-plan.md).
+
 ## Bugs found and fixed along the way
 
 Worth keeping — they are the interesting part of the implementation story.
