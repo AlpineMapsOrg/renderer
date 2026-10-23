@@ -58,7 +58,10 @@ public:
     /// window. They show where the flow shears, stretches or compacts right now. Not the
     /// accumulated deformation: the solver keeps only the elastic part of F, which stays
     /// within about 1 % for snow, and the total deformation of a flow grows without bound.
-    enum class Shape : uint32_t { Spheres = 0, StrainRate = 1 };
+    ///
+    /// Powder: large, soft, transparent blobs blended over the lit frame (draw_transparent()),
+    /// a haze over the flow surface rather than solid snow; the surface carries the mass.
+    enum class Shape : uint32_t { Spheres = 0, StrainRate = 1, Powder = 2 };
 
     struct Settings {
         bool enabled = true;
@@ -70,6 +73,8 @@ public:
         /// within two radii of each simulated one, with the same total volume. 1, 8 or 27.
         uint32_t children = 8;
         float min_pixel_radius = 1.5f; // [px] far away, particles keep at least this size
+        float powder_size = 8.0f; // Powder: blob radius in particle spacings
+        float powder_opacity = 0.3f; // Powder: alpha at a blob's centre
         float speed_max = 60.0f; // [m/s] top of the speed colour scale
         bool surface = true; // the flow surface over the dense flow
         /// The surface is drawn where the snow is at least as deep as this many particles spread
@@ -127,6 +132,14 @@ public:
     /// Records the draws into a G-buffer render pass whose groups 0 (shared config) and 1
     /// (camera) are already bound.
     void draw(WGPURenderPassEncoder render_pass);
+    /// The Powder particles: a pass of its own after the compose pass, blended over the lit frame
+    /// in color_texture and faded against the G-buffer depth (depth_texture, the "depth_texture"
+    /// bind group). Does nothing for the other shapes.
+    void draw_transparent(WGPUCommandEncoder encoder,
+        const webgpu::raii::BindGroup& shared_config,
+        const webgpu::raii::BindGroup& camera,
+        const webgpu::raii::BindGroup& depth_texture,
+        const webgpu::raii::TextureView& color_texture);
 
 private:
     struct GpuConfig {
@@ -139,7 +152,7 @@ private:
         uint32_t particle_count = 0u;
         float strain_window = 0.0f; // [s], 0 = spheres
         uint32_t children = 1u;
-        uint32_t padding0 = 0u;
+        float opacity = 0.0f; // Powder
         uint32_t padding1 = 0u;
         uint32_t padding2 = 0u;
     };
@@ -168,6 +181,7 @@ private:
     Source m_source;
     const void* m_source_owner = nullptr;
     std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_pipeline;
+    std::unique_ptr<webgpu::raii::RenderPipeline> m_powder_pipeline;
     std::unique_ptr<webgpu::Buffer<GpuConfig>> m_config;
     std::unique_ptr<webgpu::raii::BindGroup> m_bind_group;
     WGPUBuffer m_bound_particles = nullptr; // the buffer m_bind_group refers to

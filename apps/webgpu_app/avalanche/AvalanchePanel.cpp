@@ -1272,26 +1272,39 @@ void AvalanchePanel::draw_panel()
                     ImGui::SetTooltip("Render grid of the blanket, finer than the solver's grid. The snow is spread at the\n"
                                       "solver's resolution, so finer steps only draw the same field more smoothly.");
             }
-            ImGui::SliderFloat("Particle size", &view.radius_scale, 0.2f, 2.0f, "%.2f x spacing");
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Sphere radius as a share of the particle spacing (the release volume per particle).");
-            static constexpr uint32_t CHILD_COUNTS[] = { 1u, 8u, 27u };
-            int children = int(std::find(std::begin(CHILD_COUNTS), std::end(CHILD_COUNTS), view.children) - std::begin(CHILD_COUNTS));
-            if (ImGui::Combo("Detail particles", &children, "1 per particle\0" "8 per particle\0" "27 per particle\0"))
-                view.children = CHILD_COUNTS[std::clamp(children, 0, 2)];
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Rendering only: each simulated particle is drawn as several smaller ones scattered within\n"
-                                  "two radii of it, with the same total volume. The detail is invented, not simulated; the\n"
-                                  "clusters move with their particle and merge back into it from afar. 27 is heavy on\n"
-                                  "integrated GPUs.");
+            using Shape = webgpu_engine::AvalancheRenderer::Shape;
             int shape = int(view.shape);
-            if (ImGui::Combo("Particle shape", &shape, "Spheres\0Strain-rate ellipsoids\0"))
-                view.shape = webgpu_engine::AvalancheRenderer::Shape(shape);
+            if (ImGui::Combo("Particle shape", &shape, "Spheres\0Strain-rate ellipsoids\0Powder (transparent)\0"))
+                view.shape = Shape(shape);
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Ellipsoids stretch each particle along its current strain rate (the symmetric part of\n"
                                   "its velocity gradient): elongated where the flow stretches or shears, flattened where it\n"
-                                  "compacts. They show what the flow does now, not how far it has deformed.");
-            if (view.shape == webgpu_engine::AvalancheRenderer::Shape::StrainRate) {
+                                  "compacts. They show what the flow does now, not how far it has deformed.\n"
+                                  "Powder draws each particle as a large, soft, cloudy, transparent blob: a haze over the\n"
+                                  "flow surface that shows where snow is airborne or thin, while the surface carries the mass.");
+            if (view.shape == Shape::Powder) {
+                ImGui::SliderFloat("Powder size", &view.powder_size, 1.0f, 10.0f, "%.1f x spacing");
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Blob radius as a multiple of the particle spacing. Larger blobs merge into a cloud\n"
+                                      "but cost more (each covers more pixels).");
+                ImGui::SliderFloat("Powder opacity", &view.powder_opacity, 0.02f, 1.0f, "%.2f", ImGuiSliderFlags_Logarithmic);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Alpha at a blob's centre; it falls off towards the edge and is broken up by noise.");
+            } else {
+                ImGui::SliderFloat("Particle size", &view.radius_scale, 0.2f, 2.0f, "%.2f x spacing");
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Sphere radius as a share of the particle spacing (the release volume per particle).");
+                static constexpr uint32_t CHILD_COUNTS[] = { 1u, 8u, 27u };
+                int children = int(std::find(std::begin(CHILD_COUNTS), std::end(CHILD_COUNTS), view.children) - std::begin(CHILD_COUNTS));
+                if (ImGui::Combo("Detail particles", &children, "1 per particle\0" "8 per particle\0" "27 per particle\0"))
+                    view.children = CHILD_COUNTS[std::clamp(children, 0, 2)];
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Rendering only: each simulated particle is drawn as several smaller ones scattered within\n"
+                                      "two radii of it, with the same total volume. The detail is invented, not simulated; the\n"
+                                      "clusters move with their particle and merge back into it from afar. 27 is heavy on\n"
+                                      "integrated GPUs.");
+            }
+            if (view.shape == Shape::StrainRate) {
                 ImGui::SliderFloat("Strain window", &view.strain_window, 0.02f, 1.0f, "%.2f s", ImGuiSliderFlags_Logarithmic);
                 if (ImGui::IsItemHovered())
                     ImGui::SetTooltip("How long the current strain rate acts on the shape. Longer shows weaker strain;\n"

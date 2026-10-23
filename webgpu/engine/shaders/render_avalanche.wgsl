@@ -53,7 +53,7 @@ struct AvalancheConfig {
     particle_count: u32,
     strain_window: f32, // [s], 0 = spheres
     children: u32, // drawn particles per simulated particle (1 = none), see child_offset()
-    padding0: u32,
+    opacity: f32, // powder only (render_avalanche_powder.wgsl): peak alpha of a blob
     padding1: u32,
     padding2: u32,
 }

@@ -358,6 +358,17 @@ in `12-rendering-plan.md`, step 7.
 - **Requested by the user:** future rendering options (screen-space fluid rendering and others)
   documented in Notion.
 
+**Powder particles (same day, uncommitted).** The user's idea: particles rendered like gas, large,
+dense in the middle and sparse outside, as a guide over the surface. Mid-turn the user added: a
+noise texture shifted per particle. Details are in `12-rendering-plan.md`, step 8.
+- **Shape:** a third particle shape, `Shape::Powder`.
+- **Pass:** transparent, after compose, on the track-line pattern. No sort is needed for
+  same-coloured premultiplied "over" blending.
+- **Soft intersection** via the G-buffer depth.
+- **Noise:** procedural per-particle value noise instead of a texture asset (same effect, nothing
+  to load).
+- **Verified** on one paused frame, A/B against the ellipsoids. GPU cost not measured.
+
 ### 12. Entrainment research: a snow cover made of particles (2026-10-12)
 
 **Request:** assess the idea of seeding particles along the whole path, held by friction and

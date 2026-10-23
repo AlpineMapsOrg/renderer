@@ -21,6 +21,8 @@
 #include <algorithm>
 #include <nucleus/camera/Definition.h>
 #include <webgpu/base/Framebuffer.h>
+#include <webgpu/base/raii/PipelineLayout.h>
+#include <webgpu/base/raii/RenderPassEncoder.h>
 
 namespace webgpu_engine {
 
@@ -73,6 +75,7 @@ void AvalancheRenderer::init(webgpu::Context& ctx)
 
     auto& reg = ctx.resource_registry();
     reg.register_shader("render_avalanche", "webgpu_engine::render_avalanche");
+    reg.register_shader("render_avalanche_powder", "webgpu_engine::render_avalanche_powder");
     reg.register_shader("avalanche_surface_splat", "webgpu_engine::avalanche_surface_splat");
     reg.register_shader("avalanche_surface_field", "webgpu_engine::avalanche_surface_field");
     reg.register_shader("render_avalanche_surface", "webgpu_engine::render_avalanche_surface");
@@ -117,6 +120,44 @@ void AvalancheRenderer::init(webgpu::Context& ctx)
     });
 
     reg.register_pipeline([this](WGPUDevice dev, const webgpu::RenderResourceRegistry& reg) {
+        // Powder: premultiplied "over" onto the lit frame, no depth attachment (the shader fades
+        // against the G-buffer depth itself), like the track lines.
+        WGPUBlendState blend_state {};
+        blend_state.color.operation = WGPUBlendOperation_Add;
+        blend_state.color.srcFactor = WGPUBlendFactor_One;
+        blend_state.color.dstFactor = WGPUBlendFactor_OneMinusSrcAlpha;
+        blend_state.alpha.operation = WGPUBlendOperation_Add;
+        blend_state.alpha.srcFactor = WGPUBlendFactor_Zero;
+        blend_state.alpha.dstFactor = WGPUBlendFactor_One;
+        WGPUColorTargetState color_target {};
+        color_target.blend = &blend_state;
+        color_target.writeMask = WGPUColorWriteMask_All;
+        color_target.format = m_ctx->surface_texture_format();
+        WGPUFragmentState fragment_state {};
+        fragment_state.module = reg.shader("render_avalanche_powder").handle();
+        fragment_state.entryPoint = WGPUStringView { .data = "fragmentMain", .length = WGPU_STRLEN };
+        fragment_state.targetCount = 1;
+        fragment_state.targets = &color_target;
+        webgpu::raii::PipelineLayout powder_layout(dev,
+            std::vector<WGPUBindGroupLayout> {
+                reg.bind_group_layout("shared_config").handle(),
+                reg.bind_group_layout("camera").handle(),
+                reg.bind_group_layout("depth_texture").handle(),
+                reg.bind_group_layout("avalanche").handle(),
+            });
+        WGPURenderPipelineDescriptor powder_desc {};
+        powder_desc.label = WGPUStringView { .data = "avalanche powder pipeline", .length = WGPU_STRLEN };
+        powder_desc.vertex.module = reg.shader("render_avalanche_powder").handle();
+        powder_desc.vertex.entryPoint = WGPUStringView { .data = "vertexMain", .length = WGPU_STRLEN };
+        powder_desc.primitive.topology = WGPUPrimitiveTopology_TriangleStrip;
+        powder_desc.primitive.frontFace = WGPUFrontFace_CCW;
+        powder_desc.primitive.cullMode = WGPUCullMode_None;
+        powder_desc.fragment = &fragment_state;
+        powder_desc.multisample.count = 1;
+        powder_desc.multisample.mask = ~0u;
+        powder_desc.layout = powder_layout.handle();
+        m_powder_pipeline = std::make_unique<webgpu::raii::RenderPipeline>(dev, powder_desc);
+
         m_pipeline = std::make_unique<webgpu::raii::GenericRenderPipeline>(dev,
             reg.shader("render_avalanche"),
             reg.shader("render_avalanche"),
@@ -171,18 +212,20 @@ void AvalancheRenderer::prepare(WGPUCommandEncoder encoder, const nucleus::camer
     const glm::dmat3& m = frame.world_from_metres;
     const glm::vec4 xy_from_metres { float(m[0][0]), float(m[0][1]), float(m[1][0]), float(m[1][1]) };
     const glm::vec2 offset_cws = glm::vec2(glm::dvec2(m[2]) - glm::dvec2(camera.position()));
-    const float radius = std::max(settings.radius_scale, 0.01f) * frame.particle_spacing;
+    const float radius = std::max(settings.radius_scale, 0.01f) * frame.particle_spacing; // solid particles, also the surface's
+    const bool powder = settings.shape == Shape::Powder;
 
     GpuConfig& c = m_config->data;
     c.xy_from_metres = xy_from_metres;
     c.offset_cws = offset_cws;
-    c.radius = radius;
+    c.radius = powder ? std::max(settings.powder_size, 0.1f) * frame.particle_spacing : radius;
     c.colour_mode = uint32_t(settings.colour_mode);
     c.min_pixel_radius = std::max(settings.min_pixel_radius, 0.0f);
     c.speed_max = std::max(settings.speed_max, 1.0f);
     c.particle_count = count;
     c.strain_window = settings.shape == Shape::StrainRate ? std::max(settings.strain_window, 0.0f) : 0.0f;
-    c.children = std::clamp(settings.children, 1u, 64u);
+    c.children = powder ? 1u : std::clamp(settings.children, 1u, 64u);
+    c.opacity = std::clamp(settings.powder_opacity, 0.0f, 1.0f);
     m_config->update_gpu_data(m_ctx->queue());
 
     // The solver reallocates its buffer when the particle count or grid changes.
@@ -298,9 +341,11 @@ void AvalancheRenderer::draw(WGPURenderPassEncoder render_pass)
 {
     if (!m_frame || m_pipeline == nullptr || m_bind_group == nullptr)
         return;
-    wgpuRenderPassEncoderSetPipeline(render_pass, m_pipeline->pipeline().handle());
-    wgpuRenderPassEncoderSetBindGroup(render_pass, 2, m_bind_group->handle(), 0, nullptr);
-    wgpuRenderPassEncoderDraw(render_pass, QUAD_VERTICES, m_config->data.particle_count * m_config->data.children, 0, 0);
+    if (settings.shape != Shape::Powder) {
+        wgpuRenderPassEncoderSetPipeline(render_pass, m_pipeline->pipeline().handle());
+        wgpuRenderPassEncoderSetBindGroup(render_pass, 2, m_bind_group->handle(), 0, nullptr);
+        wgpuRenderPassEncoderDraw(render_pass, QUAD_VERTICES, m_config->data.particle_count * m_config->data.children, 0, 0);
+    }
 
     if (m_surface_ready && m_surface_pipeline != nullptr && m_surface_bind_group != nullptr) {
         const glm::uvec2 nodes = m_surface_config->data.nodes;
@@ -308,6 +353,33 @@ void AvalancheRenderer::draw(WGPURenderPassEncoder render_pass)
         wgpuRenderPassEncoderSetBindGroup(render_pass, 2, m_surface_bind_group->handle(), 0, nullptr);
         wgpuRenderPassEncoderDraw(render_pass, QUAD_VERTICES, (nodes.x - 1) * (nodes.y - 1), 0, 0);
     }
+}
+
+void AvalancheRenderer::draw_transparent(WGPUCommandEncoder encoder,
+    const webgpu::raii::BindGroup& shared_config,
+    const webgpu::raii::BindGroup& camera,
+    const webgpu::raii::BindGroup& depth_texture,
+    const webgpu::raii::TextureView& color_texture)
+{
+    if (settings.shape != Shape::Powder || !m_frame || m_powder_pipeline == nullptr || m_bind_group == nullptr)
+        return;
+    WGPURenderPassColorAttachment color_attachment {};
+    color_attachment.view = color_texture.handle();
+    color_attachment.loadOp = WGPULoadOp_Load;
+    color_attachment.storeOp = WGPUStoreOp_Store;
+    color_attachment.depthSlice = WGPU_DEPTH_SLICE_UNDEFINED;
+    WGPURenderPassDescriptor pass_desc {};
+    pass_desc.label = WGPUStringView { .data = "avalanche powder render pass", .length = WGPU_STRLEN };
+    pass_desc.colorAttachmentCount = 1;
+    pass_desc.colorAttachments = &color_attachment;
+
+    webgpu::raii::RenderPassEncoder pass(encoder, pass_desc);
+    wgpuRenderPassEncoderSetPipeline(pass.handle(), m_powder_pipeline->handle());
+    wgpuRenderPassEncoderSetBindGroup(pass.handle(), 0, shared_config.handle(), 0, nullptr);
+    wgpuRenderPassEncoderSetBindGroup(pass.handle(), 1, camera.handle(), 0, nullptr);
+    wgpuRenderPassEncoderSetBindGroup(pass.handle(), 2, depth_texture.handle(), 0, nullptr);
+    wgpuRenderPassEncoderSetBindGroup(pass.handle(), 3, m_bind_group->handle(), 0, nullptr);
+    wgpuRenderPassEncoderDraw(pass.handle(), QUAD_VERTICES, m_config->data.particle_count, 0, 0);
 }
 
 } // namespace webgpu_engine

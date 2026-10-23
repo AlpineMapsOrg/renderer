@@ -242,8 +242,33 @@ haze on them like on the terrain.
    - The track is one flat colour (no streaks along the flow).
    - The snow line is fixed at 800 m, not per scenario.
    - GPU time not measured.
-8. **Optional / future:** transparent splats or a ray-marched grid volume for powder;
-   screen-space fluid rendering. Collected on the Notion page "Rendering — future work".
+8. **Powder particles.** Done 2026-10-23, the user's idea: particles as gas, a guide over
+   the surface, which carries the mass. It is a third "Particle shape", Powder.
+   - **Look:** each particle is a large, soft, transparent blob, default radius 8× spacing
+     (panel "Powder size" 1–10) and peak alpha 0.3 ("Powder opacity"). The falloff is
+     exp(−3r²)·(1−r²).
+   - **Noise (user's suggestion):** value noise across each blob, 3 octaves, at a per-particle
+     hashed offset. Every blob gets its own fixed cloudy pattern; it is computed in the shader,
+     with no texture asset.
+   - **Pass:** `render_avalanche_powder.wgsl` runs in a pass of its own after compose, like the
+     track lines (`AvalancheRenderer::draw_transparent`, called from `Window::paint`). It blends
+     premultiplied "over" with no sort: all blobs share one colour, so the order does not change
+     the result.
+   - **Soft intersection:** the alpha is scaled by the share of the ray's path through the blob
+     that lies in front of the G-buffer depth, linearised with `inv_proj_matrix`. Blobs sink
+     softly into the terrain and the flow surface instead of being cut off.
+   - **Lighting:** ambient + sun from the shared config, with wrapped diffuse on the sphere
+     normal for a translucent look. The atmosphere's transmittance and inscatter are computed
+     per vertex.
+   - **Other settings:** in Powder mode the G-buffer particles, detail particles and strain
+     window are not used. The flow surface keeps the solid radius (Particle size).
+   - **Verified** (Hintertux, paused at 55 s, 800 m, the same frame): powder at 3× and 6×, and
+     ellipsoids. The point-like particles become a soft, cloudy haze over the flow, densest where
+     it is thick.
+   - **Not measured:** GPU cost. 65k blobs × many pixels of overdraw; Powder size scales it
+     quadratically.
+9. **Optional / future:** a ray-marched grid volume for powder, screen-space fluid rendering and
+   others. Collected on the Notion page "Rendering — future work".
 
 **Verification for each step:** screenshots on the map and in the sandbox, GPU time from
 timestamp queries, and the web build. The 2D raster stays the default until the 3D view is

@@ -116,6 +116,8 @@ void ParticleRenderNode::serialize_settings(QJsonObject& out) const
     out["radius_scale"] = double(renderer->settings.radius_scale);
     out["shape"] = int(renderer->settings.shape);
     out["strain_window"] = double(renderer->settings.strain_window);
+    out["powder_size"] = double(renderer->settings.powder_size);
+    out["powder_opacity"] = double(renderer->settings.powder_opacity);
     out["surface"] = renderer->settings.surface;
     out["surface_refine"] = int(renderer->settings.surface_refine);
     out["track"] = renderer->settings.track;
@@ -133,9 +135,13 @@ void ParticleRenderNode::deserialize_settings(const QJsonObject& in)
     if (in.contains("radius_scale"))
         s.radius_scale = float(in["radius_scale"].toDouble(s.radius_scale));
     if (in.contains("shape"))
-        s.shape = webgpu_engine::AvalancheRenderer::Shape(std::clamp(in["shape"].toInt(), 0, 1));
+        s.shape = webgpu_engine::AvalancheRenderer::Shape(std::clamp(in["shape"].toInt(), 0, 2));
     if (in.contains("strain_window"))
         s.strain_window = float(in["strain_window"].toDouble(s.strain_window));
+    if (in.contains("powder_size"))
+        s.powder_size = std::clamp(float(in["powder_size"].toDouble(s.powder_size)), 0.5f, 20.0f);
+    if (in.contains("powder_opacity"))
+        s.powder_opacity = std::clamp(float(in["powder_opacity"].toDouble(s.powder_opacity)), 0.0f, 1.0f);
     if (in.contains("surface"))
         s.surface = in["surface"].toBool(s.surface);
     if (in.contains("surface_refine"))

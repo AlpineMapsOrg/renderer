@@ -216,6 +216,11 @@ void Window::paint(webgpu::Framebuffer* framebuffer, WGPUCommandEncoder command_
         wgpuRenderPassEncoderDraw(render_pass->handle(), 3, 1, 0, 0);
     }
 
+    // The avalanche as powder: transparent, over the lit frame, faded against the G-buffer depth.
+    if (auto* avalanche = m_context->avalanche_renderer())
+        avalanche->draw_transparent(
+            command_encoder, *m_shared_config_bind_group, *m_camera_bind_group, *m_depth_texture_bind_group, framebuffer->color_texture_view(0));
+
     // render lines to color buffer
     if (m_context->shared_config().m_track_render_mode > 0) {
         m_context->track_renderer()->render(
