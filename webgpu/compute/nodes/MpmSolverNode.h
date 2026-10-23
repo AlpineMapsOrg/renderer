@@ -79,6 +79,7 @@ struct MpmParticleView {
      * with v pointing south), so a renderer can drape things over the same ground. */
     const webgpu::raii::TextureWithSampler* height_texture = nullptr;
     glm::vec2 region_size = glm::vec2(1.0f); // [m]
+    uint32_t reset_count = 0; // changes when the particles are released anew (Reset), so per-run memory can be cleared
 };
 
 class MpmSolverNode : public Node {

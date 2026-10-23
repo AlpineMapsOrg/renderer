@@ -768,6 +768,7 @@ void MpmSolverNode::run_impl()
         m_energy_line.clear();
         m_perf.runs = 0;
         m_reset_count++;
+        m_particle_view.reset_count = m_reset_count;
 
         // Report where we are actually simulating - without this there is no way to tell from
         // the UI which slope the domain landed on.

@@ -27,8 +27,9 @@ USE_RE = re.compile(r"^\s*///use\s+(?:([A-Za-z_][A-Za-z0-9_]*)::)?([/\w .-]+?)\s
 
 KERNELS = ["mpm_prepare", "mpm_seed", "mpm_p2g",
            "mpm_grid_update", "mpm_g2p", "mpm_column_stats", "mpm_refresh_stress", "mpm_splat", "mpm_rasterize"]
-# (namespace, shader): the MPM kernels plus the engine shaders that draw the avalanche.
-SHADERS = [("webgpu_compute", k) for k in KERNELS] + [("webgpu_engine", s) for s in ("render_avalanche", "render_avalanche_surface", "avalanche_surface_splat", "avalanche_surface_field")]
+# (namespace, shader): the MPM kernels plus the engine shaders that draw the avalanche (and the
+# snow overlay, which skips its pixels).
+SHADERS = [("webgpu_compute", k) for k in KERNELS] + [("webgpu_engine", s) for s in ("render_avalanche", "render_avalanche_surface", "avalanche_surface_splat", "avalanche_surface_field", "overlays/screen_space_snow")]
 
 
 def resolve(path, namespace, seen):
@@ -80,7 +81,7 @@ def main():
     failed = 0
     for namespace, kernel in SHADERS:
         src = resolve(os.path.join(NS_DIRS[namespace], kernel + ".wgsl"), namespace, set())
-        tmp = os.path.join(os.path.dirname(__file__), f"_resolved_{kernel}.wgsl")
+        tmp = os.path.join(os.path.dirname(__file__), f"_resolved_{kernel.replace('/', '_')}.wgsl")
         with open(tmp, "w") as f:
             f.write(src)
         result = subprocess.run(command + [tmp],

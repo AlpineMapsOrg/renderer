@@ -339,6 +339,25 @@ are in `12-rendering-plan.md`, step 6.
   playback (no popping).
 - **Open:** GPU time not measured; the web build is not tested.
 
+**Gaps over bumps: diagnosis, then track and snow cover (same day, uncommitted).** Details are
+in `12-rendering-plan.md`, step 7.
+- **Diagnosis:** the same paused frame, with and without the airborne cut-off and with a
+  one-particle threshold. The holes stayed, so they are real: no particles within 12 m. They are
+  not a rendering threshold.
+- **B, track:** a persistent peak depth per render node, cleared on solver reset (new
+  `MpmParticleView::reset_count`). It draws a 0.3 m duller layer where the flow has been.
+- **A, snow cover:** `ParticleRenderNode` owns a pre-shading (lit) `ScreenSpaceSnowOverlay`.
+  The avalanche writes a marker into the G-buffer overlay slot, which the snow overlay skips.
+- **Test trap 1:** setting the same camera again does not redraw. Nudge the distance (800,
+  800.5, 801 m) when switching settings while paused.
+- **Test trap 2:** log the stage switches (`qWarning`) and match them to the capture
+  timestamps. The time to reach a given simulated time varies by several seconds between
+  runs.
+- **Validator:** now also checks `overlays/screen_space_snow`; temporary files for nested
+  names are flattened.
+- **Requested by the user:** future rendering options (screen-space fluid rendering and others)
+  documented in Notion.
+
 ### 12. Entrainment research: a snow cover made of particles (2026-10-12)
 
 **Request:** assess the idea of seeding particles along the whole path, held by friction and

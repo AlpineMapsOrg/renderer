@@ -26,6 +26,8 @@
 //   height on average, so 2 * the weighted mean height + the drawn radius covers them. Faded to
 //   the volume depth towards the edge, so the blanket meets the ground there.
 // - the weighted mean speed.
+// - the peak depth since the release (kept across frames, cleared on a reset): the track. Where
+//   the flow has been, a thin layer stays, as in AvaFrame's peak flow thickness rasters.
 
 ///use avalanche_surface_common
 ///use avalanche_surface_terrain
@@ -34,6 +36,7 @@
 @group(0) @binding(1) var<storage, read_write> field: array<f32>; // FIELD_STRIDE_F32 per node
 @group(0) @binding(2) var height_texture: texture_2d<f32>;
 @group(0) @binding(3) var<uniform> surface: SurfaceConfig;
+@group(0) @binding(4) var<storage, read_write> peak: array<f32>; // per node, persistent
 
 @compute @workgroup_size(16, 16, 1)
 fn computeMain(@builtin(global_invocation_id) id: vec3u) {
@@ -52,8 +55,14 @@ fn computeMain(@builtin(global_invocation_id) id: vec3u) {
         let edge = smoothstep(surface.min_depth, 4.0 * surface.min_depth, depth);
         cover = mix(depth, max(depth, 2.0 * mean_height + surface.radius), edge);
     }
+    let deepest = max(peak[index], depth);
+    peak[index] = deepest;
+    if surface.track != 0u && deepest >= surface.min_depth {
+        cover = max(cover, TRACK_DEPTH * mix(0.5, 1.0, smoothstep(surface.min_depth, 3.0 * surface.min_depth, deepest)));
+    }
     let base = index * FIELD_STRIDE_F32;
     field[base] = terrain_altitude(node_metres(node)) + cover;
     field[base + 1u] = depth;
     field[base + 2u] = speed;
+    field[base + 3u] = select(0.0, deepest, surface.track != 0u);
 }

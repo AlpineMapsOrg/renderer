@@ -37,6 +37,7 @@
 @group(2) @binding(1) var<uniform> avalanche: AvalancheConfig;
 
 const PARTICLE_STRIDE_VEC4: u32 = 8u;
+const AVALANCHE_MARKER: u32 = 0x00FFFFFFu; // G-buffer overlay slot, see avalanche_surface_common.wgsl
 const SNOW_ALBEDO = vec3f(0.93, 0.95, 0.98);
 const MAX_STRAIN = 0.7; // largest stretch or squeeze of an ellipsoid axis (1 -/+ this)
 const CHILD_FADE_PIXELS = vec2f(1.5, 3.0); // parent radius [px]: children merge below, full above
@@ -257,6 +258,6 @@ fn fragmentMain(in: VertexOut) -> FragOut {
     out.albedo = pack4x8unorm(vec4f(in.colour, 1.0));
     out.position = vec4f(hit, length(hit));
     out.normal_enc = octNormalEncode2u16(normal);
-    out.overlay = 0u;
+    out.overlay = AVALANCHE_MARKER;
     return out;
 }

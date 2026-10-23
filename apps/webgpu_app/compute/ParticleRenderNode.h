@@ -18,11 +18,13 @@
 
 #pragma once
 
+#include <memory>
 #include <webgpu/compute/nodes/Node.h>
 #include <webgpu/engine/avalanche/AvalancheRenderer.h>
 
 namespace webgpu_engine {
 class Context;
+class ScreenSpaceSnowOverlay;
 }
 
 namespace webgpu_compute::nodes {
@@ -43,6 +45,11 @@ public:
 
     /// The renderer's settings (colour, size); shared by every node, since there is one renderer.
     webgpu_engine::AvalancheRenderer::Settings& renderer_settings();
+    /// Shows or hides the snow cover around the avalanche (Settings::snow_cover, while the 3D
+    /// view is on): a screen-space snow overlay this node adds on first use, before the shading
+    /// so it is lit like the terrain. The avalanche marks its pixels, so the overlay skips them.
+    /// Call every frame; cheap when nothing changes.
+    void sync_snow_cover();
 
     void serialize_settings(QJsonObject& out) const override;
     void deserialize_settings(const QJsonObject& in) override;
@@ -52,6 +59,7 @@ public slots:
 
 private:
     webgpu_engine::Context* m_context;
+    std::weak_ptr<webgpu_engine::ScreenSpaceSnowOverlay> m_snow_overlay; // owned by the OverlayRenderer
 };
 
 } // namespace webgpu_compute::nodes

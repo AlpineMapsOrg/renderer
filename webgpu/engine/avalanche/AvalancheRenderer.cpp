@@ -29,7 +29,7 @@ namespace {
     constexpr uint32_t PARTICLE_STRIDE_U32 = 32;
     constexpr uint32_t QUAD_VERTICES = 4; // a triangle strip
     constexpr uint32_t ACCUM_STRIDE_U32 = 3; // avalanche_surface_common.wgsl
-    constexpr uint32_t FIELD_STRIDE_F32 = 3;
+    constexpr uint32_t FIELD_STRIDE_F32 = 4;
     constexpr uint32_t SPLAT_WORKGROUP_SIZE = 256;
 
     // The G-buffer of TileMeshRenderer: the avalanche is drawn into the same pass.
@@ -103,6 +103,7 @@ void AvalancheRenderer::init(webgpu::Context& ctx)
                 buffer_entry(1, WGPUShaderStage_Compute, WGPUBufferBindingType_Storage), // field
                 height_texture_entry(2, WGPUShaderStage_Compute),
                 buffer_entry(3, WGPUShaderStage_Compute, WGPUBufferBindingType_Uniform), // surface config
+                buffer_entry(4, WGPUShaderStage_Compute, WGPUBufferBindingType_Storage), // peak depth
             },
             "avalanche surface field bind group layout");
     });
@@ -219,6 +220,7 @@ void AvalancheRenderer::prepare(WGPUCommandEncoder encoder, const nucleus::camer
     s.region_size = frame.region_size;
     s.height_dim = glm::uvec2(uint32_t(height_texture.width()), uint32_t(height_texture.height()));
     s.radius = radius;
+    s.track = settings.track ? 1u : 0u;
     m_surface_config->update_gpu_data(m_ctx->queue());
 
     const size_t node_count = size_t(s.nodes.x) * s.nodes.y;
@@ -227,6 +229,10 @@ void AvalancheRenderer::prepare(WGPUCommandEncoder encoder, const nucleus::camer
             WGPUBufferUsage(WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst), node_count * ACCUM_STRIDE_U32, "avalanche surface accumulators");
         m_field = std::make_unique<webgpu::raii::RawBuffer<float>>(m_ctx->device(), WGPUBufferUsage(WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst),
             node_count * FIELD_STRIDE_F32, "avalanche surface field");
+        m_peak = std::make_unique<webgpu::raii::RawBuffer<float>>(m_ctx->device(), WGPUBufferUsage(WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst),
+            node_count, "avalanche surface peak depth");
+        m_peak->clear(encoder);
+        m_peak_reset_count = frame.reset_count;
         m_splat_bind_group.reset();
         m_field_bind_group.reset();
         m_surface_bind_group.reset();
@@ -256,6 +262,7 @@ void AvalancheRenderer::prepare(WGPUCommandEncoder encoder, const nucleus::camer
                 m_field->create_bind_group_entry(1),
                 frame.height_texture->texture_view().create_bind_group_entry(2),
                 m_surface_config->raw_buffer().create_bind_group_entry(3),
+                m_peak->create_bind_group_entry(4),
             },
             "avalanche surface field bind group");
     }
@@ -269,6 +276,10 @@ void AvalancheRenderer::prepare(WGPUCommandEncoder encoder, const nucleus::camer
             "avalanche surface bind group");
     }
 
+    if (frame.reset_count != m_peak_reset_count) { // a new release: the old track goes
+        m_peak->clear(encoder);
+        m_peak_reset_count = frame.reset_count;
+    }
     m_accum->clear(encoder);
     WGPUComputePassDescriptor pass_desc {};
     pass_desc.label = WGPUStringView { .data = "avalanche surface splat", .length = WGPU_STRLEN };

@@ -21,7 +21,9 @@
 // surface altitude of avalanche_surface_field.wgsl (terrain + splatted flow depth). The depth
 // field is smooth, so its min_depth contour, where fragments are discarded, is a smooth outline
 // at the render grid's resolution. Particles above the blanket (spray, the front) stay
-// visible; those inside are hidden by the depth test.
+// visible; those inside are hidden by the depth test. Where the flow has been but is no longer
+// (peak depth), a thin, duller track layer stays; the blanket's rim fades into that colour,
+// which also outlines it against a snow-covered slope.
 
 ///use util/shared_config
 ///use util/camera_config
@@ -35,6 +37,8 @@
 @group(2) @binding(1) var<uniform> surface: SurfaceConfig;
 
 const SNOW_ALBEDO = vec3f(0.93, 0.95, 0.98);
+const TRACK_ALBEDO = vec3f(0.80, 0.82, 0.86); // scoured, compacted, a little dirty
+const TRACK_SPEED_COLOUR = vec3f(0.55, 0.56, 0.58); // the track in the speed colours: no flow
 
 struct VertexOut {
     @builtin(position) position: vec4f,
@@ -42,6 +46,7 @@ struct VertexOut {
     @location(1) normal: vec3f,
     @location(2) speed: f32, // [m/s]
     @location(3) depth: f32, // [m] flow depth
+    @location(4) peak: f32, // [m] peak flow depth (0 without the track)
 }
 
 struct FragOut {
@@ -67,8 +72,10 @@ fn altitude(node: vec2i) -> f32 {
     return field[clamped(node) * FIELD_STRIDE_F32];
 }
 
-fn depth(node: vec2i) -> f32 {
-    return field[clamped(node) * FIELD_STRIDE_F32 + 1u];
+// What makes a node drawn: its flow depth, or its peak depth where the track is shown.
+fn coverage(node: vec2i) -> f32 {
+    let index = clamped(node) * FIELD_STRIDE_F32;
+    return max(field[index + 1u], field[index + 3u]);
 }
 
 fn hidden() -> VertexOut {
@@ -81,9 +88,9 @@ fn hidden() -> VertexOut {
 fn vertexMain(@builtin(vertex_index) vertex_index: u32, @builtin(instance_index) instance: u32) -> VertexOut {
     let cells_x = surface.nodes.x - 1u;
     let cell = vec2i(i32(instance % cells_x), i32(instance / cells_x));
-    // Almost every cell of the domain is empty. The depth inside a cell is interpolated from its
-    // corners, so it reaches min_depth only if a corner does.
-    let deepest = max(max(depth(cell), depth(cell + vec2i(1, 0))), max(depth(cell + vec2i(0, 1)), depth(cell + vec2i(1, 1))));
+    // Almost every cell of the domain is empty. The depths inside a cell are interpolated from
+    // its corners, so they reach min_depth only if a corner does.
+    let deepest = max(max(coverage(cell), coverage(cell + vec2i(1, 0))), max(coverage(cell + vec2i(0, 1)), coverage(cell + vec2i(1, 1))));
     if deepest < surface.min_depth {
         return hidden();
     }
@@ -108,22 +115,24 @@ fn vertexMain(@builtin(vertex_index) vertex_index: u32, @builtin(instance_index)
     out.normal = normalize(vec3f(-dhdx, -dhdy, 1.0));
     out.depth = field[index + 1u];
     out.speed = field[index + 2u];
+    out.peak = field[index + 3u];
     return out;
 }
 
 @fragment
 fn fragmentMain(in: VertexOut) -> FragOut {
-    if in.depth < surface.min_depth {
+    if in.depth < surface.min_depth && in.peak < surface.min_depth {
         discard;
     }
-    var albedo = SNOW_ALBEDO;
+    let flowing = smoothstep(surface.min_depth, 3.0 * surface.min_depth, in.depth);
+    var albedo = mix(TRACK_ALBEDO, SNOW_ALBEDO, flowing);
     if surface.colour_mode == 1u {
-        albedo = viridis(in.speed / surface.speed_max);
+        albedo = mix(TRACK_SPEED_COLOUR, viridis(in.speed / surface.speed_max), flowing);
     }
     var out: FragOut;
     out.albedo = pack4x8unorm(vec4f(albedo, 1.0));
     out.position = vec4f(in.pos_cws, length(in.pos_cws));
     out.normal_enc = octNormalEncode2u16(normalize(in.normal));
-    out.overlay = 0u;
+    out.overlay = AVALANCHE_MARKER;
     return out;
 }

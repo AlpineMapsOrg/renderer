@@ -30,6 +30,11 @@
 @group(2) @binding(2) var<uniform> settings: ScreenSpaceSnowSettings;
 @group(2) @binding(3) var output_texture: texture_storage_2d<rgba8unorm, write>;
 @group(2) @binding(4) var prev_output: texture_2d<f32>;
+@group(2) @binding(5) var gbuffer_overlay: texture_2d<u32>; //GBuffer slot 3
+
+//Avalanche pixels (render_avalanche*.wgsl) carry this in the GBuffer overlay slot: the avalanche
+//brings its own snow, so the overlay leaves it alone instead of painting over it.
+const AVALANCHE_MARKER: u32 = 0x00FFFFFFu;
 
 struct ScreenSpaceSnowSettings {
     angle_min: f32,
@@ -60,7 +65,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3u) {
 
     var out_color = vec4f(0.0);
 
-    if dist > 0.0 {
+    if dist > 0.0 && textureLoad(gbuffer_overlay, tci, 0).r != AVALANCHE_MARKER {
         //Reuse the shared snow math: angle limits live in .yzw, altitude params in .xyz.
         let angle = vec4f(0.0, settings.angle_min, settings.angle_max, settings.angle_blend);
         let altitude = vec4f(settings.altitude_limit, settings.altitude_variation, settings.altitude_blend, 0.0);

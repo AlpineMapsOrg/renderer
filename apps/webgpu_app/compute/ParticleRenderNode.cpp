@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <webgpu/compute/nodes/MpmSolverNode.h>
 #include <webgpu/engine/Context.h>
+#include <webgpu/engine/overlay/ScreenSpaceSnowOverlay.h>
 
 namespace webgpu_compute::nodes {
 
@@ -34,6 +35,45 @@ ParticleRenderNode::~ParticleRenderNode()
 {
     if (auto* renderer = m_context->avalanche_renderer())
         renderer->clear_source(this);
+    // The snow cover belongs to the avalanche view: it goes with the node (another preset).
+    auto overlay = m_snow_overlay.lock();
+    auto* overlays = m_context->overlay_renderer();
+    if (overlay && overlays != nullptr) {
+        const auto& list = overlays->overlays();
+        const auto it = std::find(list.begin(), list.end(), overlay);
+        if (it != list.end())
+            overlays->remove_overlay(size_t(it - list.begin()));
+    }
+}
+
+void ParticleRenderNode::sync_snow_cover()
+{
+    auto* overlays = m_context->overlay_renderer();
+    if (overlays == nullptr)
+        return;
+    const auto& settings = renderer_settings();
+    const bool show = settings.enabled && settings.snow_cover;
+    auto overlay = m_snow_overlay.lock();
+    if (!overlay) { // first use, or deleted in the Overlays panel
+        if (!show)
+            return;
+        overlay = std::make_shared<webgpu_engine::ScreenSpaceSnowOverlay>();
+        overlay->name = "Avalanche snow cover";
+        overlay->settings.angle_max = 50.0f; // release slopes are 30-45 deg; steeper rock stays bare
+        overlay->settings.altitude_limit = 800.0f; // below the Tyrolean valley floors: winter
+        overlays->add_overlay(overlay);
+        // Below every other overlay, in the pre-shading bucket (z_index < 0): lit like the terrain.
+        int lowest = 0;
+        for (const auto& o : overlays->overlays())
+            lowest = std::min(lowest, o->z_index);
+        overlay->z_index = lowest - 1;
+        overlays->sort_overlays();
+        m_snow_overlay = overlay;
+    }
+    if (overlay->enabled != show) {
+        overlay->enabled = show;
+        m_context->request_redraw();
+    }
 }
 
 webgpu_engine::AvalancheRenderer::Settings& ParticleRenderNode::renderer_settings()
@@ -58,7 +98,7 @@ void ParticleRenderNode::run_impl()
                     return std::nullopt;
                 return webgpu_engine::AvalancheRenderer::Frame {
                     view->particles, view->particle_count, view->world_from_metres, view->particle_spacing, view->domain_origin, view->dx, view->columns,
-                    view->height_texture, view->region_size };
+                    view->height_texture, view->region_size, view->reset_count };
             },
             this);
         m_context->request_redraw();
@@ -78,6 +118,8 @@ void ParticleRenderNode::serialize_settings(QJsonObject& out) const
     out["strain_window"] = double(renderer->settings.strain_window);
     out["surface"] = renderer->settings.surface;
     out["surface_refine"] = int(renderer->settings.surface_refine);
+    out["track"] = renderer->settings.track;
+    out["snow_cover"] = renderer->settings.snow_cover;
     out["children"] = int(renderer->settings.children);
 }
 
@@ -98,6 +140,10 @@ void ParticleRenderNode::deserialize_settings(const QJsonObject& in)
         s.surface = in["surface"].toBool(s.surface);
     if (in.contains("surface_refine"))
         s.surface_refine = uint32_t(std::clamp(in["surface_refine"].toInt(), 1, 4));
+    if (in.contains("track"))
+        s.track = in["track"].toBool(s.track);
+    if (in.contains("snow_cover"))
+        s.snow_cover = in["snow_cover"].toBool(s.snow_cover);
     if (in.contains("children"))
         s.children = uint32_t(std::clamp(in["children"].toInt(), 1, 64));
 }

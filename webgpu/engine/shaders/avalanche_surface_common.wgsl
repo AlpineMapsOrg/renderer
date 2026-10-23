@@ -40,7 +40,7 @@ struct SurfaceConfig {
     region_size: vec2f, // [m] the terrain's extent, for uv = metres / region_size
     height_dim: vec2u, // texels of the terrain height texture
     radius: f32, // [m] drawn particle radius
-    padding: u32,
+    track: u32, // 1: draw the track, where the flow has been since the release
 }
 
 const PARTICLE_STRIDE_VEC4: u32 = 8u; // struct Particle of mpm_common.wgsl as eight vec4s
@@ -48,7 +48,12 @@ const ACCUM_STRIDE_U32: u32 = 3u; // B-spline weight, weight * speed, weight * h
 const WEIGHT_SCALE: f32 = 65536.0; // one particle adds at most 0.5625 * this per node
 const SPEED_SCALE: f32 = 256.0; // [1 / (m/s)]
 const HEIGHT_SCALE: f32 = 256.0; // [1 / m]
-const FIELD_STRIDE_F32: u32 = 3u; // surface altitude [m], depth [m], speed [m/s]
+const FIELD_STRIDE_F32: u32 = 4u; // surface altitude [m], depth [m], speed [m/s], peak depth [m]
+const TRACK_DEPTH: f32 = 0.3; // [m] the track layer: scoured, compacted snow where the flow has passed
+// Written into the G-buffer overlay slot by the avalanche's fragments: alpha 0, so the tile-debug
+// overlay shows nothing there, and the screen-space snow overlay (screen_space_snow.wgsl) skips
+// these pixels instead of painting over the avalanche.
+const AVALANCHE_MARKER: u32 = 0x00FFFFFFu;
 
 fn node_index(node: vec2i) -> u32 {
     return u32(node.y) * surface.nodes.x + u32(node.x);

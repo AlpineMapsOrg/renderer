@@ -71,8 +71,14 @@ void ScreenSpaceSnowOverlay::init(Context& context)
             prev_output_entry.texture.sampleType = WGPUTextureSampleType_UnfilterableFloat;
             prev_output_entry.texture.viewDimension = WGPUTextureViewDimension_2D;
 
+            WGPUBindGroupLayoutEntry gbuffer_overlay_entry {};
+            gbuffer_overlay_entry.binding = 5;
+            gbuffer_overlay_entry.visibility = WGPUShaderStage_Compute;
+            gbuffer_overlay_entry.texture.sampleType = WGPUTextureSampleType_Uint;
+            gbuffer_overlay_entry.texture.viewDimension = WGPUTextureViewDimension_2D;
+
             return std::make_unique<webgpu::raii::BindGroupLayout>(device,
-                std::vector<WGPUBindGroupLayoutEntry> { position_entry, normal_entry, settings_entry, output_entry, prev_output_entry },
+                std::vector<WGPUBindGroupLayoutEntry> { position_entry, normal_entry, settings_entry, output_entry, prev_output_entry, gbuffer_overlay_entry },
                 "screen space snow overlay bind group layout");
         });
     reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
@@ -102,7 +108,7 @@ void ScreenSpaceSnowOverlay::update_settings()
 void ScreenSpaceSnowOverlay::draw(const WGPUCommandEncoder& command_encoder,
     const webgpu::raii::TextureView& position_view,
     const webgpu::raii::TextureView& normal_view,
-    const webgpu::raii::TextureView& /*overlay_view*/,
+    const webgpu::raii::TextureView& overlay_view,
     const WGPUBindGroup& shared_config_bg,
     const WGPUBindGroup& camera_bg,
     const webgpu::raii::TextureWithSampler& current_input,
@@ -120,6 +126,7 @@ void ScreenSpaceSnowOverlay::draw(const WGPUCommandEncoder& command_encoder,
             m_settings_uniform->raw_buffer().create_bind_group_entry(2),
             target_output.texture_view().create_bind_group_entry(3),
             current_input.texture_view().create_bind_group_entry(4),
+            overlay_view.create_bind_group_entry(5),
         },
         "screen space snow overlay bind group");
 

@@ -203,8 +203,47 @@ haze on them like on the terrain.
 
    **Not measured:** GPU time. At 3× the Medium grid is 1197² nodes, about 1.4 M quads, most
    rejected in the vertex shader, plus up to 10×10 nodes per particle in the splat.
-7. **Optional:** transparent splats or a ray-marched grid volume for powder; screen-space depth
-   smoothing.
+7. **Gaps over bumps: track and snow cover.** Done 2026-10-23. The user saw bare holes in
+   the flow where it passes over bumps.
+
+   **Diagnosis** (Hintertux, paused at 55 s, 800 m; the same frame rendered three ways):
+   - Without the airborne cut-off: hardly any change.
+   - Also with a threshold of one particle: a few extra blobs where stray particles are.
+   - **The holes stay**, so there are no particles within the kernel's reach (12 m) there at all.
+     The flow really splits into streaks and leaves gaps behind bumps. The renderer's thresholds
+     are not the cause, and tuning them cannot fix it.
+
+   **B, track** (`Settings::track`, on by default):
+   - The field pass keeps a persistent peak depth per render node (`m_peak`), the same quantity
+     as AvaFrame's peak flow thickness. It is cleared when the solver's `reset_count` changes
+     (new in `MpmParticleView`).
+   - Where peak ≥ min_depth, a 0.3 m layer stays (tapered to half towards its edge).
+   - It is drawn with `TRACK_ALBEDO` (0.80 / 0.82 / 0.86, scoured and compacted). The blanket's
+     rim blends into that colour from 1× to 3× min_depth, which also outlines it.
+
+   **A, snow cover** (`Settings::snow_cover`, on by default):
+   - `ParticleRenderNode::sync_snow_cover()`, called by the Avalanche panel every frame, adds an
+     "Avalanche snow cover" `ScreenSpaceSnowOverlay` on first use. It sits in the pre-shading
+     bucket (z_index below all others), so it is lit like the terrain.
+     - Settings: up to 50°, snow line 800 m. Both can be changed in the Overlays panel.
+   - The node removes the overlay when it is destroyed (another preset).
+   - All avalanche fragments write `AVALANCHE_MARKER` (0x00FFFFFF, alpha 0, so tile-debug ignores
+     it) into the G-buffer overlay slot. `screen_space_snow.wgsl` skips those pixels; it now
+     binds that slot.
+   - Fixes 1 and 3 of the snow-overlay section below; the track and rim cover part of fix 2.
+
+   **Verified** on the same paused frame, three ways (snow + track / track only / neither):
+   - The hill is white and lit.
+   - Steep forest stays dark.
+   - The path reads as a grey band.
+   - The debris stays bright with relief on top.
+
+   **Open:**
+   - The track is one flat colour (no streaks along the flow).
+   - The snow line is fixed at 800 m, not per scenario.
+   - GPU time not measured.
+8. **Optional / future:** transparent splats or a ray-marched grid volume for powder;
+   screen-space fluid rendering. Collected on the Notion page "Rendering — future work".
 
 **Verification for each step:** screenshots on the map and in the sandbox, GPU time from
 timestamp queries, and the web build. The 2D raster stays the default until the 3D view is
@@ -233,7 +272,9 @@ the G-buffer position and normal only.
 2. A cool tint plus a silhouette outline on snow, or speed colours while the overlay is on.
 3. Composite the snow overlay before lighting.
 
-None of this is implemented yet.
+Fixes 1 and 3 are implemented by the avalanche's own snow cover (step 7). The user's own
+snow overlays also skip the avalanche now, but stay wherever they are in the Overlays panel
+(post-shading by default, so unlit).
 
 ## Not chosen now
 

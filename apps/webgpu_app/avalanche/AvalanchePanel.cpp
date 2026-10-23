@@ -957,6 +957,7 @@ void AvalanchePanel::draw()
     if (auto* particles = find_node<nodes::ParticleRenderNode>()) {
         if (auto* overlay = find_node<nodes::OverlayRenderNode>())
             overlay->set_overlay_enabled(!particles->renderer_settings().enabled);
+        particles->sync_snow_cover();
     }
 
     if (auto* solver = find_solver(); solver != nullptr && find_node<nodes::AvaFrameSandboxNode>() == nullptr)
@@ -1250,6 +1251,19 @@ void AvalanchePanel::draw_panel()
                 look_at_flow(*solver, 400.0);
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Moves the camera to 400 m from the snow's centre of mass, steeply from the south.");
+            if (view.surface) {
+                ImGui::Checkbox("Track", &view.track);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("A thin, duller layer wherever the flow has been since the release (its peak depth,\n"
+                                      "like AvaFrame's peak flow thickness): the path stays visible where the flow has\n"
+                                      "thinned out or moved on. Cleared by Reset.");
+                ImGui::SameLine();
+            }
+            ImGui::Checkbox("Snow cover", &view.snow_cover);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Snow on the terrain around the avalanche, lit like the terrain: a screen-space snow\n"
+                                  "overlay that leaves the avalanche's own pixels alone. Snow line and slope limits are\n"
+                                  "in the Overlays panel (\"Avalanche snow cover\").");
             if (view.surface) {
                 int refine = int(view.surface_refine);
                 if (ImGui::SliderInt("Surface detail", &refine, 1, 4, "%dx the grid"))

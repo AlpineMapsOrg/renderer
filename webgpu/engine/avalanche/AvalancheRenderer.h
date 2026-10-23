@@ -76,6 +76,10 @@ public:
         /// over 3x3 solver columns (and at least 5 cm): stray particles stay particles.
         uint32_t surface_min_count = 8;
         uint32_t surface_refine = 3; // render grid nodes per solver node spacing, 1 to 4
+        bool track = true; // a thin layer where the flow has been since the release (peak depth)
+        /// Snow on the terrain around the avalanche (a screen-space snow overlay that skips the
+        /// avalanche's own pixels). Managed by the app's ParticleRenderNode, which owns the overlay.
+        bool snow_cover = true;
     };
 
     /// One frame's particles. world_from_metres maps particle.position.xy (metres) to world
@@ -91,6 +95,7 @@ public:
         // The solver's terrain (R32Float metres, uv = metres / region_size, v south), for the surface.
         const webgpu::raii::TextureWithSampler* height_texture = nullptr;
         glm::vec2 region_size = glm::vec2(1.0f); // [m]
+        uint32_t reset_count = 0; // changes when the simulation restarts: clears the track
     };
     using Source = std::function<std::optional<Frame>()>;
 
@@ -155,7 +160,7 @@ private:
         glm::vec2 region_size = glm::vec2(1.0f);
         glm::uvec2 height_dim = glm::uvec2(1u);
         float radius = 1.0f; // [m]
-        uint32_t padding = 0u;
+        uint32_t track = 0u;
     };
     static_assert(sizeof(SurfaceConfig) == 96);
 
@@ -176,7 +181,9 @@ private:
     std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_surface_pipeline;
     std::unique_ptr<webgpu::Buffer<SurfaceConfig>> m_surface_config;
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_accum; // per node: weight, weight * speed, weight * height
-    std::unique_ptr<webgpu::raii::RawBuffer<float>> m_field; // per node: surface altitude, depth, speed
+    std::unique_ptr<webgpu::raii::RawBuffer<float>> m_field; // per node: surface altitude, depth, speed, peak depth
+    std::unique_ptr<webgpu::raii::RawBuffer<float>> m_peak; // per node: peak depth since the release, kept across frames
+    uint32_t m_peak_reset_count = 0; // the solver's reset count m_peak belongs to
     std::unique_ptr<webgpu::raii::BindGroup> m_splat_bind_group;
     std::unique_ptr<webgpu::raii::BindGroup> m_field_bind_group;
     std::unique_ptr<webgpu::raii::BindGroup> m_surface_bind_group;
