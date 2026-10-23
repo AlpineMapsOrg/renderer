@@ -99,7 +99,7 @@ haze on them like on the terrain.
    **Verified in map mode** (Hintertux, 77 s): moving particles show as ellipsoids stretched
    along the flow, resting ones as spheres. The check used a temporary test build that framed
    the camera automatically, since then removed.
-4. **Flow surface.** Done 2026-10-18 (map mode). Three passes per frame, all in
+4. **Flow surface.** Done 2026-10-18 (map mode); replaced by step 6 on 2026-10-23. Three passes per frame, all in
    `AvalancheRenderer`:
    - **Bin** (`avalanche_surface_bin.wgsl`, compute, before the G-buffer pass): per solver
      grid column, the highest and lowest particle altitude, the count and the top speed, as
@@ -135,7 +135,75 @@ haze on them like on the terrain.
 
    **Verified:** Hintertux at 74 s shows no discs and no scattered patches; one blob remains,
    over a genuinely dense cluster.
-5. **Optional:** transparent splats or a ray-marched grid volume for powder; screen-space depth
+5. **Detail particles.** Done 2026-10-23, after the user found the particles too sparse next
+   to the blanket. Rendering only: each simulated particle is drawn as K smaller ones (panel
+   "Detail particles": 1 / 8 / 27, default 8). Stomakhin 2013 never shows particles at all (it
+   rasterises them and path-traces a volume), and Hu 2018 describes no rendering, so this is
+   our own choice.
+   - **Instances:** particle_count × K. Instance i is child i mod K of parent i / K.
+   - **Offsets** are a hash of (parent, child): stable every frame, moving with the parent. Each
+     offset is a uniform point in the unit ball, stretched by the strain-rate shape.
+   - **Size:** radius × K^(-1/3) × a jitter in 0.7–1.3, so the volume is kept on average.
+   - **Spread:** the children are scattered within 2 parent radii (`CHILD_SPREAD`).
+     - **First try:** the parent's volume-equivalent ball, 0.62 spacing. The parent is drawn
+       at 0.8 spacing, so the clusters looked *smaller* than single particles.
+     - **Second try:** packed into the parent's own drawn sphere. The gaps between the
+       children made each particle read as a lumpy clod, not as more particles.
+   - **Distance fade:** below 1.5–3 px parent radius the children merge back into the parent
+     (`CHILD_FADE_PIXELS`), where they would only flicker. The pixel floor applies to the
+     parent, not to each child.
+
+   **Verified** (Hintertux, paused at 40 s, camera at 150 m, the same frame switched from 8 to
+   1): with 8 the spray reads as many finer grains in loose clusters, not as one ellipsoid each.
+
+   **Limits:**
+   - In sparse spray the clusters of 8 are still visible as groups.
+   - The detail adds texture but cannot fill the gap between the blanket and the particles;
+     that is the flow surface's job (step 6).
+   - GPU cost not measured yet: 8 × 65 536 quads.
+6. **Mass-splat flow surface.** Done 2026-10-23. It replaces step 4's binning: the user saw
+   flicker and 8 m aliasing.
+
+   **Causes in step 4:**
+   - Per-column max binning: a particle crossing a column border jumps the top altitude.
+   - The count threshold.
+   - An 8 m mesh.
+
+   **Now three passes**, the same structure as Stomakhin 2013 rasterising for its renderer:
+   - **Splat** (`avalanche_surface_splat.wgsl`): each particle's volume (release volume / N =
+     spacing³) goes onto a render grid `surface_refine` times finer than the solver's (default
+     3, so 2.7 m). It uses the solver's quadratic B-spline at the solver's dx, so the field is
+     as smooth as what the solver resolves. Fixed-point atomics per node: Σw, Σw·speed and
+     Σw·height above the terrain.
+     - Particles more than 2 dx above the terrain (spray, jumps) are faded out from 1 dx.
+   - **Field** (`avalanche_surface_field.wgsl`):
+     - **Depth** = Σw · V / dx², the volume per area at release density. It decides where the
+       blanket is drawn: depth ≥ min_depth = max(8 particles' volume over 3×3 columns, 5 cm).
+     - **Blanket height:** 2 × the weighted mean particle height + the drawn radius. An evenly
+       filled layer has its particles at half its height on average. This is needed because
+       the moving flow is looser than at release; with the volume depth alone the particles
+       stuck out of a thin blanket everywhere.
+     - **Edge taper:** the height fades back to the volume depth between 1× and 4× min_depth,
+       so the edge meets the ground.
+   - **Draw** (`render_avalanche_surface.wgsl`):
+     - A quad per render cell. It is rejected when no corner reaches min_depth; the bilinear
+       interpolant cannot exceed its corners.
+     - Normals by central differences on the render grid.
+
+   Every step is continuous in the particle positions, so there is no frame-to-frame popping
+   and no temporal smoothing was needed (it would add lag).
+
+   **Panel:** "Surface detail" 1–4× (the default preset does not store it).
+
+   **Verified** (Hintertux, paused at 40 s, 400 m, the same frame at 3× and 1×):
+   - 3× gives a smooth, rounded outline; 1× shows facets.
+   - With the height term, the blanket is continuous and lit, with relief, and covers the dense
+     core.
+   - A burst of frames during playback shows coherent, non-popping change.
+
+   **Not measured:** GPU time. At 3× the Medium grid is 1197² nodes, about 1.4 M quads, most
+   rejected in the vertex shader, plus up to 10×10 nodes per particle in the splat.
+7. **Optional:** transparent splats or a ray-marched grid volume for powder; screen-space depth
    smoothing.
 
 **Verification for each step:** screenshots on the map and in the sandbox, GPU time from

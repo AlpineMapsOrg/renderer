@@ -306,6 +306,39 @@ temporary test build without the first-run notice; the preset was restored and r
 **Approach that failed:** posting a click to the app's process (`CGEvent.postToPid`) does not
 reach SDL in the background. I did not move the user's real mouse.
 
+**Detail particles (2026-10-23, branch `mpm-rendering`, uncommitted).** The user reported a
+flickering, aliased flow surface and particles that look out of place because there are too
+few.
+- **Literature:** Stomakhin 2013 never shows particles; it rasterises them with the B-spline
+  kernels and path-traces a volume (0.3–7.2 M particles). Hu 2018 describes no rendering.
+- **The user chose both fixes:** render-only child particles first, then a mass-splat flow
+  surface.
+- **Children:** K per particle (1 / 8 / 27, default 8). Offsets are hash-stable, the radius is
+  scaled by K^(-1/3), and the children are scattered within 2 parent radii. They fade back
+  into the parent below about 3 px. Details are in `12-rendering-plan.md`, step 5.
+- **Two layouts were rejected after an A/B screenshot.**
+  - The volume-equivalent ball (0.62 spacing) made the clusters smaller than single particles.
+  - Packing the children into the parent's own sphere made them read as clods.
+- **Verified** with a temporary test build: paused at 40 s, camera at 150 m, the same frame
+  rendered with 8 and with 1.
+- **Test trap:** the app redraws only on change. Switching a setting from code while paused
+  needs a camera nudge to show up; the UI combo triggers the redraw itself.
+- **Test runs** set `startup.autoplay` temporarily, inside the prefs backup and restore.
+- **Temporary test patches** were reverted from the pre-patch copies and the build was
+  re-run.
+
+**Mass-splat flow surface (same day, uncommitted).** It replaces the per-column binning. Details
+are in `12-rendering-plan.md`, step 6.
+- **Splat:** a B-spline splat at the solver's dx onto a 3× finer render grid (shaders renamed
+  bin → splat, depth → field).
+- **Depth:** volume / area decides where the blanket is drawn.
+- **Height:** 2 × the mean particle height + radius, tapered at the edge.
+- **First attempt:** the volume depth alone. The blanket sat at release density under a looser
+  moving flow, and the particles speckled through it everywhere. Hence the height term.
+- **Verified:** the paused A/B at 3× vs 1× (smooth vs faceted outline) and a burst during
+  playback (no popping).
+- **Open:** GPU time not measured; the web build is not tested.
+
 ### 12. Entrainment research: a snow cover made of particles (2026-10-12)
 
 **Request:** assess the idea of seeding particles along the whole path, held by friction and

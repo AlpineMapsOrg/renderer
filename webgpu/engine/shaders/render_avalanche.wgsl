@@ -39,6 +39,8 @@
 const PARTICLE_STRIDE_VEC4: u32 = 8u;
 const SNOW_ALBEDO = vec3f(0.93, 0.95, 0.98);
 const MAX_STRAIN = 0.7; // largest stretch or squeeze of an ellipsoid axis (1 -/+ this)
+const CHILD_FADE_PIXELS = vec2f(1.5, 3.0); // parent radius [px]: children merge below, full above
+const CHILD_SPREAD = 2.0; // radius of the ball the children are scattered in [parent radii]
 
 struct AvalancheConfig {
     xy_from_metres: vec4f, // 2x2 linear part, column-major: world.xy = (x, y) metres mapped
@@ -49,6 +51,10 @@ struct AvalancheConfig {
     speed_max: f32, // [m/s]
     particle_count: u32,
     strain_window: f32, // [s], 0 = spheres
+    children: u32, // drawn particles per simulated particle (1 = none), see child_offset()
+    padding0: u32,
+    padding1: u32,
+    padding2: u32,
 }
 
 struct VertexOut {
@@ -113,6 +119,30 @@ fn inverse_symmetric(m: mat3x3f) -> mat3x3f {
     return transpose(mat3x3f(r0, r1, r2)) * inv_det;
 }
 
+// Integer hash (PCG-style), for the fixed child offsets.
+fn hash_u32(x: u32) -> u32 {
+    let v = x * 747796405u + 2891336453u;
+    let w = ((v >> ((v >> 28u) + 4u)) ^ v) * 277803737u;
+    return (w >> 22u) ^ w;
+}
+
+fn random01(seed: u32) -> f32 {
+    return f32(hash_u32(seed)) / 4294967296.0;
+}
+
+// Child particles (rendering only): each simulated particle stands for a parcel of snow, drawn
+// as `children` smaller particles scattered in its sphere. The offset of a child is a hash of
+// parent and child, so it is the same every frame and moves with the parent; .xyz is a uniform
+// point in the unit ball, .w a size factor in [0.7, 1.3].
+fn child_offset(parent: u32, child: u32) -> vec4f {
+    let seed = (parent * avalanche.children + child) * 4u;
+    let z = 2.0 * random01(seed) - 1.0;
+    let phi = 6.2831853 * random01(seed + 1u);
+    let r = pow(random01(seed + 2u), 1.0 / 3.0);
+    let ring = sqrt(max(1.0 - z * z, 0.0));
+    return vec4f(vec3f(ring * cos(phi), ring * sin(phi), z) * r, 0.7 + 0.6 * random01(seed + 3u));
+}
+
 fn hidden() -> VertexOut {
     var out: VertexOut;
     out.position = vec4f(2.0, 2.0, 2.0, 1.0); // outside the clip volume
@@ -121,9 +151,12 @@ fn hidden() -> VertexOut {
 
 @vertex
 fn vertexMain(@builtin(vertex_index) vertex_index: u32, @builtin(instance_index) instance: u32) -> VertexOut {
-    let base = instance * PARTICLE_STRIDE_VEC4;
+    let children = max(avalanche.children, 1u);
+    let parent = instance / children;
+    let child = instance % children;
+    let base = parent * PARTICLE_STRIDE_VEC4;
     let p0 = particles[base];
-    if p0.w <= 0.0 || instance >= avalanche.particle_count {
+    if p0.w <= 0.0 || parent >= avalanche.particle_count {
         return hidden(); // inactive
     }
     let p1 = particles[base + 1u];
@@ -133,14 +166,31 @@ fn vertexMain(@builtin(vertex_index) vertex_index: u32, @builtin(instance_index)
     let m = avalanche.xy_from_metres;
     let xy = vec2f(m.x * p0.x + m.z * p0.y, m.y * p0.x + m.w * p0.y) + avalanche.offset_cws;
     let world_per_metre = 1.0 / cos(y_to_lat(xy.y + camera.position.y));
-    let centre = vec3f(xy, p0.z * world_per_metre - camera.position.z);
-
-    // Radius in world units, at least min_pixel_radius pixels so the flow stays visible from afar.
-    let dist = length(centre);
-    let pixel = 2.0 * dist / (camera.viewport_size.y * camera.proj_matrix[1][1]);
-    let radius = max(avalanche.radius * world_per_metre, avalanche.min_pixel_radius * pixel);
-
+    var centre = vec3f(xy, p0.z * world_per_metre - camera.position.z);
     let shape = strain_rate_shape(particles[base + 2u].xyz, particles[base + 3u].xyz, particles[base + 4u].xyz);
+
+    // The parent's radius in world units, at least min_pixel_radius pixels so the flow stays
+    // visible from afar.
+    let parent_pixel = 2.0 * length(centre) / (camera.viewport_size.y * camera.proj_matrix[1][1]);
+    var radius = max(avalanche.radius * world_per_metre, avalanche.min_pixel_radius * parent_pixel);
+
+    // A child: smaller by children^(1/3), so all of them together keep the parent's volume, and
+    // scattered in a ball of CHILD_SPREAD parent radii, stretched with it: packed into the parent's
+    // own sphere they would read as one lumpy clod, not as more particles. Neighbouring clouds
+    // overlap in the dense flow. Children fade back into the parent below a few pixels, where they
+    // would only flicker.
+    if children > 1u {
+        let detail = smoothstep(CHILD_FADE_PIXELS.x, CHILD_FADE_PIXELS.y, radius / parent_pixel);
+        if detail <= 0.0 && child > 0u {
+            return hidden();
+        }
+        let offset = child_offset(parent, child);
+        let shrink = 1.0 / pow(f32(children), 1.0 / 3.0);
+        centre += shape * offset.xyz * (radius * CHILD_SPREAD * detail);
+        radius *= mix(1.0, shrink * offset.w, detail);
+    }
+    let dist = length(centre);
+
     // Bounding sphere of the ellipsoid: its longest axis is at most the Frobenius norm of S.
     var extent = radius;
     if avalanche.strain_window > 0.0 {

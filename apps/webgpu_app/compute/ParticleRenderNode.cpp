@@ -77,6 +77,8 @@ void ParticleRenderNode::serialize_settings(QJsonObject& out) const
     out["shape"] = int(renderer->settings.shape);
     out["strain_window"] = double(renderer->settings.strain_window);
     out["surface"] = renderer->settings.surface;
+    out["surface_refine"] = int(renderer->settings.surface_refine);
+    out["children"] = int(renderer->settings.children);
 }
 
 void ParticleRenderNode::deserialize_settings(const QJsonObject& in)
@@ -94,6 +96,10 @@ void ParticleRenderNode::deserialize_settings(const QJsonObject& in)
         s.strain_window = float(in["strain_window"].toDouble(s.strain_window));
     if (in.contains("surface"))
         s.surface = in["surface"].toBool(s.surface);
+    if (in.contains("surface_refine"))
+        s.surface_refine = uint32_t(std::clamp(in["surface_refine"].toInt(), 1, 4));
+    if (in.contains("children"))
+        s.children = uint32_t(std::clamp(in["children"].toInt(), 1, 64));
 }
 
 } // namespace webgpu_compute::nodes

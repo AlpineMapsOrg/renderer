@@ -1241,18 +1241,35 @@ void AvalanchePanel::draw_panel()
                 ImGui::SetTooltip("Speed: viridis from 0 to %.0f m/s.", double(view.speed_max));
             ImGui::Checkbox("Flow surface", &view.surface);
             if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("A snow blanket over the dense part of the flow (at least %u particles in the 3x3 grid\n"
-                                  "columns around a point): the core as one continuous mass. Particles above it and in\n"
-                                  "thin parts stay visible as the front and spray.",
+                ImGui::SetTooltip("A snow blanket over the dense part of the flow: the particles' volume spread with the\n"
+                                  "solver's B-spline, drawn where it is at least as deep as %u particles over 3x3 grid\n"
+                                  "columns. Particles above it and in thin parts stay visible as the front and spray.",
                     view.surface_min_count);
             ImGui::SameLine();
             if (ImGui::Button("Look at the flow"))
                 look_at_flow(*solver, 400.0);
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Moves the camera to 400 m from the snow's centre of mass, steeply from the south.");
+            if (view.surface) {
+                int refine = int(view.surface_refine);
+                if (ImGui::SliderInt("Surface detail", &refine, 1, 4, "%dx the grid"))
+                    view.surface_refine = uint32_t(refine);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Render grid of the blanket, finer than the solver's grid. The snow is spread at the\n"
+                                      "solver's resolution, so finer steps only draw the same field more smoothly.");
+            }
             ImGui::SliderFloat("Particle size", &view.radius_scale, 0.2f, 2.0f, "%.2f x spacing");
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("Sphere radius as a share of the particle spacing (the release volume per particle).");
+            static constexpr uint32_t CHILD_COUNTS[] = { 1u, 8u, 27u };
+            int children = int(std::find(std::begin(CHILD_COUNTS), std::end(CHILD_COUNTS), view.children) - std::begin(CHILD_COUNTS));
+            if (ImGui::Combo("Detail particles", &children, "1 per particle\0" "8 per particle\0" "27 per particle\0"))
+                view.children = CHILD_COUNTS[std::clamp(children, 0, 2)];
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Rendering only: each simulated particle is drawn as several smaller ones scattered within\n"
+                                  "two radii of it, with the same total volume. The detail is invented, not simulated; the\n"
+                                  "clusters move with their particle and merge back into it from afar. 27 is heavy on\n"
+                                  "integrated GPUs.");
             int shape = int(view.shape);
             if (ImGui::Combo("Particle shape", &shape, "Spheres\0Strain-rate ellipsoids\0"))
                 view.shape = webgpu_engine::AvalancheRenderer::Shape(shape);

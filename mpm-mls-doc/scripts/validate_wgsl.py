@@ -28,7 +28,7 @@ USE_RE = re.compile(r"^\s*///use\s+(?:([A-Za-z_][A-Za-z0-9_]*)::)?([/\w .-]+?)\s
 KERNELS = ["mpm_prepare", "mpm_seed", "mpm_p2g",
            "mpm_grid_update", "mpm_g2p", "mpm_column_stats", "mpm_refresh_stress", "mpm_splat", "mpm_rasterize"]
 # (namespace, shader): the MPM kernels plus the engine shaders that draw the avalanche.
-SHADERS = [("webgpu_compute", k) for k in KERNELS] + [("webgpu_engine", s) for s in ("render_avalanche", "render_avalanche_surface", "avalanche_surface_bin", "avalanche_surface_depth")]
+SHADERS = [("webgpu_compute", k) for k in KERNELS] + [("webgpu_engine", s) for s in ("render_avalanche", "render_avalanche_surface", "avalanche_surface_splat", "avalanche_surface_field")]
 
 
 def resolve(path, namespace, seen):
