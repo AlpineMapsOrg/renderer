@@ -17,7 +17,7 @@ from the sources when writing the report. Full list in [refs.md](refs.md).
 |---|---|
 | [01-theory.md](01-theory.md) | FLIP → MPM → MLS-MPM → snow model. The maths that is actually implemented, with pointers into the papers. |
 | [02-files-and-api.md](02-files-and-api.md) | Every file added or touched, the C++ classes, what each method does. |
-| [03-shaders.md](03-shaders.md) | The eight WGSL kernels, one at a time, with the formula each implements. |
+| [03-shaders.md](03-shaders.md) | The nine WGSL kernels, one at a time, with the formula each implements. |
 | [04-data-layout.md](04-data-layout.md) | Buffer/struct layouts, fixed-point atomics, coordinate conventions, uniform layout rules. |
 | [05-tuning.md](05-tuning.md) | Which knob does what, sensible ranges, failure modes, how to extend. |
 | [06-verification.md](06-verification.md) | What was actually tested, how, and what is still unverified. |
@@ -71,8 +71,8 @@ Known gaps, honestly:
 - **Output is a 2D top-down density raster**, not 3D particles. The proposal's Phase 5
   (a real `AvalancheRenderer` in `webgpu/engine/`) is not implemented. The node already
   exposes a raw `particle buffer` socket so a renderer can bind it without CPU readback.
-- **Parameters are Stomakhin's paper values**, authored for metre-scale snow. At 12–16 m
-  grid cells the released slab is sub-cell and the flow reads more fluid than slab-like.
+- **Parameters are Stomakhin's paper values**, authored for metre-scale snow. At the default
+  12.5 m grid cells the released slab is sub-cell and the flow reads more fluid than slab-like.
   See [05-tuning.md](05-tuning.md).
 - Material layer is **done** as far as proposal v3.0 goes (2026-09-13): Stomakhin,
   Drucker–Prager and Cohesive Cam Clay switchable at runtime, Coulomb and Voellmy basal

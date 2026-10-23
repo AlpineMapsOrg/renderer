@@ -101,7 +101,7 @@ not just different.
 ## The resolution problem (be honest about this in the report)
 
 Stomakhin's parameters were tuned for **metre-scale** snow in film VFX. Here a 1.5 m slab
-sits in 12–16 m cells — the released layer is **an order of magnitude thinner than one grid
+sits in 12.5 m cells (4000 m / 320) — the released layer is **an order of magnitude thinner than one grid
 cell**. P2G smears it vertically across the stencil, so the material never really behaves
 like a cohesive slab, and the result reads as a viscous granular flow rather than a slab
 avalanche with a fracture line.

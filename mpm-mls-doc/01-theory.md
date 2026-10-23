@@ -47,8 +47,9 @@ gradient term, far fewer atomics.
 
 ### Interpolation weights
 
-Quadratic B-spline, 3×3×3 node stencil. With particle position in grid units
-`gp = (x − origin)/dx`:
+Quadratic B-spline, 3×3×3 node stencil — the kernel of APIC (Jiang et al. 2015, with
+D⁻¹ = 4/dx²) and of Hu et al. [3]. Not Stomakhin et al. [5], who use a cubic B-spline.
+With particle position in grid units `gp = (x − origin)/dx`:
 
 ```
 base = floor(gp − 0.5)
@@ -88,8 +89,10 @@ resolve terrain collision      # §5
 clamp at domain walls
 ```
 
-Velocity is written back into the momentum slots, so G2P reads nodes as plain velocities.
-Nodes with zero mass are explicitly zeroed so G2P can never gather stale data.
+The velocity goes to a separate `grid_velocity` buffer as plain floats, which G2P reads.
+The grid update is the last reader of the fixed-point accumulators, so it zeroes the nodes it
+consumed; the next P2G finds a clean grid without a clear pass. Nodes with zero mass get
+velocity 0, so G2P can never gather stale data.
 
 ### G2P + advection (APIC)
 
@@ -161,18 +164,20 @@ First term = deviatoric (shear) response, second = volumetric. Implemented in
 (F − R)Fᵀ = U(Σ − I)ΣUᵀ) and `stomakhin_plasticity()` in `mpm_material_stomakhin.wgsl`, reached
 through the dispatcher in `mpm_material.wgsl` (see [03-shaders.md](03-shaders.md)).
 
-**Paper parameter values** (Stomakhin et al. [5], table 1) are the defaults in the code:
+**Paper parameter values** (Stomakhin et al. [5], Table 2) are the defaults in the code:
 E = 1.4e5 Pa, ν = 0.2, ξ = 10, θ_c = 2.5e-2, θ_s = 7.5e-3, ρ = 400 kg/m³.
 
 > Caveat worth putting in the report: those values were tuned for metre-scale snow in a
-> film-VFX context. At 12–16 m grid cells they are not obviously the right numbers, and the
-> result behaves more like a viscous flow than a fracturing slab. This is a resolution
+> film-VFX context. At the default 12.5 m grid cells they are not obviously the right numbers,
+> and the result behaves more like a viscous flow than a fracturing slab. This is a resolution
 > limitation, not a bug in the model.
 
 ### The SVD
 
-Everything above needs a 3×3 SVD, twice per particle per substep (stress + plasticity), and
-WGSL has no linear algebra library. Implemented from scratch in `svd3()`:
+Everything above needs a 3×3 SVD, once per particle per substep: the return mapping in G2P
+does it and also returns τ = P·Fᵀ of the returned state, which the next P2G reads from the
+particle. Until 2026-09-27 it was twice (stress in P2G + plasticity in G2P). WGSL has no
+linear algebra library, so `svd3()` implements it from scratch:
 
 1. `A = Fᵀ F` (symmetric, positive semi-definite)
 2. Cyclic **Jacobi eigendecomposition** of A — 8 sweeps, three plane rotations each
@@ -336,19 +341,21 @@ Only nodes below the terrain with `v·n < 0` get it, which under gravity is ever
 contact. Not in the MPM snow papers (Li et al. use pure Coulomb); included because it is
 the standard second option in avalanche practice.
 
-**Vertical grid origin.** The Eulerian grid box needs a base altitude. Rather than making
-the user guess one, the `mpm_prepare` kernel scans the terrain inside the domain footprint
-and `atomicMin`s the minimum altitude into a state buffer; every later kernel reads it and
-subtracts a 2·dx margin. Fully GPU-side, no readback.
+**Vertical grid origin.** The grid follows the terrain: each (x, y) column stores a band of
+`grid_layers` layers starting at its own floor, `floor(altitude / dx) − 2`, which the
+`mpm_prepare` kernel writes once per reset (see
+[04-data-layout.md](04-data-layout.md#the-terrain-following-grid-2026-09-13)). The same scan
+`atomicMin`/`atomicMax`es the altitude range into the state buffer, for the readout only.
+Fully GPU-side, no readback.
 
 ## 6. Deviations from the literature, in one place
 
 | What | Why |
 |---|---|
 | Particle mass normalised to 1, volume = 1/ρ | Keeps fixed-point grid accumulators in i32 range independent of real snow mass. Physically a pure unit change — see [04-data-layout.md](04-data-layout.md). |
-| Fixed-point `atomic<i32>` accumulation | WGSL has no atomic float add. Scale 1e4, clamped before every add. |
+| Fixed-point atomic accumulation | WGSL has no atomic float add. Momentum `atomic<i32>` at 1e4, rounded and clamped before every add; mass a 64-bit `atomic<u32>` lo/hi pair at 2²⁰. |
 | G2P and advection fused into one kernel | Both are per-particle passes over the same data; no reason to split. |
-| Grid cleared by a compute kernel, not `clearBuffer` | Keeps the whole run inside one compute pass. |
+| No grid clear pass: the grid update zeroes the accumulators it read | Keeps the whole run inside one compute pass and skips empty tiles (until 2026-09-27 a `mpm_clear_grid` kernel zeroed every node). |
 | Terrain collision at grid *and* particle level | Grid-only lets snow leak through between nodes at these cell sizes. |
 | Guards not in the papers: Stomakhin `J_P` and its hardening factor clamped to [0.05, 20]; Cam Clay sinh argument ≤ 20; σ clamped to [10⁻³, 10³] before the log; M ≥ 10⁻³, ξ ≥ 10⁻⁶ | Keep a diverging particle from producing inf/NaN. The `J_P` clamp caps compaction stiffening at 20×; the CFL bound uses the unhardened stiffness. |
 | Cam Clay: Wolper's non-associated return (volume-preserving) instead of Gaume's associative one | Closed form; the associative return needs a local Newton solve per particle (Wolper §6.1). Li's regime presets were calibrated with the associative rule. |

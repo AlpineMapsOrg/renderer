@@ -38,7 +38,7 @@ Checked line by line:
 | Singular-value box clamp `[1−θc, 1+θs]` | yes | θc = 2.5e-2, θs = 7.5e-3 |
 | Exponential hardening `h = exp(ξ(1−Jp))` | yes | ξ = 10, h clamped to [0.05, 20] |
 | Jp update `Jp ← Jp · Π(σᵢ/σ̂ᵢ)` | yes | clamped to [0.05, 20] |
-| Paper Table 1 defaults | yes | E = 1.4e5, ν = 0.2, ρ = 400 |
+| Paper Table 2 defaults | yes | E = 1.4e5, ν = 0.2, ρ = 400 |
 
 Verified offline: plastic compaction on impact (`jp` 1.0 → 0.746), see
 [06-verification.md](06-verification.md). This is a complete, correct Stomakhin.

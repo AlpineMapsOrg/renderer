@@ -1,4 +1,4 @@
-# The eight kernels
+# The nine kernels
 
 All in `webgpu/compute/shaders/`. Every one starts with `///use mpm_common` (weBIGeo's
 shader preprocessor include directive), so they all declare the **identical binding set** —
@@ -38,7 +38,7 @@ follows the snow instead of the domain. See [09-performance-analysis.md](09-perf
 2  texture    release_point_texture    RGBA8Unorm, alpha > 0 marks a release cell (map);
                                        R32Float release depth (sandbox) - layout unfilterable-float
 3  storage    particles      array<Particle>       read_write
-4  storage    grid           array<GridNode>       read_write, atomic<i32>
+4  storage    grid           array<GridNode>       read_write, mass atomic<u32> lo/hi, momentum atomic<i32>
 5  storage    state          SimState              read_write, atomics
 6  storage    density_raster array<atomic<u32>>    read_write
 7  storage    output_texture rgba8unorm            write
@@ -55,7 +55,9 @@ is not.
 
 ## Modules (not kernels)
 
-Three files carry no entry point; kernels `///use` them.
+Six files carry no entry point; kernels `///use` them: the three below, and the three model
+files behind `mpm_material` (`mpm_material_stomakhin`, `mpm_material_drucker_prager`,
+`mpm_material_ccc`).
 
 | Module | Provides | Used by |
 |---|---|---|

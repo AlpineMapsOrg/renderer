@@ -31,7 +31,7 @@ methods.* Mathematics of Computation 37, 155 (1981), 141–158.
 2013. *A material point method for snow simulation.* ACM Trans. Graph. 32, 4, Article 102
 (July 2013), 10 pages.
 → **The constitutive model implemented.** Fixed-corotated elasticity, singular-value
-clamping for plasticity, exponential compaction hardening. Table 1 supplies every default
+clamping for plasticity, exponential compaction hardening. Table 2 supplies every default
 material parameter in the code. Implemented in `mpm_material_stomakhin.wgsl`.
 
 **[6]** Michael Liu, Xinlei Wang, and Minchen Li. 2025. *CK-MPM: A Compact-Kernel Material
@@ -119,6 +119,13 @@ which Li's M values are given.
 closed-form return mapping of §7.1 (Eq. 27–28, Cases I–III; non-associative, volume-
 preserving). Hardening of φ (§7.3, Eq. 29–31) left out. Table 3: ρ 2200, E 3.537×10⁵,
 ν 0.3; sand hardening h₀–h₃ = 35/9/0.2/10 (φ from 25°), fixed-angle sweep 20–40°.
+
+**Jiang, C., Schroeder, C., Selle, A., Teran, J., Stomakhin, A.** 2015. *The affine
+particle-in-cell method.* ACM Trans. Graph. 34(4), Article 51.
+https://doi.org/10.1145/2766996
+→ **APIC**: the affine velocity matrix C each particle carries, and the quadratic B-spline
+with D⁻¹ = 4/Δx² that both `mpm_p2g` and `mpm_g2p` use. Hu et al. [3] build MLS-MPM on it.
+Stomakhin et al. [5] use a cubic B-spline instead.
 
 ## Implementation references (not papers)
 
