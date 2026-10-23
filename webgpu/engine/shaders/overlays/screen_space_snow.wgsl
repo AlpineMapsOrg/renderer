@@ -35,6 +35,8 @@
 //Avalanche pixels (render_avalanche*.wgsl) carry this in the GBuffer overlay slot: the avalanche
 //brings its own snow, so the overlay leaves it alone instead of painting over it.
 const AVALANCHE_MARKER: u32 = 0x00FFFFFFu;
+const PATCH_SCALE = 40.0; //world units across a snow patch (larger noise octave)
+const PATCH_EDGE = 0.04; //soft patch edges, in noise units
 
 struct ScreenSpaceSnowSettings {
     angle_min: f32,
@@ -44,7 +46,7 @@ struct ScreenSpaceSnowSettings {
     altitude_variation: f32,
     altitude_blend: f32,
     transparency: f32,
-    _pad: f32,
+    patches: f32, // 0: thin snow is translucent; 1: thin snow is sparse patches (see below)
 }
 
 @compute @workgroup_size(16, 16, 1)
@@ -70,6 +72,17 @@ fn computeMain(@builtin(global_invocation_id) id: vec3u) {
         let angle = vec4f(0.0, settings.angle_min, settings.angle_max, settings.angle_blend);
         let altitude = vec4f(settings.altitude_limit, settings.altitude_variation, settings.altitude_blend, 0.0);
         out_color = overlay_snow(normal, pos_ws, angle, altitude);
+        //Patches: read the falloff as the share of the ground that is covered, not as an opacity.
+        //A pixel is snowy where world-space noise lies below that share, so thin snow becomes
+        //sparse, irregular patches (as on a real snow line) that stay put on the ground. Far
+        //away, where a noise cell shrinks below a few pixels, back to the average to avoid shimmer.
+        if settings.patches > 0.0 {
+            let n = 0.6 * noise(pos_ws / PATCH_SCALE) + 0.4 * noise(pos_ws / (0.3 * PATCH_SCALE) + 31.0);
+            let patchy = smoothstep(n - PATCH_EDGE, n + PATCH_EDGE, out_color.a);
+            let pixel = 2.0 * dist / (camera.viewport_size.y * camera.proj_matrix[1][1]);
+            let resolved = 1.0 - smoothstep(0.1 * PATCH_SCALE, 0.4 * PATCH_SCALE, pixel);
+            out_color.a = mix(out_color.a, patchy, settings.patches * resolved);
+        }
         out_color.a *= settings.transparency;
     }
 

@@ -46,7 +46,7 @@ ParticleRenderNode::~ParticleRenderNode()
     }
 }
 
-void ParticleRenderNode::sync_snow_cover()
+void ParticleRenderNode::sync_snow_cover(float min_altitude, float max_altitude)
 {
     auto* overlays = m_context->overlay_renderer();
     if (overlays == nullptr)
@@ -60,7 +60,8 @@ void ParticleRenderNode::sync_snow_cover()
         overlay = std::make_shared<webgpu_engine::ScreenSpaceSnowOverlay>();
         overlay->name = "Avalanche snow cover";
         overlay->settings.angle_max = 50.0f; // release slopes are 30-45 deg; steeper rock stays bare
-        overlay->settings.altitude_limit = 800.0f; // below the Tyrolean valley floors: winter
+        overlay->settings.altitude_limit = 800.0f; // until the terrain is known (below)
+        overlay->settings.patches = 1.0f;
         overlays->add_overlay(overlay);
         // Below every other overlay, in the pre-shading bucket (z_index < 0): lit like the terrain.
         int lowest = 0;
@@ -69,6 +70,23 @@ void ParticleRenderNode::sync_snow_cover()
         overlay->z_index = lowest - 1;
         overlays->sort_overlays();
         m_snow_overlay = overlay;
+    }
+    // Fit the snow line to the simulated terrain once it is known, and again for a new scenario
+    // (the user's own changes in the Overlays panel hold until then). Full cover above 55 % of the
+    // relief: the release areas and the track. Below, the covered share falls linearly and
+    // reaches 0 at 15 % of the relief under the lowest point, so the valley floor keeps ~20 %
+    // as scattered patches.
+    const glm::vec2 terrain(min_altitude, max_altitude);
+    if (max_altitude > min_altitude + 1.0f && terrain != m_snow_terrain) {
+        const float relief = max_altitude - min_altitude;
+        const float full = min_altitude + 0.55f * relief;
+        const float none = min_altitude - 0.15f * relief;
+        overlay->settings.altitude_limit = full;
+        overlay->settings.altitude_blend = full - none;
+        overlay->settings.altitude_variation = 0.08f * relief; // a ragged snow line
+        overlay->update_settings();
+        m_snow_terrain = terrain;
+        m_context->request_redraw();
     }
     if (overlay->enabled != show) {
         overlay->enabled = show;

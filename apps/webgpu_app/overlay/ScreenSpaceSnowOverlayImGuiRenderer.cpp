@@ -40,6 +40,10 @@ bool ScreenSpaceSnowOverlayImGuiRenderer::render_custom_settings()
     changed |= ImGui::SliderFloat("Altitude variation", &s.altitude_variation, 0.0f, 1000.0f, "%.1fm");
     changed |= ImGui::SliderFloat("Altitude blend", &s.altitude_blend, 0.0f, 1000.0f, "%.1fm");
     changed |= ImGui::SliderFloat("Transparency", &s.transparency, 0.0f, 1.0f);
+    changed |= ImGui::SliderFloat("Patches", &s.patches, 0.0f, 1.0f);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Thin snow (towards the snow line and on steep slopes) as sparse patches instead of a\n"
+                          "translucent veil: the falloff becomes the share of the ground covered.");
 
     if (changed)
         m_snow_overlay->update_settings();

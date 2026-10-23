@@ -67,7 +67,7 @@ public:
         bool enabled = true;
         ColourMode colour_mode = ColourMode::Snow;
         float radius_scale = 0.6f; // sphere radius as a share of the particle spacing
-        Shape shape = Shape::Spheres;
+        Shape shape = Shape::Powder;
         float strain_window = 0.15f; // [s] time over which the strain rate stretches an ellipsoid
         /// Drawn particles per simulated particle (rendering only): smaller particles scattered
         /// within two radii of each simulated one, with the same total volume. 1, 8 or 27.

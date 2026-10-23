@@ -957,7 +957,12 @@ void AvalanchePanel::draw()
     if (auto* particles = find_node<nodes::ParticleRenderNode>()) {
         if (auto* overlay = find_node<nodes::OverlayRenderNode>())
             overlay->set_overlay_enabled(!particles->renderer_settings().enabled);
-        particles->sync_snow_cover();
+        float min_altitude = 0.0f, max_altitude = 0.0f; // unknown until the solver reports its terrain scan
+        if (auto* solver = find_solver(); solver != nullptr && solver->last_state().valid) {
+            min_altitude = solver->last_state().min_altitude;
+            max_altitude = solver->last_state().max_altitude;
+        }
+        particles->sync_snow_cover(min_altitude, max_altitude);
     }
 
     if (auto* solver = find_solver(); solver != nullptr && find_node<nodes::AvaFrameSandboxNode>() == nullptr)

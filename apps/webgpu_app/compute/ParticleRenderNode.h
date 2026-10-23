@@ -48,8 +48,10 @@ public:
     /// Shows or hides the snow cover around the avalanche (Settings::snow_cover, while the 3D
     /// view is on): a screen-space snow overlay this node adds on first use, before the shading
     /// so it is lit like the terrain. The avalanche marks its pixels, so the overlay skips them.
-    /// Call every frame; cheap when nothing changes.
-    void sync_snow_cover();
+    /// The snow line follows the simulated terrain [min_altitude, max_altitude] (metres; pass
+    /// equal values while unknown): full cover in the upper part, thinning to sparse patches
+    /// towards the valley. Call every frame; cheap when nothing changes.
+    void sync_snow_cover(float min_altitude, float max_altitude);
 
     void serialize_settings(QJsonObject& out) const override;
     void deserialize_settings(const QJsonObject& in) override;
@@ -60,6 +62,7 @@ public slots:
 private:
     webgpu_engine::Context* m_context;
     std::weak_ptr<webgpu_engine::ScreenSpaceSnowOverlay> m_snow_overlay; // owned by the OverlayRenderer
+    glm::vec2 m_snow_terrain = glm::vec2(0.0f); // the terrain range the snow line was fitted to
 };
 
 } // namespace webgpu_compute::nodes

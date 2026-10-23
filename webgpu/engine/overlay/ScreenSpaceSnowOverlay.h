@@ -37,7 +37,7 @@ public:
         float altitude_variation = 200.0f; // noise variation around the snow line (m)
         float altitude_blend = 200.0f; // altitude falloff (m)
         float transparency = 1.0f; // overlay opacity [0, 1]
-        float _pad = 0.0f;
+        float patches = 0.0f; // 0: thin snow is translucent; 1: thin snow is sparse, noise-shaped patches
     };
 
     ScreenSpaceSnowOverlay();

@@ -369,6 +369,18 @@ noise texture shifted per particle. Details are in `12-rendering-plan.md`, step 
   to load).
 - **Verified** on one paused frame, A/B against the ellipsoids. GPU cost not measured.
 
+**Powder default 8× spacing (user), committed with the powder particles. Snow cover thinning
+with altitude (same day, uncommitted).** The user asked for less snow lower down, then
+mid-turn: "possibly also just more sparse with a noise texture".
+- **Snow line:** the avalanche's snow cover fits it to the solver's terrain scan: full above
+  55 % of the relief, none at 15 % below the lowest point.
+- **Patches:** a new `patches` setting on the screen-space snow overlay turns the falloff into a
+  covered share drawn as world-space noise patches, instead of translucency.
+- **Verified:** an overview and a close-up of Hintertux.
+
+**Powder is now the default particle shape** (user). `Settings::shape` = Powder; the map preset
+sets no shape, so it applies there.
+
 ### 12. Entrainment research: a snow cover made of particles (2026-10-12)
 
 **Request:** assess the idea of seeding particles along the whole path, held by friction and

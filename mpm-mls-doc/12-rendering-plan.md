@@ -231,6 +231,21 @@ haze on them like on the terrain.
      it) into the G-buffer overlay slot. `screen_space_snow.wgsl` skips those pixels; it now
      binds that slot.
    - Fixes 1 and 3 of the snow-overlay section below; the track and rim cover part of fix 2.
+   - **Snow line fitted to the terrain** (2026-10-23, the user's request: less snow lower
+     down, sparse with noise).
+     - The node fits the band to the solver's terrain scan: full cover above 55 % of the relief
+       (the release areas and the track); the covered share reaches 0 at 15 % of the relief below
+       the lowest point. The snow line varies by 8 % of the relief.
+     - New overlay setting `patches` (slider "Patches" in the Overlays panel; 1 for the
+       avalanche cover, 0 by default elsewhere). The falloff becomes the *share of ground*
+       covered: a pixel is snowy where world-space noise (two octaves, 40 world units) lies
+       below it. Thin snow is sparse, irregular patches that stay put instead of a grey veil.
+     - Where a noise cell is only a few pixels across, it falls back to the average, so there is
+       no shimmer.
+     - Refitted when the terrain range changes (a new scenario); the user's own changes hold
+       until then.
+     - **Verified** on Hintertux: white upper slopes, a ragged snow line, scattered patches down
+       to a mostly green runout. The track and debris now stand out against grass there.
 
    **Verified** on the same paused frame, three ways (snow + track / track only / neither):
    - The hill is white and lit.
@@ -240,7 +255,6 @@ haze on them like on the terrain.
 
    **Open:**
    - The track is one flat colour (no streaks along the flow).
-   - The snow line is fixed at 800 m, not per scenario.
    - GPU time not measured.
 8. **Powder particles.** Done 2026-10-23, the user's idea: particles as gas, a guide over
    the surface, which carries the mass. It is a third "Particle shape", Powder.
@@ -267,6 +281,8 @@ haze on them like on the terrain.
      it is thick.
    - **Not measured:** GPU cost. 65k blobs × many pixels of overdraw; Powder size scales it
      quadratically.
+   - **Default since 2026-10-23 (user):** Powder is the default particle shape
+     (`Settings::shape`; the map preset stores none). Spheres and ellipsoids stay selectable.
 9. **Optional / future:** a ray-marched grid volume for powder, screen-space fluid rendering and
    others. Collected on the Notion page "Rendering — future work".
 
