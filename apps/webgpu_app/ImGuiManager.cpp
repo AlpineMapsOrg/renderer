@@ -197,13 +197,17 @@ void ImGuiManager::install_fonts()
     }
 }
 
-void ImGuiManager::render([[maybe_unused]] WGPURenderPassEncoder renderPass)
+bool ImGuiManager::tick_simulations()
 {
 #ifdef ALP_WEBGPU_APP_ENABLE_COMPUTE
     if (m_node_graph_panel != nullptr)
-        m_simulation_driver.tick(m_node_graph_panel->node_graph());
+        return m_simulation_driver.tick(m_node_graph_panel->node_graph());
 #endif
+    return false;
+}
 
+void ImGuiManager::render([[maybe_unused]] WGPURenderPassEncoder renderPass)
+{
     ImGui_ImplWGPU_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();

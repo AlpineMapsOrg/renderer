@@ -216,6 +216,10 @@ void App::render()
         m_gputimer->start(encoder);
 
     m_frame_count++;
+    // The simulations advance before the frame is painted, so it shows this frame's chunk and
+    // interpolation; while one plays, every frame is repainted.
+    if (m_gui_manager->tick_simulations())
+        m_force_repaint_once = true;
     if (m_webgpu_window->needs_redraw() || m_force_repaint || m_force_repaint_once) {
         m_webgpu_window->paint(m_framebuffer.get(), encoder);
         m_repaint_count++;

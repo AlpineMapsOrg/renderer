@@ -177,6 +177,7 @@ void AvalanchePanel::load_startup_settings()
     // Before the two contexts, one pacing served both; it was mostly set for the sandbox.
     m_sandbox_playback.pacing = read_pacing("playback/sandbox_pacing", read_pacing("playback/pacing", m_sandbox_playback.pacing));
     m_playback_speed = std::clamp(settings.value("playback/speed", 1.0).toFloat(), SimulationClock::MIN_SPEED, SimulationClock::MAX_SPEED);
+    m_playback_interpolate = settings.value("playback/interpolate", true).toBool();
     m_selected_scenario = std::clamp(settings.value("startup/scenario", 0).toInt(), 0, int(m_scenarios.size()) - 1);
     m_selected_material_preset = std::clamp(settings.value("startup/material_preset", 0).toInt(), 0, int(m_material_presets.size()) - 1);
     m_startup_sandbox = settings.value("startup/sandbox", false).toBool();
@@ -221,6 +222,7 @@ void AvalanchePanel::save_startup_settings() const
     settings.setValue("playback/sandbox_mode", int(m_sandbox_playback.mode));
     settings.setValue("playback/sandbox_pacing", int(m_sandbox_playback.pacing));
     settings.setValue("playback/speed", double(m_playback_speed));
+    settings.setValue("playback/interpolate", m_playback_interpolate);
     settings.setValue("startup/sandbox", m_startup_sandbox);
     settings.setValue("sandbox/root", QString::fromStdString(m_sandbox_root));
     settings.setValue("sandbox/auto_export", m_sandbox_auto_export);
@@ -1033,6 +1035,7 @@ void AvalanchePanel::sync_clock(nodes::MpmSolverNode& solver)
     SimulationClock::Settings clock;
     clock.mode = current.mode;
     clock.speed = m_playback_speed;
+    clock.interpolate = m_playback_interpolate;
     clock.budget_ms = pacing_budget_ms(current.pacing); // 0 for Manual
     clock.manual_steps_per_submit = solver.get_settings().substeps_per_submit;
     clock.manual_steps_per_run = solver.get_settings().substeps_per_run;
@@ -1084,6 +1087,11 @@ void AvalanchePanel::draw_playback(nodes::MpmSolverNode& solver)
             ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_AlwaysClamp);
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Simulated seconds per second. Ctrl+click to type a value.");
+        changed |= ImGui::Checkbox("Interpolate", &m_playback_interpolate);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Draws the particles between the last two simulated states, at the time the clock says,\n"
+                              "like a game engine: every frame moves by the same amount, also at speeds where one\n"
+                              "time step is longer than a frame. Off: every frame shows the latest simulated state.");
     }
     int pacing = int(current.pacing);
     if (ImGui::Combo("Pacing", &pacing, "Manual\0Smooth (60 fps)\0Balanced (30 fps)\0Fast simulation\0")) {

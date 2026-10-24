@@ -254,6 +254,7 @@ private:
     Playback m_map_playback { webgpu_compute::SimulationClock::Mode::RealTime, Pacing::Smooth };
     Playback m_sandbox_playback { webgpu_compute::SimulationClock::Mode::Accuracy, Pacing::Balanced };
     float m_playback_speed = 1.0f; // real time: simulated seconds per wall-clock second
+    bool m_playback_interpolate = true; // real time: draw the particles between the last two simulated states
 
     bool m_startup_sandbox = false; // autostart loads the sandbox instead of the map
     std::string m_sandbox_root;

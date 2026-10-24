@@ -47,6 +47,10 @@ public:
     void init(SDL_Window* window, WGPUDevice device, WGPUTextureFormat swapchainFormat, WGPUTextureFormat depthTextureFormat);
     void ready();
     void render(WGPURenderPassEncoder renderPass);
+    /// Advances the time-stepped simulations of the compute graph (SimulationDriver). Once per
+    /// frame, before the frame is painted, GUI shown or not. Returns whether one is playing or
+    /// still advancing, i.e. whether the frame has to be repainted.
+    bool tick_simulations();
     void shutdown();
 
     bool want_capture_keyboard();
@@ -103,8 +107,7 @@ private:
 
     std::vector<std::unique_ptr<ImGuiPanel>> m_panels;
 #ifdef ALP_WEBGPU_APP_ENABLE_COMPUTE
-    /* Plays back the time-stepped simulations of the loaded compute graph, every frame, before
-     * and independent of the GUI (which can be hidden). */
+    /* Plays back the time-stepped simulations of the loaded compute graph (tick_simulations()). */
     NodeGraphPanel* m_node_graph_panel = nullptr;
     webgpu_compute::SimulationDriver m_simulation_driver;
 #endif
