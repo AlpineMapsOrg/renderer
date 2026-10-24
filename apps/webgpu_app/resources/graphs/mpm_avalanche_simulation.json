@@ -149,6 +149,26 @@
                 "node": "Particles 3D",
                 "socket": "particle view"
             }
+        },
+        {
+            "from": {
+                "node": "Select Tiles",
+                "socket": "region aabb"
+            },
+            "to": {
+                "node": "AvaFrame Release",
+                "socket": "region aabb"
+            }
+        },
+        {
+            "from": {
+                "node": "AvaFrame Release",
+                "socket": "release area"
+            },
+            "to": {
+                "node": "MPM Solver",
+                "socket": "release area"
+            }
         }
     ],
     "first_run_notice": "WARNING: RESEARCH PREVIEW\n\nThis MLS-MPM snow simulation is for educational and illustrative purposes only.\nIt is not calibrated against real snowpack or terrain conditions and must NOT be\nused for route planning or any avalanche safety decision.\n\nUse the Avalanche section of the sidebar to run it: pick a location, press Play.",
@@ -302,6 +322,15 @@
                 "colour_mode": 0,
                 "radius_scale": 0.6
             }
+        },
+        {
+            "enabled": true,
+            "name": "AvaFrame Release",
+            "settings": {
+                "dataset_path": "",
+                "release_scenario": ""
+            },
+            "type": "AvaFrameReleaseNode"
         }
     ],
     "ui": {
@@ -364,6 +393,12 @@
                 "position": [
                     980.0,
                     650.0
+                ]
+            },
+            "AvaFrame Release": {
+                "position": [
+                    769.0,
+                    760.0
                 ]
             }
         }

@@ -51,6 +51,7 @@ struct ResampledRelease {
     glm::dvec2 texel_size = glm::dvec2(1.0); // [region metres]
     glm::dvec2 min = glm::dvec2(0.0); // bounds of the texels with depth [region metres]
     glm::dvec2 max = glm::dvec2(0.0);
+    glm::dvec2 centroid = glm::dvec2(0.0); // of the release area [region metres]
     double volume = 0.0; // [m^3]
     double area = 0.0; // [m^2]
     float max_depth = 0.0f; // [m]

@@ -64,6 +64,7 @@ ResampledRelease resample_release(const SandboxTerrain& terrain, const radix::ge
             out.depth.pixel(glm::uvec2(col, row)) = depth;
             out.volume += double(depth) * texel_area;
             out.area += texel_area;
+            out.centroid += centre * texel_area;
             out.max_depth = std::max(out.max_depth, depth);
             out.min = glm::min(out.min, centre - 0.5 * out.texel_size);
             out.max = glm::max(out.max, centre + 0.5 * out.texel_size);
@@ -71,6 +72,8 @@ ResampledRelease resample_release(const SandboxTerrain& terrain, const radix::ge
     }
     if (out.volume <= 0.0)
         out.min = out.max = glm::dvec2(0.0);
+    else
+        out.centroid /= out.area;
     return out;
 }
 
@@ -156,9 +159,11 @@ void AvaFrameReleaseNode::run_impl()
         m_terrain->name + " / " + m_terrain->scenario };
     m_area_valid = true;
     m_status = m_area.label;
+    const glm::dvec2 centroid_lat_lon = nucleus::srs::world_to_lat_long(region->min + release.centroid / metres_per_world_unit);
     qInfo().nospace() << "AvaFrameReleaseNode: " << QString::fromStdString(m_area.label) << " on the map, " << release.volume << " m3 on " << release.area
                       << " m2 (dataset: " << m_terrain->release_volume << " m3 on " << m_terrain->release_area << " m2), " << release.depth.width() << "x"
-                      << release.depth.height() << " texels of " << release.texel_size.x << " m, placement residual " << m_terrain->sandbox_to_world_residual
+                      << release.depth.height() << " texels of " << release.texel_size.x << " m, centroid " << qSetRealNumberPrecision(8)
+                      << centroid_lat_lon.x << ", " << centroid_lat_lon.y << ", placement residual " << m_terrain->sandbox_to_world_residual
                       << " world units";
     complete_run();
 }

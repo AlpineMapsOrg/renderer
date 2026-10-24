@@ -71,6 +71,11 @@ public:
         glm::dvec2 release_center; // latitude, longitude
         float release_radius; // [m]
         float slab_thickness; // [m]
+
+        /* An AvaFrame test avalanche: its release areas replace the disc when the AvaFrame data
+         * is downloaded (AvaFrameReleaseNode). Empty for the other scenarios. */
+        std::string avaframe_dataset = {};
+        std::string avaframe_release = {}; // default release scenario, the one the comparison used
     };
 
     /// A named material parameter set. Presets are a UI concept layered on top of the
@@ -188,6 +193,13 @@ private:
         bool has_reference = false;
     };
     void scan_sandbox_datasets();
+    /// AvaFrame scenarios on the map: the dataset whose release areas they use, if it is
+    /// downloaded, and pointing the graph's AvaFrameReleaseNode at it (or at nothing: the disc).
+    const SandboxDataset* map_release_dataset(const Scenario& scenario) const;
+    void configure_map_release(const Scenario& scenario);
+    /// The release line under the location: AvaFrame's areas or the disc, and the picker.
+    void draw_map_release();
+
     /// Loads the sandbox graph preset and the selected dataset.
     void load_sandbox();
     /// Points the sandbox node at the selected dataset and scenario and runs the graph.
@@ -245,6 +257,7 @@ private:
 
     std::vector<Scenario> m_scenarios;
     int m_selected_scenario = 0;
+    int m_map_release_scenario = 0; // index into the AvaFrame dataset's release scenarios
     std::string m_scenario_error;
     const Scenario* m_frame_pending = nullptr; // scenario to frame on the map once its terrain is in
 

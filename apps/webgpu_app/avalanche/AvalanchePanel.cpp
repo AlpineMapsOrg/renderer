@@ -42,6 +42,7 @@
 #include <QJsonObject>
 #include <SDL2/SDL.h>
 #include <cstdlib>
+#include <webgpu/compute/nodes/AvaFrameReleaseNode.h>
 #include <webgpu/compute/nodes/AvaFrameSandboxNode.h>
 #include <webgpu/compute/nodes/ComputeAvalancheTrajectoriesNode.h>
 #include <webgpu/compute/nodes/GeoRegionNode.h>
@@ -63,20 +64,21 @@ AvalanchePanel::AvalanchePanel(NodeGraphPanel* graph_panel)
               glm::dvec2(47.47800, 13.60600), 8000.0f, 15, glm::dvec2(47.47800, 13.60600), 4000.0f, 320, glm::dvec2(47.47300, 13.60400), 130.0f, 2.0f },
           // AvaFrame's five real test avalanches (the ones the comparison uses), on the map. Domain:
           // about 1.4x the sandbox's (release and com1DFA footprint with a margin), because on the
-          // map's terrain the flow spreads further across the valley floors. Release: a disc of the
-          // same area as AvaFrame's release area (its largest part for Madlein), on its centroid;
-          // the map masks it with its own 30-45 degree release slopes. Slab: AvaFrame's
-          // slope-normal thickness as vertical depth. The exact release runs in the AvaFrame sandbox.
-          Scenario { "Kontertal (AvaFrame avaKot)", "AvaFrame test avalanche, Lechtal. Release approximated by a disc; exact in the AvaFrame sandbox.",
-              glm::dvec2(47.25740, 10.39954), 4600.0f, 15, glm::dvec2(47.25740, 10.39954), 2600.0f, 325, glm::dvec2(47.25227, 10.39604), 70.0f, 1.4f },
-          Scenario { "Gallreide (AvaFrame avaGar)", "AvaFrame test avalanche, event of February 2009. Release approximated by a disc.",
-              glm::dvec2(47.04659, 11.33737), 4900.0f, 15, glm::dvec2(47.04659, 11.33737), 2900.0f, 363, glm::dvec2(47.05046, 11.32931), 114.0f, 1.5f },
-          Scenario { "Hintertux (AvaFrame avaHit)", "AvaFrame test avalanche, Tuxertal. Release approximated by a disc.",
-              glm::dvec2(47.11677, 11.67028), 5200.0f, 15, glm::dvec2(47.11677, 11.67028), 3200.0f, 400, glm::dvec2(47.12098, 11.66391), 261.0f, 1.24f },
-          Scenario { "Wolfsgruben (AvaFrame avaWog)", "AvaFrame test avalanche, event of 1988. Release approximated by a disc.",
-              glm::dvec2(47.12760, 10.28294), 5400.0f, 15, glm::dvec2(47.12760, 10.28294), 3400.0f, 425, glm::dvec2(47.12161, 10.28847), 207.0f, 1.21f },
-          Scenario { "Madlein (AvaFrame avaMal)", "AvaFrame test avalanche above Ischgl, event of 1984. Release: disc on the largest of its release areas.",
-              glm::dvec2(47.02478, 10.28108), 6500.0f, 15, glm::dvec2(47.02478, 10.28108), 4500.0f, 512, glm::dvec2(47.03342, 10.27979), 298.0f, 1.24f },
+          // map's terrain the flow spreads further across the valley floors. Release: AvaFrame's
+          // release areas resampled onto the map (AvaFrameReleaseNode) when the AvaFrame data is
+          // downloaded. Otherwise a disc of the same area (its largest part for Madlein) on its
+          // centroid, masked by the map's own 30-45 degree release slopes, with AvaFrame's
+          // slope-normal thickness as vertical depth.
+          Scenario { "Kontertal (AvaFrame avaKot)", "AvaFrame test avalanche, Lechtal.", glm::dvec2(47.25740, 10.39954), 4600.0f, 15,
+              glm::dvec2(47.25740, 10.39954), 2600.0f, 325, glm::dvec2(47.25227, 10.39604), 70.0f, 1.4f, "avaKot", "relKot" },
+          Scenario { "Gallreide (AvaFrame avaGar)", "AvaFrame test avalanche, event of February 2009.", glm::dvec2(47.04659, 11.33737), 4900.0f, 15,
+              glm::dvec2(47.04659, 11.33737), 2900.0f, 363, glm::dvec2(47.05046, 11.32931), 114.0f, 1.5f, "avaGar", "relGar" },
+          Scenario { "Hintertux (AvaFrame avaHit)", "AvaFrame test avalanche, Tuxertal.", glm::dvec2(47.11677, 11.67028), 5200.0f, 15,
+              glm::dvec2(47.11677, 11.67028), 3200.0f, 400, glm::dvec2(47.12098, 11.66391), 261.0f, 1.24f, "avaHit", "relHit" },
+          Scenario { "Wolfsgruben (AvaFrame avaWog)", "AvaFrame test avalanche, event of 1988.", glm::dvec2(47.12760, 10.28294), 5400.0f, 15,
+              glm::dvec2(47.12760, 10.28294), 3400.0f, 425, glm::dvec2(47.12161, 10.28847), 207.0f, 1.21f, "avaWog", "relWog" },
+          Scenario { "Madlein (AvaFrame avaMal)", "AvaFrame test avalanche above Ischgl, event of 1984.", glm::dvec2(47.02478, 10.28108), 6500.0f, 15,
+              glm::dvec2(47.02478, 10.28108), 4500.0f, 512, glm::dvec2(47.03342, 10.27979), 298.0f, 1.24f, "avaMal", "relMal1to3" },
       })
     , m_material_presets({
           // name, note, model, E, nu, rho, mu, | Stomakhin xi, theta_c, theta_s | DP phi | CCC M, beta, xi, p0
@@ -330,8 +332,76 @@ bool AvalanchePanel::apply_scenario(const Scenario& scenario)
 
     solver->clock().pause(); // the terrain has to be fetched and stitched before stepping again
     m_frame_pending = &scenario; // m_scenarios never changes size, so the pointer stays valid
+
+    // AvaFrame scenarios start with the release scenario the comparison used.
+    m_map_release_scenario = 0;
+    if (const SandboxDataset* dataset = map_release_dataset(scenario)) {
+        const auto it = std::find(dataset->scenarios.begin(), dataset->scenarios.end(), scenario.avaframe_release);
+        m_map_release_scenario = it == dataset->scenarios.end() ? 0 : int(it - dataset->scenarios.begin());
+    }
+    configure_map_release(scenario);
     graph->run();
     return true;
+}
+
+const AvalanchePanel::SandboxDataset* AvalanchePanel::map_release_dataset(const Scenario& scenario) const
+{
+    if (scenario.avaframe_dataset.empty())
+        return nullptr;
+    const auto it = std::find_if(
+        m_sandbox_datasets.begin(), m_sandbox_datasets.end(), [&](const SandboxDataset& d) { return d.name == scenario.avaframe_dataset && d.geolocated; });
+    return it == m_sandbox_datasets.end() ? nullptr : &*it;
+}
+
+void AvalanchePanel::configure_map_release(const Scenario& scenario)
+{
+    auto* node = find_node<nodes::AvaFrameReleaseNode>();
+    if (node == nullptr)
+        return; // a graph without the node (an older preset): the disc
+    nodes::AvaFrameReleaseNode::AvaFrameReleaseSettings settings;
+    if (const SandboxDataset* dataset = map_release_dataset(scenario)) {
+        settings.dataset_path = QDir(QString::fromStdString(m_sandbox_root)).filePath(QString::fromStdString(dataset->name)).toStdString();
+        settings.release_scenario = dataset->scenarios[size_t(std::clamp(m_map_release_scenario, 0, int(dataset->scenarios.size()) - 1))];
+    }
+    node->set_settings(settings);
+}
+
+void AvalanchePanel::draw_map_release()
+{
+    const Scenario& scenario = m_scenarios[size_t(m_selected_scenario)];
+    if (scenario.avaframe_dataset.empty())
+        return;
+    const auto* node = find_node<nodes::AvaFrameReleaseNode>();
+    const SandboxDataset* dataset = map_release_dataset(scenario);
+    if (dataset != nullptr && node != nullptr && dataset->scenarios.size() > 1) {
+        std::vector<const char*> names;
+        for (const auto& name : dataset->scenarios)
+            names.push_back(name.c_str());
+        if (ImGui::Combo("Release area", &m_map_release_scenario, names.data(), int(names.size()))) {
+            configure_map_release(scenario);
+            if (auto* solver = find_solver()) {
+                solver->request_reset();
+                solver->clock().pause();
+            }
+            if (auto* graph = m_graph_panel->node_graph())
+                graph->run();
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("AvaFrame's release scenarios of this avalanche. %s is the one the AvaFrame comparison used.", scenario.avaframe_release.c_str());
+    }
+    if (const auto* area = node != nullptr ? node->release_area() : nullptr) {
+        ImGui::TextDisabled("Release: AvaFrame %s, %.0f m3 on %.1f ha", area->label.c_str(), area->volume, area->area / 1e4);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("AvaFrame's release areas, resampled from its grid (Austria Lambert) onto the map's terrain through an\n"
+                              "affine fit to the dataset's corners (good to under a DEM cell). An approximation: AvaFrame's outline\n"
+                              "and depth (from AvaFrame's DEM), on the map's terrain. Exact in the AvaFrame sandbox.");
+    } else if (dataset == nullptr) {
+        ImGui::TextDisabled("Release: a disc of the same area as AvaFrame's.");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Download the AvaFrame data (AvaFrame sandbox, below) to release from AvaFrame's own release areas.");
+    } else {
+        ImGui::TextDisabled("Release: a disc (%s)", node != nullptr ? node->status().c_str() : "graph without an AvaFrame Release node");
+    }
 }
 
 void AvalanchePanel::frame_scenario_when_ready(nodes::MpmSolverNode& solver)
@@ -1190,6 +1260,7 @@ void AvalanchePanel::draw_panel()
             ImGui::TextDisabled("Load the MLS-MPM preset to switch location.");
         } else {
             ImGui::TextDisabled("%s", m_scenarios[size_t(m_selected_scenario)].note.c_str());
+            draw_map_release();
         }
         if (!m_scenario_error.empty())
             ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "%s", m_scenario_error.c_str());

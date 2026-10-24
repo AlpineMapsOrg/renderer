@@ -478,6 +478,15 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
         data.release_volume = float(release_area->volume);
         data.release_max_depth = release_area->max_depth;
         release_area_texels = float(release_area->area) / (metres_per_texel * metres_per_texel);
+        const glm::dvec2 domain_min(domain_origin);
+        const glm::dvec2 domain_max = domain_min + glm::dvec2(domain_size);
+        if (m_settings.reset_on_next_run && (glm::any(glm::lessThan(release_area->min, domain_min)) || glm::any(glm::greaterThan(release_area->max, domain_max)))) {
+            // Seeding skips cells outside the domain, while the particles still share the whole
+            // release volume: the seeded snow would be denser than AvaFrame's.
+            qWarning().nospace() << "MpmSolverNode: release area " << QString::fromStdString(release_area->label) << " reaches outside the domain ("
+                                 << release_area->min.x << ", " << release_area->min.y << ")-(" << release_area->max.x << ", " << release_area->max.y
+                                 << ") m vs (" << domain_min.x << ", " << domain_min.y << ")-(" << domain_max.x << ", " << domain_max.y << ") m";
+        }
     } else {
         // Release zone, in region-relative metres. Clamped into the domain (with a margin for
         // its own radius) so a slightly misplaced scenario still seeds instead of silently
