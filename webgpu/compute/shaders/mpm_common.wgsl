@@ -204,7 +204,8 @@ const SUM_PATH_SCALE: f32 = 1.0e5; // 0.01 mm
 // the seeded area times its thickness, the area being the release disc times the share of
 // first seeding samples that hit a release point (Monte Carlo over every seeding thread).
 fn seeded_particle_volume() -> f32 {
-    // The sandbox knows its release volume exactly (AvaFrame's thickness times surface area).
+    // The release grid (the sandbox, AvaFrame areas on the map) knows its volume exactly
+    // (AvaFrame's thickness times surface area).
     if settings.release_mode == RELEASE_GRID {
         return settings.release_volume / max(f32(atomicLoad(&state.active_particles)), 1.0);
     }

@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include "MpmSolverNode.h"
+#include "AvaFrameReleaseNode.h"
 
 #include "AvaFrameSandboxNode.h"
 
@@ -124,6 +125,8 @@ MpmSolverNode::MpmSolverNode(webgpu::Context& ctx, const MpmSolverSettings& sett
               InputSocket(*this, "release point texture", data_type<const webgpu::raii::TextureWithSampler*>()),
               // Optional. Connected = sandbox mode, see the class comment.
               InputSocket(*this, "sandbox", data_type<const SandboxTerrain*>()),
+              // Optional, map only: release areas given per cell (AvaFrameReleaseNode) instead of the disc.
+              InputSocket(*this, "release area", data_type<const ReleaseArea*>()),
           },
           {
               OutputSocket(*this, "texture", data_type<const webgpu::raii::TextureWithSampler*>(), [this]() { return m_output_texture.get(); }),
@@ -322,22 +325,22 @@ bool MpmSolverNode::ensure_resources()
     return true;
 }
 
-void MpmSolverNode::ensure_bind_group(const webgpu::raii::TextureWithSampler& height_texture, const webgpu::raii::TextureWithSampler& release_point_texture)
+void MpmSolverNode::ensure_bind_group(const webgpu::raii::TextureWithSampler& height_texture, const webgpu::raii::TextureWithSampler& release_texture)
 {
     if (m_bind_group && m_bind_group_generation == m_resource_generation && m_bind_group_run_id == get_run_id()
-        && m_bind_group_height == height_texture.texture().handle() && m_bind_group_release == release_point_texture.texture().handle())
+        && m_bind_group_height == height_texture.texture().handle() && m_bind_group_release == release_texture.texture().handle())
         return;
     m_bind_group_generation = m_resource_generation;
     m_bind_group_run_id = get_run_id();
     m_bind_group_height = height_texture.texture().handle();
-    m_bind_group_release = release_point_texture.texture().handle();
+    m_bind_group_release = release_texture.texture().handle();
 
     m_bind_group = std::make_unique<webgpu::raii::BindGroup>(m_ctx->device(),
         m_ctx->resource_registry().bind_group_layout("mpm_solver"),
         std::vector<WGPUBindGroupEntry> {
             m_settings_uniform.raw_buffer().create_bind_group_entry(0),
             height_texture.texture_view().create_bind_group_entry(1),
-            release_point_texture.texture_view().create_bind_group_entry(2),
+            release_texture.texture_view().create_bind_group_entry(2),
             m_particle_buffer->create_bind_group_entry(3),
             m_grid_buffer->create_bind_group_entry(4),
             m_state_buffer->create_bind_group_entry(5),
@@ -363,8 +366,8 @@ float MpmSolverNode::max_stable_dt(const MpmSolverSettings& settings, float dx)
     return CFL_NUMBER * dx / std::max(wave_speed, 1e-3f);
 }
 
-void MpmSolverNode::update_gpu_settings(
-    const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture, const SandboxTerrain* sandbox)
+void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture,
+    const SandboxTerrain* sandbox, const ReleaseArea* release_area)
 {
     // The solver works in metres. World units are Web Mercator, which stretches distances by
     // 1/cos(latitude) - 1.47 at 47 degrees N - while heights are real metres, so taking world
@@ -461,6 +464,20 @@ void MpmSolverNode::update_gpu_settings(
         data.release_volume = float(sandbox->release_volume);
         data.release_max_depth = sandbox->release_max_depth;
         release_area_texels = float(sandbox->release_area) / (metres_per_texel * metres_per_texel);
+    } else if (release_area != nullptr) {
+        // The map with release areas given per cell (AvaFrame's, resampled onto the region by
+        // AvaFrameReleaseNode): the sandbox's release grid mode, in region metres. Cells
+        // outside the domain are not seeded.
+        const glm::dvec2 centre = (release_area->min + release_area->max) * 0.5;
+        const glm::dvec2 half = (release_area->max - release_area->min) * 0.5;
+        data.release_mode = 1u;
+        data.release_centre_x = float(centre.x);
+        data.release_centre_y = float(centre.y);
+        data.release_radius = float(half.x);
+        data.release_half_y = float(half.y);
+        data.release_volume = float(release_area->volume);
+        data.release_max_depth = release_area->max_depth;
+        release_area_texels = float(release_area->area) / (metres_per_texel * metres_per_texel);
     } else {
         // Release zone, in region-relative metres. Clamped into the domain (with a margin for
         // its own radius) so a slightly misplaced scenario still seeds instead of silently
@@ -523,8 +540,9 @@ void MpmSolverNode::update_gpu_settings(
     }
     // Spacing of the seeded particles: the release volume shared out. On the map the release
     // is a disc of slab thickness (an upper bound, seeding keeps only the release slopes).
-    const double release_volume = sandbox != nullptr
-        ? sandbox->release_volume
+    const double release_volume = sandbox != nullptr ? sandbox->release_volume
+        : release_area != nullptr
+        ? release_area->volume
         : glm::pi<double>() * double(m_settings.release_radius) * double(m_settings.release_radius) * double(m_settings.slab_thickness);
     m_particle_view.particle_spacing = float(std::cbrt(release_volume / double(std::max(m_settings.num_particles, 1u))));
     m_particle_view.domain_origin = data.domain_origin;
@@ -718,6 +736,14 @@ const SandboxTerrain* MpmSolverNode::sandbox()
     return std::get<data_type<const SandboxTerrain*>()>(input_socket("sandbox").get_connected_data());
 }
 
+const ReleaseArea* MpmSolverNode::release_area()
+{
+    if (!input_socket("release area").is_socket_connected())
+        return nullptr;
+    const auto* area = std::get<data_type<const ReleaseArea*>()>(input_socket("release area").get_connected_data());
+    return area != nullptr && area->depth_texture != nullptr && area->volume > 0.0 ? area : nullptr;
+}
+
 bool MpmSolverNode::has_valid_inputs()
 {
     static constexpr const char* REQUIRED[] = { "region aabb", "height texture", "release point texture" };
@@ -811,8 +837,11 @@ void MpmSolverNode::run_impl()
     m_run_started = std::chrono::steady_clock::now();
     ensure_resources();
     const SandboxTerrain* sandbox_terrain = sandbox();
-    update_gpu_settings(*region_aabb, height_texture, sandbox_terrain);
-    ensure_bind_group(height_texture, release_point_texture);
+    // On the map, release areas given per cell take the place of the release point mask: the
+    // seed reads its depth from the same binding, as in the sandbox.
+    const ReleaseArea* map_release = sandbox_terrain == nullptr ? release_area() : nullptr;
+    update_gpu_settings(*region_aabb, height_texture, sandbox_terrain, map_release);
+    ensure_bind_group(height_texture, map_release != nullptr ? *map_release->depth_texture : release_point_texture);
 
     const bool reset = m_settings.reset_on_next_run;
     if (reset) {

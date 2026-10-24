@@ -321,6 +321,9 @@ public:
     /// The sandbox the solver runs on, or nullptr when it runs on the map (the optional
     /// "sandbox" input is not connected or its node has not run).
     const SandboxTerrain* sandbox();
+    /// The release areas given per cell on the map (the optional "release area" input, from
+    /// AvaFrameReleaseNode), or nullptr: then the map releases the disc. Ignored in the sandbox.
+    const ReleaseArea* release_area();
 
     /// Diagnostics read back from the GPU after each run. Arrives asynchronously, so it
     /// describes the *previous* completed run; `valid` is false until the first readback.
@@ -442,10 +445,10 @@ private:
     /// Returns true if anything was recreated, which also invalidates the bind group.
     bool ensure_resources();
     /// Builds the bind group unless the cached one still refers to the current resources.
-    void ensure_bind_group(const webgpu::raii::TextureWithSampler& height_texture, const webgpu::raii::TextureWithSampler& release_point_texture);
+    void ensure_bind_group(const webgpu::raii::TextureWithSampler& height_texture, const webgpu::raii::TextureWithSampler& release_texture);
     void create_pipelines(WGPUDevice device, const webgpu::RenderResourceRegistry& reg);
-    void update_gpu_settings(
-        const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture, const SandboxTerrain* sandbox);
+    void update_gpu_settings(const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture,
+        const SandboxTerrain* sandbox, const ReleaseArea* release_area);
     void write_initial_state();
     /// Zeroes the per-run counters (max speed, plastic particles) without touching the
     /// terrain scan or the seed count.
