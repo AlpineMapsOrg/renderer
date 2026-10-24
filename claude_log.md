@@ -59,6 +59,35 @@ alone keeps added keys) and `imgui.ini`; one test export in `avaKot/mpm` was del
 Mistake on the way: a zsh loop did not split `$cfg` (the same trap as before) and ran four
 tests with empty prefs; only scratchpad files were affected, rerun under `bash -c`.
 
+### 2. Interpolation for real-time playback (same branch, PR #12)
+
+Asked: "add interpolation". Clarified: real time only, an "Interpolate" checkbox on by default,
+same branch. Design (game-engine style, Fiedler's "Fix your timestep!"): the clock keeps a
+presentation time T; each frame runs just enough steps to be at or past T, in one chunk
+(`advance_frame()`); the renderer draws positions blended between the particles before and after
+that chunk (`set_interpolation()`). The pre-planned 8-frame runs went: the clock now decides each
+frame's steps, and only closes a run every 8 chunks. The solver copies its particle buffer before
+each real-time chunk (`m_previous_particles`); the three particle shaders blend the position.
+
+**Found while measuring, more important than the interpolation itself:** the map only repaints
+on request, and `ParticleRenderNode` requested it once per solver run. So the 3D view had
+updated once per run — every 8 frames in real time — and the "0 frozen frames" of entry 1 were
+only true for the simulated time, not for the picture. The harness now counts real repaints.
+Also the driver ticked in the GUI pass, after the paint, so a frame would have drawn the new
+chunk with the old interpolation. Fixed: `App::render()` ticks before the paint and repaints
+every frame while a simulation plays.
+
+**Verified:** 23 unit test sections (forcing the interpolation to 1 fails the two drawn-time
+ones). On the M5, map Hintertux: 1x Smooth 1.00x, 60 fps, 60 repaints/s, drawn time 16.67 ±
+0.3 ms per frame, no still frame (GUI hidden for 10 s included); 0.1x: the simulation stands
+still 41 frames per second, the picture in none (41 with interpolation off); 4x Smooth 2.67x
+steady, behind, 60 fps; accuracy unchanged in behaviour (45 fps, per-run updates). Each commit
+builds on its own; web build compiles. **Not verified:** the browser; the checkbox was not
+clicked (set through the prefs in the runs).
+
+Prefs note: the per-run backup already held the user's own newer prefs (they had used the app
+in between, e.g. `startup.scenario` 4); each run restored exactly those.
+
 ## 2026-10-10
 
 ### 1. Solver in metres instead of Web Mercator units (branch `mpm-metric-units`)

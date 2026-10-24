@@ -154,8 +154,9 @@ scenario, vsync at 60 Hz:
 
 Since 2026-10-24 there are two playback modes ([13-simulation-driver.md](13-simulation-driver.md)):
 *accuracy* is the scheme above, sized from the Pacing budget; *real time* submits one chunk
-per frame with one frame's worth of steps, so simulated time follows the wall clock times the
-speed (1.00x at 56–60 fps on the M5 at Smooth) and falls behind rather than exceed the budget.
+per frame with just enough steps to reach the wall clock times the speed, and the renderer
+interpolates between the last two states (1.00x at 60 fps on the M5 at Smooth, every frame
+moving by exactly one frame's worth); it falls behind rather than exceed the budget.
 
 A CPU thread would not help: the CPU side of a run is microseconds of command encoding;
 the contention is on the GPU queue. A second WebGPU *device* would give a second queue,

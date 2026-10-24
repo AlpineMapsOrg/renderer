@@ -35,7 +35,7 @@ and verification: [12-rendering-plan.md](12-rendering-plan.md).
 
 | File | Purpose |
 |---|---|
-| `avalanche/AvalancheRenderer.h/.cpp` | Draws the particles and the flow surface. `prepare()` (compute: splat + field, before the G-buffer pass), `draw()` (particles + surface into the G-buffer), `draw_transparent()` (Powder, after compose). Fed by a source callback (`Frame`), not by the solver directly. |
+| `avalanche/AvalancheRenderer.h/.cpp` | Draws the particles and the flow surface. `prepare()` (compute: splat + field, before the G-buffer pass), `draw()` (particles + surface into the G-buffer), `draw_transparent()` (Powder, after compose). Fed by a source callback (`Frame`), not by the solver directly. Positions are blended between `Frame::previous_particles` and `particles` by `Frame::interpolation` (real-time playback). |
 | `shaders/render_avalanche.wgsl` | Particles as sphere or strain-rate-ellipsoid impostors in the G-buffer, optionally as 8/27 detail (child) particles. Writes the avalanche marker into the overlay slot. |
 | `shaders/render_avalanche_powder.wgsl` | Powder: large soft transparent blobs with per-particle noise, blended over the lit frame, faded against the G-buffer depth. |
 | `shaders/avalanche_surface_splat.wgsl` | Flow surface 1/3: B-spline splat of particle volume onto the render grid (fixed-point atomics). |
@@ -66,7 +66,7 @@ and verification: [12-rendering-plan.md](12-rendering-plan.md).
 | `apps/webgpu_app/compute/nodes/NodeRendererFactory.cpp` | `dynamic_cast` branch for the solver renderer. |
 | `apps/webgpu_app/compute/NodeGraphPanel.h` | Added `node_graph()` accessor so other panels can reach the graph. |
 | `apps/webgpu_app/compute/NodeGraphPanel.cpp` | Preset list entry. |
-| `apps/webgpu_app/ImGuiManager.h/.cpp` | Registers `AvalanchePanel` (guarded by `ALP_WEBGPU_APP_ENABLE_COMPUTE`); owns the `SimulationDriver` and ticks it at the start of `render()`, also with the GUI hidden. |
+| `apps/webgpu_app/ImGuiManager.h/.cpp`, `App.cpp` | Registers `AvalanchePanel` (guarded by `ALP_WEBGPU_APP_ENABLE_COMPUTE`); owns the `SimulationDriver`. `App::render()` ticks it (`tick_simulations()`) before the frame is painted, also with the GUI hidden, and repaints every frame while a simulation plays. |
 | `unittests/CMakeLists.txt`, `unittests/webgpu_compute/` | `unittests_webgpu_compute`: the simulation clock against a fake simulation. |
 | `apps/webgpu_app/resources.qrc` | Graph resource. |
 | `webgpu/engine/Context.h/.cpp`, `apps/webgpu_app/RenderingContext.cpp` | The engine context owns an `AvalancheRenderer` (`avalanche_renderer()`); the app creates it and registers `ParticleRenderNode`. |
@@ -120,7 +120,7 @@ track). Kept current across reallocations.
 | Method | Notes |
 |---|---|
 | `run_impl()` | One node execution: optional reset, then `substeps_per_run` MPM steps (or what `advance()` asked for), then splat + rasterize. Submitted in chunks by `submit_chunk()`. |
-| `advance(steps, chunks, submission)`, `submit_frame()` | `TimeSteppedSimulation`: one run with these counts, without writing the settings. `Chained` = the old way (below); `PerFrame` = one chunk now and one per `submit_frame()`, skipped while three are in flight; done once the last one is submitted. See [13-simulation-driver.md](13-simulation-driver.md). |
+| `advance(steps, chunks)`, `advance_frame(steps, end_run)`, `set_interpolation()` | `TimeSteppedSimulation`. `advance()`: one chained run with these counts (the old way, below), without writing the settings. `advance_frame()`: one real-time chunk now, opening a run if none is open, refused while three chunks are in flight; `end_run` closes the run. Each real-time chunk first copies the particles into `m_previous_particles`; the particle view carries them and the interpolation for the renderer. See [13-simulation-driver.md](13-simulation-driver.md). |
 | `submit_chunk()` | Encodes and submits the chunk's share of the run's substeps (spread evenly, they differ by at most one) as one command buffer (first chunk: raster clear, on reset also grid + tile-flag clear and prepare + seed; last chunk: splat + rasterize + state copy into the readback buffer). In a chained run it re-arms itself from the queue's work-done callback, two chunks in flight, so rendered frames interleave with the run. Chunks carry timestamp writes when their query slot is free, and the run's serial for their callback. |
 | `perf_stats()` | `PerfStats`: runs since reset, ms per run, **GPU ms per substep** (timestamp queries; 0 without `timestamp-query`), solver GPU bytes. Read by the simulation clock (`gpu_ms_per_step()`) and the panel's readout. |
 | `has_valid_inputs()` | Checks sockets are connected **and** payloads non-null. Must be called before driving the node out of graph order — see the gotcha below. |
@@ -171,7 +171,8 @@ plain AABB, so nothing else in the chain cares.
 Sidebar panel, registered after `NodeGraphPanel` (whose pointer it holds).
 
 **The important design point:** the panel does not step the solver. `SimulationDriver`
-does, from `ImGuiManager::render()`, every frame and also with the GUI hidden (since
+does, from `App::render()` before the frame is painted (`ImGuiManager::tick_simulations()`),
+every frame and also with the GUI hidden (since
 2026-10-24, [13-simulation-driver.md](13-simulation-driver.md)). Before, the stepping lived in
 the panel's `draw()`, which runs every frame regardless of panel visibility but not with the
 GUI hidden; before that, in the node renderer, which only advanced while that editor was
