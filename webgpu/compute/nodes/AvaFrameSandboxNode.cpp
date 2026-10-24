@@ -444,17 +444,13 @@ AvaFrameSandboxNode::AvaFrameSandboxNode(webgpu::Context& ctx, const AvaFrameSan
 {
 }
 
-void AvaFrameSandboxNode::run_impl()
+std::unique_ptr<SandboxTerrain> load_sandbox_terrain(const std::string& dataset_path, const std::string& release_scenario, std::string& error)
 {
-    if (m_settings.dataset_path.empty()) {
-        fail_run("AvaFrameSandboxNode: no dataset chosen (Avalanche panel, AvaFrame sandbox).");
-        return;
-    }
-    const QDir dir(QString::fromStdString(m_settings.dataset_path));
+    const QDir dir(QString::fromStdString(dataset_path));
     QFile meta_file(dir.filePath("dataset.json"));
     if (!meta_file.open(QIODevice::ReadOnly)) {
-        fail_run("AvaFrameSandboxNode: no dataset.json in " + m_settings.dataset_path + " - download the AvaFrame data in the Avalanche panel, or run mpm-mls-doc/avaframe/prepare_dataset.py.");
-        return;
+        error = "no dataset.json in " + dataset_path + " - download the AvaFrame data in the Avalanche panel, or run mpm-mls-doc/avaframe/prepare_dataset.py.";
+        return nullptr;
     }
     const QJsonObject meta = QJsonDocument::fromJson(meta_file.readAll()).object();
 
@@ -463,32 +459,29 @@ void AvaFrameSandboxNode::run_impl()
     QJsonObject scenario;
     for (const auto& value : scenarios) {
         const QJsonObject candidate = value.toObject();
-        if (scenario.isEmpty() || candidate["name"].toString().toStdString() == m_settings.release_scenario)
+        if (scenario.isEmpty() || candidate["name"].toString().toStdString() == release_scenario)
             scenario = candidate;
-        if (candidate["name"].toString().toStdString() == m_settings.release_scenario)
+        if (candidate["name"].toString().toStdString() == release_scenario)
             break;
     }
     if (scenario.isEmpty()) {
-        fail_run("AvaFrameSandboxNode: dataset " + m_settings.dataset_path + " has no release scenario.");
-        return;
+        error = "dataset " + dataset_path + " has no release scenario.";
+        return nullptr;
     }
 
-    std::string error;
     const auto dem = read_ascii_grid(dir.filePath("dem.asc"), error);
     const auto release = dem ? read_ascii_grid(dir.filePath(scenario["file"].toString()), error) : std::nullopt;
-    if (!dem || !release) {
-        fail_run("AvaFrameSandboxNode: " + error);
-        return;
-    }
+    if (!dem || !release)
+        return nullptr; // error says which file
     if (release->size != dem->size) {
-        fail_run("AvaFrameSandboxNode: release grid does not match the DEM in " + m_settings.dataset_path);
-        return;
+        error = "release grid does not match the DEM in " + dataset_path;
+        return nullptr;
     }
 
     auto t = std::make_unique<SandboxTerrain>();
     t->name = meta["name"].toString().toStdString();
     t->scenario = scenario["name"].toString().toStdString();
-    t->dataset_path = m_settings.dataset_path;
+    t->dataset_path = dataset_path;
     t->grid_size = dem->size;
     t->cellsize = dem->cellsize;
     t->size_metres = glm::dvec2(dem->size) * dem->cellsize;
@@ -531,8 +524,8 @@ void AvaFrameSandboxNode::run_impl()
         }
     }
     if (t->release_volume <= 0.0) {
-        fail_run("AvaFrameSandboxNode: release scenario " + t->scenario + " is empty.");
-        return;
+        error = "release scenario " + t->scenario + " is empty.";
+        return nullptr;
     }
 
     // com1DFA footprint of this scenario, on the DEM grid (nearest cell of the reference grid,
@@ -548,7 +541,7 @@ void AvaFrameSandboxNode::run_impl()
         const auto pfv = pft ? read_ascii_grid(dir.filePath(files["pfv"].toString()), error) : std::nullopt;
         const auto ppr = pfv ? read_ascii_grid(dir.filePath(files["ppr"].toString()), error) : std::nullopt;
         if (!ppr) {
-            qWarning() << "AvaFrameSandboxNode: reference not loaded:" << QString::fromStdString(error);
+            qWarning() << "AvaFrame dataset: reference not loaded:" << QString::fromStdString(error);
             break;
         }
         t->reference_name = ref["benchmark"].toString().toStdString();
@@ -608,6 +601,22 @@ void AvaFrameSandboxNode::run_impl()
             world[i] = nucleus::srs::lat_long_to_world(glm::dvec2(c[0].toDouble(), c[1].toDouble()));
         }
         t->sandbox_to_world = fit_affine(local, world, t->sandbox_to_world_residual);
+    }
+
+    return t;
+}
+
+void AvaFrameSandboxNode::run_impl()
+{
+    if (m_settings.dataset_path.empty()) {
+        fail_run("AvaFrameSandboxNode: no dataset chosen (Avalanche panel, AvaFrame sandbox).");
+        return;
+    }
+    std::string error;
+    auto t = load_sandbox_terrain(m_settings.dataset_path, m_settings.release_scenario, error);
+    if (t == nullptr) {
+        fail_run("AvaFrameSandboxNode: " + error);
+        return;
     }
 
     // GPU side: heights and release depth as R32Float (the solver uses textureLoad), the

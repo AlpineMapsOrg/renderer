@@ -82,6 +82,12 @@ struct SandboxTerrain {
     double sandbox_to_world_residual = 0.0; // [world units], largest corner residual
 };
 
+/// Loads a prepared AvaFrame dataset (dataset.json, DEM, the release scenario, its com1DFA
+/// reference, the placement on the map) from <dataset_path>: the CPU side of
+/// AvaFrameSandboxNode, also used to bring the release areas onto the map. An empty
+/// release_scenario means the first one. Returns nullptr and an error message on failure.
+std::unique_ptr<SandboxTerrain> load_sandbox_terrain(const std::string& dataset_path, const std::string& release_scenario, std::string& error);
+
 /// Peak rasters on the DEM grid (row 0 north), as written by write_sandbox_result.
 struct SandboxPeaks {
     std::vector<float> pft; // [m], slope-normal
