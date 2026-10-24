@@ -114,6 +114,22 @@ A screenshot of the released particles did not help (from the framing distance t
 told from the snow cover); the figure is drawn from the datasets instead, which the volume and
 centroid checks tie to what the map releases.
 
+### 4. Crash: map mode, then the sandbox, then a dataset switch (PR #14)
+
+Reported by Manuel. Two crash reports (14:24, before the map-release work, and 15:04), both
+`EXC_BAD_ACCESS` in `TextureOverlay::draw` with different small addresses: a use-after-free, not a
+null. Cause: `OverlayRenderNode` linked its overlay by raw pointer when it ran; the graph runs its
+nodes as one chain in topological order (sandbox → solver → map overlay), so after a dataset
+switch the sandbox node had replaced its map texture while the overlay relinked only once the
+solver's run had finished, frames later. Fix: the overlay asks a callback for the texture every
+frame (`link_texture_source`, reading the node's input socket), and overlays without a texture
+are left out of the ping-pong chain (`can_draw`). Reproduced with a temporary harness (map,
+sandbox, three dataset switches): crashed on the first switch before, survives all three after, on
+main and on this branch. Own branch `fix-overlay-texture-link` from main, merged into this one.
+
+Mistake on the way: an edit script re-opened `TextureOverlay.cpp` for writing before reading it
+and emptied the file; the link error showed it, restored from git.
+
 ## 2026-10-10
 
 ### 1. Solver in metres instead of Web Mercator units (branch `mpm-metric-units`)
