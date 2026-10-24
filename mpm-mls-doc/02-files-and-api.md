@@ -11,6 +11,7 @@
 | `TimeSteppedSimulation.h` | Interface of a simulation the driver plays back frame by frame; `MpmSolverNode` implements it. See [13-simulation-driver.md](13-simulation-driver.md). |
 | `SimulationClock.h/.cpp` | Per-simulation playback: real time (fixed-step accumulator, speed 0.1–4x) or accuracy (as fast as the GPU budget allows); play/pause/step and the speed readout. |
 | `SimulationDriver.h/.cpp` | Ticks the clock of every `TimeSteppedSimulation` in the graph once per frame, from `ImGuiManager::render()`. |
+| `nodes/AvaFrameReleaseNode.h/.cpp` | Map graph: AvaFrame's release areas resampled onto the region (`resample_release()`, through the dataset's affine placement) and handed to the solver as a `ReleaseArea` (R32Float depth texture, bounds, volume). Null without data. See [14-avaframe-release-on-map.md](14-avaframe-release-on-map.md). |
 | `nodes/AvaFrameSandboxNode.h/.cpp` | AvaFrame sandbox: loads a dataset prepared by `mpm-mls-doc/avaframe/prepare_dataset.py` or the panel's download (`AvaFrameData`) (DEM, release, com1DFA footprint) and feeds the solver in metres. Defines `SandboxTerrain`. |
 | `shaders/mpm_common.wgsl` | Shared bindings, structs, terrain sampling, B-spline kernel, 3×3 SVD, matrix helpers. Included by every kernel. |
 | `shaders/mpm_material.wgsl` | Constitutive-model dispatcher: `switch` on `settings.constitutive_model`. |
@@ -61,7 +62,7 @@ and verification: [12-rendering-plan.md](12-rendering-plan.md).
 |---|---|
 | `webgpu/compute/CMakeLists.txt` | Source + shader resource entries. |
 | `webgpu/compute/NodeRegistry.cpp` | `register_node()` for `MpmSolverNode`, `GeoRegionNode`, `AvaFrameSandboxNode`. |
-| `webgpu/compute/nodes/Node.h` | `const SandboxTerrain*` and `const MpmParticleView*` (the solver's `particle view` output) added to the socket data variant. |
+| `webgpu/compute/nodes/Node.h` | `const SandboxTerrain*`, `const MpmParticleView*` (the solver's `particle view` output) and `const ReleaseArea*` (AvaFrameReleaseNode) added to the socket data variant. |
 | `apps/webgpu_app/CMakeLists.txt` | Source entries. |
 | `apps/webgpu_app/compute/nodes/NodeRendererFactory.cpp` | `dynamic_cast` branch for the solver renderer. |
 | `apps/webgpu_app/compute/NodeGraphPanel.h` | Added `node_graph()` accessor so other panels can reach the graph. |
@@ -106,6 +107,11 @@ ints, switchable at runtime with no pipeline rebuild. Recipe for adding one in
   (`release_mode = 1`, see 03-shaders `mpm_seed`).
 
 See `mpm-mls-doc/avaframe/README.md`.
+
+The optional `release area` (`const ReleaseArea*`, from `AvaFrameReleaseNode`) does the same for
+the release only, on the map: when it carries a release, the solver seeds in the release grid
+mode from its depth texture (bound in place of the release point mask) instead of the disc. The
+sandbox ignores it. See [14-avaframe-release-on-map.md](14-avaframe-release-on-map.md).
 
 **Out:** `texture` (RGBA result), `domain aabb` (wire to the overlay's region input —
 the result covers the *domain*, not the whole region), `density buffer` (`RawBuffer<u32>*`),

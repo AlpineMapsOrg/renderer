@@ -32,6 +32,7 @@ from the sources when writing the report. Full list in [refs.md](refs.md).
 | [report-fixed-point-energy-pump.md](report-fixed-point-energy-pump.md) | Standalone write-up of the fixed-point blow-up investigation. |
 | [11-avaframe-comparison.md](11-avaframe-comparison.md) | **AvaFrame comparison**: MPM variants, com4FlowPy and the weBIGeo trajectory model against com1DFA on five real avalanches, rated with AIMEC. Setup, tables, findings, limits. |
 | [12-rendering-plan.md](12-rendering-plan.md) | **3D rendering on the map**: particles (ellipsoids, detail particles, powder), the mass-splat flow surface, track and snow cover. Research, decisions, what was tried and rejected, verification per step. |
+| [14-avaframe-release-on-map.md](14-avaframe-release-on-map.md) | **AvaFrame release areas on the map**: the five AvaFrame scenarios release from AvaFrame's areas (resampled through the affine placement), what is approximate, measurements. |
 | [13-simulation-driver.md](13-simulation-driver.md) | **Playback**: the generic `TimeSteppedSimulation` interface and `SimulationDriver`, real time (fixed-step loop with interpolation, one chunk per frame, 0.1–4x) vs accuracy, with measurements. |
 | [avaframe/](avaframe/README.md) | **AvaFrame comparison, phase 1**: prepares AvaFrame's test cases (DEM, release, com1DFA reference rasters, AIMEC path, map overlays) for comparing against the MPM solver. |
 | [refs.md](refs.md) | Bibliography. |

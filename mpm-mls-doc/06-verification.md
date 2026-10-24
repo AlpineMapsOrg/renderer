@@ -331,6 +331,22 @@ Details and the full table in [13-simulation-driver.md](13-simulation-driver.md)
   79.60 s), same footprint (12.51 ha) and peak speed (54.01 m/s).
 - Web build compiles; not run in the browser.
 
+## 4m. AvaFrame release areas on the map (2026-10-24)
+
+Details in [14-avaframe-release-on-map.md](14-avaframe-release-on-map.md).
+
+- **Unit tests** (`test_ReleaseResampling.cpp`): `resample_release()` keeps volume, area and
+  bounds exactly on aligned grids; an offset region, Web Mercator scaling, a 15° rotation and a
+  coarser grid keep the volume within 5–15 %; no placement or a release outside the region gives
+  none.
+- **On the M5**, the five AvaFrame map scenarios with the data downloaded: release volume on the
+  map within 0.1 % of the dataset's (Kontertal 21,664 vs 21,681 m³ … Madlein 438,914 vs
+  438,846 m³); the release centroid agrees with the independently computed (pyproj) centroid to
+  under half a metre for the four single-area datasets; all particles seeded; no release outside
+  its domain. Without the data the disc is released and the panel says so.
+- Not clicked: the release picker of avaGar. The map's terrain under the release (another DEM than
+  AvaFrame's) is the unquantified part of the approximation.
+
 ## 5. On real terrain
 
 Runs end to end on the Schneeberg DEM: seeds, flows downhill, deposits, animates, and the
