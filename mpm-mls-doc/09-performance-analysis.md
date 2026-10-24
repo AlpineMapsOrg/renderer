@@ -73,7 +73,8 @@ to do (§7).
 ### 1.1 How a run reaches the GPU
 
 ```
-every frame (App::poll_events → ImGui → AvalanchePanel::draw)
+every frame (App::poll_events → ImGui → AvalanchePanel::draw;  since 2026-10-24
+             SimulationDriver from ImGuiManager::render, see 13-simulation-driver.md)
   if playing and solver idle: solver->rerun()
       run_impl(): ensure buffers, write uniform, bind group        (µs of CPU)
       submit_chunk() ×2                                              two chunks in flight
@@ -586,6 +587,9 @@ L1–L7 of §5, the storage-binding clamps of §4.2, and:
 ### 9.3 Panel and preset
 
 - **Pacing**: Manual / Smooth (6 ms GPU per frame) / Balanced (14 ms, default) / Fast (30 ms).
+  *Since 2026-10-24* this is the accuracy mode of the simulation clock; the map defaults to the
+  real-time mode with Smooth, the sandbox to accuracy with Balanced, and the counts below are
+  no longer written into the solver settings ([13-simulation-driver.md](13-simulation-driver.md)).
   Substeps per frame = budget / measured ms per substep, with hysteresis; `substeps_per_run`
   becomes max(2 × substeps per frame, 24), so a run always spans at least two chunks (the node
   keeps two in flight; a one-chunk run would leave the GPU idle between runs). Both fields are

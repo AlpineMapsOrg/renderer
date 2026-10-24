@@ -308,6 +308,24 @@ counting switched off for one run.
 **All real-terrain results before this date** (runout, speeds, the energy-line numbers on the
 Breite Ries in §4g/§4j) were on terrain flattened by ~1.47 and need re-checking.
 
+## 4l. Simulation driver — real time and accuracy (2026-10-24)
+
+Details and the full table in [13-simulation-driver.md](13-simulation-driver.md).
+
+- **Unit tests** (`unittests_webgpu_compute`, 17 sections, fake simulation): real time keeps
+  to the wall clock at 20–144 fps and 0.25–4x; every frame advances by ⌊⌋/⌈⌉ of the per-frame
+  steps (no frozen frames); a too-small budget falls behind without exceeding it per frame and
+  with bounded runs; the budget uses the best cost since the reset; behind has hysteresis; a
+  stalled frame counts 0.25 s at most; a pause finishes the run under way; accuracy runs keep
+  the old sizes. Removing the run-size cap makes them fail.
+- **On the M5** (map, Hintertux, Medium, `dt` 5.04 ms, 55 s per run, temporary log harness):
+  1x Smooth 0.98–1.01x throughout at 56–60 fps with 0 frozen frames (the first version, with
+  two-chunk runs, had 30 frozen frames per second); 4x Smooth a steady 2.64x, flagged behind,
+  60 fps; the simulation kept running with the GUI hidden.
+- **Accuracy unchanged**: batch avaKot / Stomakhin Coulomb at rest after 80.25 s (phase 6:
+  79.60 s), same footprint (12.51 ha) and peak speed (54.01 m/s).
+- Web build compiles; not run in the browser.
+
 ## 5. On real terrain
 
 Runs end to end on the Schneeberg DEM: seeds, flows downhill, deposits, animates, and the
@@ -361,7 +379,9 @@ Worth keeping — they are the interesting part of the implementation story.
 
 3. **Animation stopping.** Stepping was driven from the node editor's settings panel, which
    only renders while that editor is open *and* the node selected. Moved to
-   `AvalanchePanel::draw()`, which runs every frame regardless of panel visibility.
+   `AvalanchePanel::draw()`, which runs every frame regardless of panel visibility — but not
+   with the GUI hidden. Since 2026-10-24 `SimulationDriver` steps it from
+   `ImGuiManager::render()` (§4l).
 
 4. **Normalized coordinates drifting.** Domain/release positions as region fractions moved
    relative to the ground whenever tile snapping changed the region. Switched to lat/lon,

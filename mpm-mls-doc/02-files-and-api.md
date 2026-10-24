@@ -8,6 +8,9 @@
 |---|---|
 | `nodes/MpmSolverNode.h/.cpp` | The solver. Owns particles, grid and sim state on the GPU; runs the substep loop. |
 | `nodes/GeoRegionNode.h/.cpp` | Emits a region AABB from lat/lon + extent, so a scenario needs no GPX file. |
+| `TimeSteppedSimulation.h` | Interface of a simulation the driver plays back frame by frame; `MpmSolverNode` implements it. See [13-simulation-driver.md](13-simulation-driver.md). |
+| `SimulationClock.h/.cpp` | Per-simulation playback: real time (fixed-step accumulator, speed 0.1–4x) or accuracy (as fast as the GPU budget allows); play/pause/step and the speed readout. |
+| `SimulationDriver.h/.cpp` | Ticks the clock of every `TimeSteppedSimulation` in the graph once per frame, from `ImGuiManager::render()`. |
 | `nodes/AvaFrameSandboxNode.h/.cpp` | AvaFrame sandbox: loads a dataset prepared by `mpm-mls-doc/avaframe/prepare_dataset.py` or the panel's download (`AvaFrameData`) (DEM, release, com1DFA footprint) and feeds the solver in metres. Defines `SandboxTerrain`. |
 | `shaders/mpm_common.wgsl` | Shared bindings, structs, terrain sampling, B-spline kernel, 3×3 SVD, matrix helpers. Included by every kernel. |
 | `shaders/mpm_material.wgsl` | Constitutive-model dispatcher: `switch` on `settings.constitutive_model`. |
@@ -44,7 +47,7 @@ and verification: [12-rendering-plan.md](12-rendering-plan.md).
 
 | File | Purpose |
 |---|---|
-| `avalanche/AvalanchePanel.h/.cpp` | Sidebar panel: location picker + transport + main knobs. **Owns the animation driver.** Also the sandbox dataset picker. |
+| `avalanche/AvalanchePanel.h/.cpp` | Sidebar panel: location picker + transport + playback (mode, speed, pacing) + main knobs, through the solver's clock. Also the sandbox dataset picker. |
 | `compute/ParticleRenderNode.h/.cpp` | Terminal node "Particles 3D": hands the solver's `particle view` to the engine's `AvalancheRenderer`, serialises its settings, and owns the "Avalanche snow cover" overlay (`sync_snow_cover()`, snow line fitted to the solver's terrain scan). See [12-rendering-plan.md](12-rendering-plan.md). |
 | `avalanche/SandboxView.h/.cpp` | 2D window for sandbox runs: hillshade, release, com1DFA outline, particle raster, domain box. |
 | `avalanche/AvaFrameData.h/.cpp` | "Download AvaFrame data" in the panel: downloads the five real test avalanches from AvaFrame's repository (release 2.1) and prepares them. A C++ port of `prepare_dataset.py` for these five, with byte-identical rasters. |
@@ -63,7 +66,8 @@ and verification: [12-rendering-plan.md](12-rendering-plan.md).
 | `apps/webgpu_app/compute/nodes/NodeRendererFactory.cpp` | `dynamic_cast` branch for the solver renderer. |
 | `apps/webgpu_app/compute/NodeGraphPanel.h` | Added `node_graph()` accessor so other panels can reach the graph. |
 | `apps/webgpu_app/compute/NodeGraphPanel.cpp` | Preset list entry. |
-| `apps/webgpu_app/ImGuiManager.cpp` | Registers `AvalanchePanel` (guarded by `ALP_WEBGPU_APP_ENABLE_COMPUTE`). |
+| `apps/webgpu_app/ImGuiManager.h/.cpp` | Registers `AvalanchePanel` (guarded by `ALP_WEBGPU_APP_ENABLE_COMPUTE`); owns the `SimulationDriver` and ticks it at the start of `render()`, also with the GUI hidden. |
+| `unittests/CMakeLists.txt`, `unittests/webgpu_compute/` | `unittests_webgpu_compute`: the simulation clock against a fake simulation. |
 | `apps/webgpu_app/resources.qrc` | Graph resource. |
 | `webgpu/engine/Context.h/.cpp`, `apps/webgpu_app/RenderingContext.cpp` | The engine context owns an `AvalancheRenderer` (`avalanche_renderer()`); the app creates it and registers `ParticleRenderNode`. |
 | `webgpu/engine/Window.cpp` | Calls the renderer: `prepare()` before the G-buffer pass, `draw()` after the tiles, `draw_transparent()` after compose (before the track lines). |
@@ -115,9 +119,10 @@ track). Kept current across reallocations.
 
 | Method | Notes |
 |---|---|
-| `run_impl()` | One node execution: optional reset, then `substeps_per_run` MPM steps, then splat + rasterize. Submitted in chunks by `submit_chunk()`. |
-| `submit_chunk()` | Encodes and submits `substeps_per_submit` steps as one command buffer (first chunk: raster clear, on reset also grid + tile-flag clear and prepare + seed; last chunk: splat + rasterize + state copy into the readback buffer) and re-arms itself from the queue's work-done callback, two chunks in flight, so rendered frames interleave with the run. Chunks carry timestamp writes when their query slot is free. |
-| `perf_stats()` | `PerfStats`: runs since reset, ms per run, **GPU ms per substep** (timestamp queries; 0 without `timestamp-query`), solver GPU bytes. Read by the avalanche panel's pacing and readout. |
+| `run_impl()` | One node execution: optional reset, then `substeps_per_run` MPM steps (or what `advance()` asked for), then splat + rasterize. Submitted in chunks by `submit_chunk()`. |
+| `advance(steps, chunks, submission)`, `submit_frame()` | `TimeSteppedSimulation`: one run with these counts, without writing the settings. `Chained` = the old way (below); `PerFrame` = one chunk now and one per `submit_frame()`, skipped while three are in flight; done once the last one is submitted. See [13-simulation-driver.md](13-simulation-driver.md). |
+| `submit_chunk()` | Encodes and submits the chunk's share of the run's substeps (spread evenly, they differ by at most one) as one command buffer (first chunk: raster clear, on reset also grid + tile-flag clear and prepare + seed; last chunk: splat + rasterize + state copy into the readback buffer). In a chained run it re-arms itself from the queue's work-done callback, two chunks in flight, so rendered frames interleave with the run. Chunks carry timestamp writes when their query slot is free, and the run's serial for their callback. |
+| `perf_stats()` | `PerfStats`: runs since reset, ms per run, **GPU ms per substep** (timestamp queries; 0 without `timestamp-query`), solver GPU bytes. Read by the simulation clock (`gpu_ms_per_step()`) and the panel's readout. |
 | `has_valid_inputs()` | Checks sockets are connected **and** payloads non-null. Must be called before driving the node out of graph order — see the gotcha below. |
 | `request_reset()` | Re-scan terrain and reseed on next run. |
 | `simulated_time()` | Seconds accumulated since last reset. |
@@ -165,11 +170,14 @@ plain AABB, so nothing else in the chain cares.
 
 Sidebar panel, registered after `NodeGraphPanel` (whose pointer it holds).
 
-**The important design point:** `ImGuiPanel::draw_panel()` renders *inside* the sidebar and
-stops when the section is collapsed; **`draw()` runs every frame regardless of panel
-visibility**. The stepping lives in `draw()`, so the animation keeps running with the
-sidebar collapsed and the node editor closed. Driving it from the node renderer (the first
-attempt) meant the animation only advanced while that editor was open and the node selected.
+**The important design point:** the panel does not step the solver. `SimulationDriver`
+does, from `ImGuiManager::render()`, every frame and also with the GUI hidden (since
+2026-10-24, [13-simulation-driver.md](13-simulation-driver.md)). Before, the stepping lived in
+the panel's `draw()`, which runs every frame regardless of panel visibility but not with the
+GUI hidden; before that, in the node renderer, which only advanced while that editor was
+open and the node selected. The panel's `draw()` still writes the playback settings into the
+solver's clock (`sync_clock()`) and runs the sandbox logic: the at-rest stop, the export and
+batch mode.
 
 `find_node<T>()` re-resolves nodes by `dynamic_cast` **every frame** — loading a preset
 replaces the graph and every node in it, so a cached pointer would dangle.
@@ -191,8 +199,14 @@ Powder, the default) with size, detail particles or powder size/opacity, strain 
 `draw()` hides the 2D density overlay while the 3D view is on and calls
 `ParticleRenderNode::sync_snow_cover()` with the solver's terrain range every frame.
 
-Play/Pause deliberately exists **only here** — two things calling `rerun()` per frame would
-race. The node renderer keeps Step and Reset, which are one-shot and safe.
+Play/Pause deliberately exists **only here** (through the clock) — two things starting runs
+per frame would race. The node renderer keeps Step and Reset, which are one-shot and safe;
+its Step runs `substeps_per_run` from the settings.
+
+**Playback.** "Playback" (Real time / Accuracy), "Speed" (0.1–4x, real time only) and
+"Pacing" (Manual / Smooth / Balanced / Fast) under the transport. Mode and pacing are
+remembered per context (map: real time + Smooth, sandbox: accuracy + Balanced), the speed
+once; batch mode always plays at accuracy, Fast.
 
 **Startup (2026-09-14).** "Load this simulation at launch" (+ "and play") in the panel.
 `ready()` runs after `NodeGraphPanel::ready()` has loaded the default graph; with

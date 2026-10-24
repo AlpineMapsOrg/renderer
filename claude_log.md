@@ -13,6 +13,52 @@ capture of the terminal.
 
 ---
 
+## 2026-10-24
+
+### 1. Generic simulation driver: real time and accuracy playback (branch `simulation-driver`)
+
+Asked: replace the panel-driven stepping with a generic solution that fits other simulations
+(an interface, like the node graph), and a "cinema" mode that runs on frame time like a game
+engine, keeping today's accuracy pacing for the sandbox. Plan clarified first (Notion ticket
+"Generic simulation driver: real-time and accuracy clocks"): interface in `webgpu_compute`,
+app-level driver, fixed-step accumulator that falls behind rather than change `dt`, map real
+time / sandbox accuracy with a switch, 0.1–4x, no interpolation, Pacing as the budget.
+
+Built: `TimeSteppedSimulation` (interface, owns a `SimulationClock`), `SimulationClock`
+(accuracy = the old `apply_pacing`; real time = debt accumulator), `SimulationDriver` (ticked
+from `ImGuiManager::render()`, also with the GUI hidden), `MpmSolverNode` implements it,
+`AvalanchePanel` only controls the clock. Write-up: `mpm-mls-doc/13-simulation-driver.md`.
+
+**Three wrong turns, each found by measuring** (temporary per-second log harness, reverted):
+- Real-time runs of two chained chunks put both into one frame and none into the next:
+  **30 frozen frames per second** at 1x, i.e. 30 Hz motion. Fix: `Submission::PerFrame`,
+  one chunk per frame from the driver, an 8-frame run, the run done once its last chunk is
+  submitted (the readback map waits for the GPU anyway), so runs follow each other without a gap.
+- The integer chunk floor(6 ms / 1.7 ms) = 3 steps could not reach the 3.3 steps per frame of
+  1x: budget in fractional steps over the run.
+- Per-frame chunks measure 1.5–3 ms per step where accuracy chunks measure 0.8 ms on the same
+  flow (at 1x and 2x the GPU time per frame was the same ~9.5 ms: it looks like the GPU clocks
+  down under light load; not proven). Budgeting with the average fed back down to 0.5x; a best
+  cost that relaxed upward still decayed to 0.58x over 50 s. Final: the best cost since the
+  reset, with GPU backpressure (three chunks in flight → the frame's chunk is skipped) as the
+  real overload guard.
+
+**Verified:** unit tests (17 sections, fake simulation; removing the run cap fails them).
+On the M5, map Hintertux, Medium: 1x Smooth 0.98–1.01x throughout, 56–60 fps, 0 frozen
+frames; 4x Smooth steady 2.64x flagged behind, 60 fps; GUI hidden keeps it running. Accuracy
+unchanged: batch avaKot Stomakhin Coulomb at rest after 80.25 s vs 79.60 s in phase 6, same
+footprint and peak speed. Phase-2 commit builds on its own; web build compiles.
+**Not verified:** the web build in a browser; the playback controls were only seen in a
+screenshot, not clicked (Pause draining a run is unit-tested only).
+
+Also found by review: pausing mid-run would have left a PerFrame run unfinished forever
+(Step, Reset and graph runs queued behind it); the clock now drains it while paused.
+
+Test runs backed up and restored the prefs (`defaults delete` + `import`, since `import`
+alone keeps added keys) and `imgui.ini`; one test export in `avaKot/mpm` was deleted again.
+Mistake on the way: a zsh loop did not split `$cfg` (the same trap as before) and ran four
+tests with empty prefs; only scratchpad files were affected, rerun under `bash -c`.
+
 ## 2026-10-10
 
 ### 1. Solver in metres instead of Web Mercator units (branch `mpm-metric-units`)
