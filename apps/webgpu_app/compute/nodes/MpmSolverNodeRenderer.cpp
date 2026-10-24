@@ -214,8 +214,9 @@ void MpmSolverNodeRenderer::render_settings_content()
     if (settings_changed)
         m_node->set_settings(settings);
 
-    // One-shot steps only; continuous playback is driven by AvalanchePanel. `ready` keeps
-    // us from stepping a solver whose inputs are still null.
+    // One-shot steps only, with the substeps of the settings; continuous playback is the
+    // solver's clock, ticked by SimulationDriver. `ready` keeps us from stepping a solver whose
+    // inputs are still null.
     if (rerun && ready && !m_node->is_running())
         m_node->rerun();
 }

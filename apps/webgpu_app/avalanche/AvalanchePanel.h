@@ -21,6 +21,8 @@
 #include "SandboxView.h"
 #include "ui/ImGuiPanel.h"
 
+#include <webgpu/compute/SimulationClock.h>
+
 #include <QJsonArray>
 #include <QJsonObject>
 #include <chrono>
@@ -44,10 +46,10 @@ class AvaFrameDownload;
 
 /// Sidebar controls for the MLS-MPM avalanche solver.
 ///
-/// The solver is a compute node, but stepping it from the node editor's settings panel
-/// means the animation only advances while that editor is open and the node is selected.
-/// This panel owns the transport instead and advances the simulation from draw(), which
-/// runs every frame regardless of which panels are open or collapsed.
+/// The simulation itself is advanced by webgpu_compute::SimulationDriver, every frame and
+/// whether the GUI is shown or not. This panel only controls the solver's clock (play, pause,
+/// step, real time or accuracy, speed, GPU budget) and runs the sandbox logic on top of it:
+/// the at-rest stop, the exports and batch mode.
 class AvalanchePanel : public ImGuiPanel {
     Q_OBJECT
 
@@ -107,8 +109,16 @@ public:
     /// How much of each frame the simulation may take. The GPU has one queue, so every
     /// millisecond of simulation per frame is a millisecond the rendered frame waits.
     /// The automatic modes pick the substeps per frame from the solver's measured GPU time
-    /// per substep; Manual leaves the "Substeps per frame" setting alone.
+    /// per substep; Manual uses the "Substeps per run / frame" settings as they are. In real
+    /// time the budget is a cap: the simulation falls behind rather than exceed it.
     enum class Pacing : int { Manual = 0, Smooth, Balanced, Fast };
+
+    /// Playback of one context (map or sandbox), remembered per user. The map defaults to real
+    /// time at 60 fps, the sandbox to accuracy (as fast as the budget allows).
+    struct Playback {
+        webgpu_compute::SimulationClock::Mode mode;
+        Pacing pacing;
+    };
 
     /// Resolution presets: particle count and grid band height, the two knobs that decide
     /// the GPU cost (see 09-performance-analysis.md). Domain and cell size stay per scenario.
@@ -156,9 +166,16 @@ private:
     void save_startup_settings() const;
     void draw_startup_settings();
 
-    /// Sets substeps per frame from the GPU budget of the pacing mode. Called every frame
-    /// while playing; cheap, and a no-op until the solver has timed a chunk.
-    void apply_pacing(webgpu_compute::nodes::MpmSolverNode& solver);
+    /// The playback of the loaded context: the sandbox's when the graph has a sandbox node.
+    Playback& playback();
+    /// Writes mode, speed and GPU budget into the solver's clock. Every frame: cheap, and it
+    /// keeps a freshly loaded solver (whose clock starts with defaults) in line with the panel.
+    void sync_clock(webgpu_compute::nodes::MpmSolverNode& solver);
+    bool playing() const;
+    void set_playing(bool playing);
+    /// One run now, through the clock (accuracy-sized); after a settings edit or Reset.
+    void step(webgpu_compute::nodes::MpmSolverNode& solver);
+    void draw_playback(webgpu_compute::nodes::MpmSolverNode& solver);
     void draw_performance(webgpu_compute::nodes::MpmSolverNode& solver);
 
     /// AvaFrame sandbox (see AvaFrameSandboxNode): datasets prepared by the download in the
@@ -221,7 +238,6 @@ private:
 
 private:
     NodeGraphPanel* m_graph_panel;
-    bool m_playing = false;
 
     bool m_autostart = false; // load the MLS-MPM graph and apply the scenario at launch
     bool m_autoplay = false; // ... and start playing once the terrain is in
@@ -235,7 +251,9 @@ private:
     std::vector<MaterialPreset> m_material_presets;
     int m_selected_material_preset = 0; // 0 = custom (no preset active)
 
-    Pacing m_pacing = Pacing::Balanced;
+    Playback m_map_playback { webgpu_compute::SimulationClock::Mode::RealTime, Pacing::Smooth };
+    Playback m_sandbox_playback { webgpu_compute::SimulationClock::Mode::Accuracy, Pacing::Balanced };
+    float m_playback_speed = 1.0f; // real time: simulated seconds per wall-clock second
 
     bool m_startup_sandbox = false; // autostart loads the sandbox instead of the map
     std::string m_sandbox_root;
@@ -262,11 +280,6 @@ private:
     std::string m_screenshot_path; // pending screenshot
     std::chrono::steady_clock::time_point m_phase_started;
     SandboxView m_sandbox_view;
-
-    /* Simulated seconds per wall-clock second, measured over ~1 s windows while playing. */
-    std::chrono::steady_clock::time_point m_speed_window_start;
-    float m_speed_window_sim_time = -1.0f;
-    float m_sim_speed = 0.0f;
 };
 
 } // namespace webgpu_app

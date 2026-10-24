@@ -50,6 +50,7 @@
 
 namespace webgpu_app {
 namespace nodes = webgpu_compute::nodes;
+using webgpu_compute::SimulationClock;
 
 AvalanchePanel::AvalanchePanel(NodeGraphPanel* graph_panel)
     : m_graph_panel(graph_panel)
@@ -166,7 +167,16 @@ void AvalanchePanel::load_startup_settings()
     QSettings settings(SETTINGS_ORGANISATION, SETTINGS_APPLICATION);
     m_autostart = settings.value("startup/autostart", false).toBool();
     m_autoplay = settings.value("startup/autoplay", false).toBool();
-    m_pacing = Pacing(std::clamp(settings.value("playback/pacing", int(Pacing::Balanced)).toInt(), 0, int(Pacing::Fast)));
+    const auto read_mode = [&](const char* key, SimulationClock::Mode fallback) {
+        return SimulationClock::Mode(std::clamp(settings.value(key, int(fallback)).toInt(), 0, int(SimulationClock::Mode::Accuracy)));
+    };
+    const auto read_pacing = [&](const char* key, Pacing fallback) { return Pacing(std::clamp(settings.value(key, int(fallback)).toInt(), 0, int(Pacing::Fast))); };
+    m_map_playback.mode = read_mode("playback/map_mode", m_map_playback.mode);
+    m_map_playback.pacing = read_pacing("playback/map_pacing", m_map_playback.pacing);
+    m_sandbox_playback.mode = read_mode("playback/sandbox_mode", m_sandbox_playback.mode);
+    // Before the two contexts, one pacing served both; it was mostly set for the sandbox.
+    m_sandbox_playback.pacing = read_pacing("playback/sandbox_pacing", read_pacing("playback/pacing", m_sandbox_playback.pacing));
+    m_playback_speed = std::clamp(settings.value("playback/speed", 1.0).toFloat(), SimulationClock::MIN_SPEED, SimulationClock::MAX_SPEED);
     m_selected_scenario = std::clamp(settings.value("startup/scenario", 0).toInt(), 0, int(m_scenarios.size()) - 1);
     m_selected_material_preset = std::clamp(settings.value("startup/material_preset", 0).toInt(), 0, int(m_material_presets.size()) - 1);
     m_startup_sandbox = settings.value("startup/sandbox", false).toBool();
@@ -206,7 +216,11 @@ void AvalanchePanel::save_startup_settings() const
     settings.setValue("startup/autoplay", m_autoplay);
     settings.setValue("startup/scenario", m_selected_scenario);
     settings.setValue("startup/material_preset", m_selected_material_preset);
-    settings.setValue("playback/pacing", int(m_pacing));
+    settings.setValue("playback/map_mode", int(m_map_playback.mode));
+    settings.setValue("playback/map_pacing", int(m_map_playback.pacing));
+    settings.setValue("playback/sandbox_mode", int(m_sandbox_playback.mode));
+    settings.setValue("playback/sandbox_pacing", int(m_sandbox_playback.pacing));
+    settings.setValue("playback/speed", double(m_playback_speed));
     settings.setValue("startup/sandbox", m_startup_sandbox);
     settings.setValue("sandbox/root", QString::fromStdString(m_sandbox_root));
     settings.setValue("sandbox/auto_export", m_sandbox_auto_export);
@@ -312,7 +326,7 @@ bool AvalanchePanel::apply_scenario(const Scenario& scenario)
     solver_settings.reset_on_next_run = true;
     solver->set_settings(solver_settings);
 
-    m_playing = false; // the terrain has to be fetched and stitched before stepping again
+    solver->clock().pause(); // the terrain has to be fetched and stitched before stepping again
     m_frame_pending = &scenario; // m_scenarios never changes size, so the pointer stays valid
     graph->run();
     return true;
@@ -420,9 +434,10 @@ bool AvalanchePanel::apply_sandbox_dataset()
     settings.dataset_path = QDir(QString::fromStdString(m_sandbox_root)).filePath(QString::fromStdString(dataset.name)).toStdString();
     settings.release_scenario = dataset.scenarios[size_t(std::clamp(m_sandbox_scenario, 0, int(dataset.scenarios.size()) - 1))];
     sandbox->set_settings(settings);
-    if (auto* solver = find_solver())
+    if (auto* solver = find_solver()) {
         solver->request_reset();
-    m_playing = false;
+        solver->clock().pause();
+    }
     graph->run();
     return true;
 }
@@ -452,8 +467,7 @@ void AvalanchePanel::configure_sandbox_solver(const nodes::AvaFrameSandboxNode& 
     solver.set_settings(settings);
     m_sandbox_stopped = false;
     m_sandbox_status.clear();
-    if (solver.has_valid_inputs())
-        solver.rerun();
+    step(solver);
     // A real dataset also shows on the map (AvaFrameSandboxNode::update_map_overlay): go there.
     if (terrain->sandbox_to_world)
         frame_on_map(*terrain);
@@ -751,8 +765,7 @@ bool AvalanchePanel::load_batch(const QString& path)
         return false;
     }
     m_batch_phase = BatchPhase::Loading; // from here on, save_startup_settings() is a no-op
-    m_pacing = Pacing::Fast;
-    m_sandbox_auto_export = false; // the batch exports itself
+    m_sandbox_auto_export = false; // the batch exports itself (and plays at accuracy, Fast; see sync_clock)
     qInfo() << "AvaFrame batch:" << m_batch.size() << "runs from" << path;
     return true;
 }
@@ -872,7 +885,8 @@ void AvalanchePanel::batch_tick()
             solver.set_settings(s);
         }
         m_sandbox_stopped = false;
-        m_playing = true;
+        sync_clock(solver);
+        solver.clock().play();
         m_batch_phase = BatchPhase::Running;
         return;
     }
@@ -880,7 +894,7 @@ void AvalanchePanel::batch_tick()
         const bool rest = solver.at_rest();
         if (!rest && solver.simulated_time() < run.max_time)
             return;
-        m_playing = false;
+        solver.clock().pause();
         m_sandbox_stopped = true;
         qInfo().nospace() << "AvaFrame batch: " << QString::fromStdString(run.label) << (rest ? " at rest after " : " reached the time limit at ")
                           << solver.simulated_time() << " s";
@@ -981,9 +995,9 @@ void AvalanchePanel::draw()
             if (solver->simulated_time() < m_sandbox_last_time)
                 m_sandbox_stopped = false;
             m_sandbox_last_time = solver->simulated_time();
-            if (m_playing && solver->at_rest() && !m_sandbox_stopped && m_batch_phase == BatchPhase::Idle) {
+            if (solver->clock().playing() && solver->at_rest() && !m_sandbox_stopped && m_batch_phase == BatchPhase::Idle) {
                 m_sandbox_stopped = true;
-                m_playing = false;
+                solver->clock().pause();
                 m_sandbox_status = "At rest after " + std::to_string(int(solver->simulated_time())) + " s (kinetic energy < 1 % of its peak).";
                 qInfo().nospace() << "AvaFrame sandbox: at rest after " << solver->simulated_time() << " s";
                 if (m_sandbox_auto_export)
@@ -997,74 +1011,114 @@ void AvalanchePanel::draw()
         }
     }
 
-    // Stepping lives here rather than in draw_panel() so the animation keeps running with
-    // the sidebar section collapsed and the node graph editor closed.
-    if (m_autoplay_pending) {
-        auto* solver = find_solver();
-        if (solver && solver->has_valid_inputs() && !solver->is_running()) {
-            m_playing = true;
-            m_autoplay_pending = false;
-        }
-    }
-    if (!m_playing) {
-        m_speed_window_sim_time = -1.0f; // a pause must not count as slow simulation
-        return;
-    }
-
+    // The clock follows the panel's playback settings every frame; SimulationDriver (ticked by
+    // ImGuiManager) does the stepping, also with the GUI hidden.
     auto* solver = find_solver();
-    if (solver == nullptr || !solver->has_valid_inputs()) {
-        m_playing = false;
+    if (solver == nullptr)
         return;
+    sync_clock(*solver);
+    if (m_autoplay_pending && solver->has_valid_inputs() && !solver->is_running()) {
+        solver->clock().play();
+        m_autoplay_pending = false;
     }
-    apply_pacing(*solver);
-
-    // Simulation speed over ~1 s windows, for the readout.
-    const auto now = std::chrono::steady_clock::now();
-    if (m_speed_window_sim_time < 0.0f || solver->simulated_time() < m_speed_window_sim_time) {
-        m_speed_window_start = now;
-        m_speed_window_sim_time = solver->simulated_time();
-    } else if (const float wall = std::chrono::duration<float>(now - m_speed_window_start).count(); wall >= 1.0f) {
-        m_sim_speed = (solver->simulated_time() - m_speed_window_sim_time) / wall;
-        m_speed_window_start = now;
-        m_speed_window_sim_time = solver->simulated_time();
-    }
-
-    // is_running() keeps runs from piling up when the GPU falls behind the frame rate.
-    if (!solver->is_running())
-        solver->rerun();
 }
 
-void AvalanchePanel::apply_pacing(nodes::MpmSolverNode& solver)
-{
-    const float per_substep = solver.perf_stats().gpu_ms_per_substep;
-    if (m_pacing == Pacing::Manual || per_substep <= 0.0f)
-        return;
+AvalanchePanel::Playback& AvalanchePanel::playback() { return find_node<nodes::AvaFrameSandboxNode>() != nullptr ? m_sandbox_playback : m_map_playback; }
 
-    auto& settings = solver.settings();
-    // The budget is per chunk, and it is also per frame: the node submits the next chunk from
-    // a chunk's work-done callback, so in steady state one chunk completes per frame. The two
-    // chunks in flight are queue depth (a frame's render can wait behind up to two), not two
-    // chunks' worth of GPU time per frame - measured on the M5 (web build, Balanced): 59 fps with
-    // 14 ms chunks, and a simulation speed matching one chunk per frame.
-    const uint32_t target = std::clamp(uint32_t(pacing_budget_ms(m_pacing) / per_substep), 1u, 64u);
-    // Hysteresis: the timing jitters by a few percent, and every change moves the frame time.
-    const uint32_t current = std::max(settings.substeps_per_submit, 1u);
-    const uint32_t tolerance = std::max(1u, current / 8u);
-    if (target + tolerance <= current || target >= current + tolerance) {
-        settings.substeps_per_submit = target;
-        // At least two chunks per run: the node keeps two chunks in flight, and a run that is
-        // a single chunk leaves the GPU idle until the next frame starts the next run. 24
-        // substeps keep the overlay and the diagnostics updating several times per second.
-        settings.substeps_per_run = std::max(2u * target, 24u);
+void AvalanchePanel::sync_clock(nodes::MpmSolverNode& solver)
+{
+    // A batch measures the solver, not the GPU budget: accuracy, Fast, whatever the user set.
+    const bool batch = m_batch_phase != BatchPhase::Idle && m_batch_phase != BatchPhase::Done;
+    const Playback current = batch ? Playback { SimulationClock::Mode::Accuracy, Pacing::Fast } : playback();
+    SimulationClock::Settings clock;
+    clock.mode = current.mode;
+    clock.speed = m_playback_speed;
+    clock.budget_ms = pacing_budget_ms(current.pacing); // 0 for Manual
+    clock.manual_steps_per_submit = solver.get_settings().substeps_per_submit;
+    clock.manual_steps_per_run = solver.get_settings().substeps_per_run;
+    solver.clock().set_settings(clock);
+}
+
+bool AvalanchePanel::playing() const
+{
+    const auto* solver = find_solver();
+    return solver != nullptr && solver->clock().playing();
+}
+
+void AvalanchePanel::set_playing(bool playing)
+{
+    auto* solver = find_solver();
+    if (solver == nullptr)
+        return;
+    if (playing) {
+        sync_clock(*solver);
+        solver->clock().play();
+    } else {
+        solver->clock().pause();
+    }
+}
+
+void AvalanchePanel::step(nodes::MpmSolverNode& solver)
+{
+    sync_clock(solver);
+    solver.clock().step(solver);
+}
+
+void AvalanchePanel::draw_playback(nodes::MpmSolverNode& solver)
+{
+    Playback& current = playback();
+    bool changed = false;
+    int mode = int(current.mode);
+    if (ImGui::Combo("Playback", &mode, "Real time\0Accuracy (as fast as possible)\0")) {
+        current.mode = SimulationClock::Mode(mode);
+        changed = true;
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Real time: simulated time follows the clock times the speed below, like a game engine's\n"
+                          "fixed-step loop - for watching the avalanche. The time step stays fixed (CFL bound), so a\n"
+                          "GPU that cannot keep up within the budget slows the simulation down instead.\n"
+                          "Accuracy: as many substeps as the budget allows, as fast as the GPU goes - for results.\n"
+                          "Remembered separately for the map and the sandbox.");
+    if (current.mode == SimulationClock::Mode::RealTime) {
+        changed |= ImGui::SliderFloat("Speed", &m_playback_speed, SimulationClock::MIN_SPEED, SimulationClock::MAX_SPEED, "%.2fx",
+            ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_AlwaysClamp);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Simulated seconds per second. Ctrl+click to type a value.");
+    }
+    int pacing = int(current.pacing);
+    if (ImGui::Combo("Pacing", &pacing, "Manual\0Smooth (60 fps)\0Balanced (30 fps)\0Fast simulation\0")) {
+        current.pacing = Pacing(pacing);
+        changed = true;
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("The GPU has one queue, so simulation and rendering take turns. The automatic modes give\n"
+                          "the simulation a fixed GPU budget per frame (6 / 14 / 30 ms) and pick the substeps per\n"
+                          "frame from the measured cost of one substep. Manual uses the values below as they are.");
+    if (changed) {
+        sync_clock(solver);
+        save_startup_settings();
     }
 }
 
 void AvalanchePanel::draw_performance(nodes::MpmSolverNode& solver)
 {
     const auto& perf = solver.perf_stats();
-    const auto& settings = solver.get_settings();
-    if (m_playing && m_sim_speed > 0.0f)
-        ImGui::TextDisabled("Speed: %.2fx real time, %u substeps/frame", double(m_sim_speed), settings.substeps_per_submit);
+    const auto& clock = solver.clock();
+    if (clock.playing() && clock.measured_speed() > 0.0f) {
+        const float budget_steps = clock.steps_per_frame_budget();
+        if (clock.settings().mode == SimulationClock::Mode::Accuracy) {
+            ImGui::TextDisabled("Speed: %.2fx real time, %u substeps/frame", double(clock.measured_speed()), clock.steps_per_submit());
+        } else if (clock.behind()) {
+            ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "Speed: %.2fx real time - behind %.2fx", double(clock.measured_speed()),
+                double(clock.settings().speed));
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("The GPU budget of the pacing mode allows %.1f substeps per frame, too few for this speed.\n"
+                                  "A larger budget (Pacing), a lower Detail or a lower speed catches up.",
+                    double(budget_steps));
+        } else {
+            ImGui::TextDisabled("Speed: %.2fx real time, budget %.1f substeps/frame", double(clock.measured_speed()), double(budget_steps));
+        }
+    }
     if (perf.gpu_ms_per_substep > 0.0f)
         ImGui::TextDisabled("GPU: %.2f ms/substep, %.0f ms/run, %.0f MiB", double(perf.gpu_ms_per_substep), double(perf.mean_run_ms),
             double(perf.gpu_bytes) / (1024.0 * 1024.0));
@@ -1144,7 +1198,7 @@ void AvalanchePanel::draw_panel()
         return;
     const bool ready = solver->has_valid_inputs();
     if (!ready) {
-        m_playing = false;
+        solver->clock().pause();
         ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "Inputs not ready.");
         ImGui::TextDisabled("Run the compute graph once (Shift+R).");
         return;
@@ -1214,8 +1268,8 @@ void AvalanchePanel::draw_panel()
         }
     }
 
-    if (ImGui::Button(m_playing ? ICON_FA_PAUSE "  Pause" : ICON_FA_PLAY "  Play", ImVec2(110, 0)))
-        m_playing = !m_playing;
+    if (ImGui::Button(playing() ? ICON_FA_PAUSE "  Pause" : ICON_FA_PLAY "  Play", ImVec2(110, 0)))
+        set_playing(!playing());
     ImGui::SameLine();
     if (ImGui::Button("Step", ImVec2(80, 0)))
         step_now = true;
@@ -1226,6 +1280,7 @@ void AvalanchePanel::draw_panel()
         step_now = true;
     }
 
+    draw_playback(*solver);
     draw_performance(*solver);
 
     ImGui::Separator();
@@ -1240,7 +1295,7 @@ void AvalanchePanel::draw_panel()
         if (view.enabled) {
             ImGui::SameLine();
             int colour = int(view.colour_mode);
-            ImGui::SetNextItemWidth(110 * ui::UI_SCALE);
+            ImGui::SetNextItemWidth(110);
             if (ImGui::Combo("##particle_colour", &colour, "Snow\0Speed\0"))
                 view.colour_mode = webgpu_engine::AvalancheRenderer::ColourMode(colour);
             if (ImGui::IsItemHovered())
@@ -1319,14 +1374,7 @@ void AvalanchePanel::draw_panel()
         ImGui::Separator();
     }
 
-    // --- Playback speed and detail ---
-    if (ImGui::Combo("Pacing", reinterpret_cast<int*>(&m_pacing), "Manual\0Smooth (60 fps)\0Balanced (30 fps)\0Fast simulation\0"))
-        save_startup_settings();
-    if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("The GPU has one queue, so simulation and rendering take turns. The automatic modes give\n"
-                          "the simulation a fixed GPU budget per frame (6 / 14 / 30 ms) and pick the substeps per\n"
-                          "frame from the measured cost of one substep. Manual uses the value below as is.");
-
+    // --- Detail ---
     int detail = -1;
     for (int i = 0; i < int(std::size(DETAIL_PRESETS)); i++) {
         if (settings.num_particles == DETAIL_PRESETS[i].particles && settings.grid_layers == DETAIL_PRESETS[i].grid_layers)
@@ -1350,7 +1398,7 @@ void AvalanchePanel::draw_panel()
                           "cost. Changing it restarts the simulation.");
 
     const uint32_t min_substeps = 1, max_substeps = 512;
-    ImGui::BeginDisabled(m_pacing != Pacing::Manual);
+    ImGui::BeginDisabled(playback().pacing != Pacing::Manual);
     settings_changed |= ImGui::DragScalar("Substeps per run", ImGuiDataType_U32, &settings.substeps_per_run, 1.0f, &min_substeps, &max_substeps, "%u");
     settings_changed |= ImGui::DragScalar("Substeps per frame", ImGuiDataType_U32, &settings.substeps_per_submit, 1.0f, &min_substeps, &max_substeps, "%u");
     ImGui::EndDisabled();
@@ -1459,8 +1507,8 @@ void AvalanchePanel::draw_panel()
 
     if (settings_changed)
         solver->set_settings(settings);
-    if (step_now && !solver->is_running())
-        solver->rerun();
+    if (step_now)
+        step(*solver);
 }
 
 } // namespace webgpu_app

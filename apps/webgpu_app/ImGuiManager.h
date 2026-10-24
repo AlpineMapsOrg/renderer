@@ -30,9 +30,14 @@ struct ImFont;
 
 #include "ui/ImGuiPanel.h"
 
+#ifdef ALP_WEBGPU_APP_ENABLE_COMPUTE
+#include <webgpu/compute/SimulationDriver.h>
+#endif
+
 namespace webgpu_app {
 
 class App;
+class NodeGraphPanel;
 
 class ImGuiManager : public QObject {
     Q_OBJECT
@@ -97,6 +102,12 @@ private:
     bool m_gui_visible = true;
 
     std::vector<std::unique_ptr<ImGuiPanel>> m_panels;
+#ifdef ALP_WEBGPU_APP_ENABLE_COMPUTE
+    /* Plays back the time-stepped simulations of the loaded compute graph, every frame, before
+     * and independent of the GUI (which can be hidden). */
+    NodeGraphPanel* m_node_graph_panel = nullptr;
+    webgpu_compute::SimulationDriver m_simulation_driver;
+#endif
 
     void draw();
     void install_fonts();

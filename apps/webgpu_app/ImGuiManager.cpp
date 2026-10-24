@@ -110,6 +110,7 @@ void ImGuiManager::init(
     m_panels.push_back(std::make_unique<NodeGraphPanel>(engine_ctx));
     // Keeps a pointer to the graph panel so it can find the solver node in the active graph.
     auto* node_graph_panel = static_cast<NodeGraphPanel*>((m_panels.end() - 1)->get());
+    m_node_graph_panel = node_graph_panel;
     m_panels.push_back(std::make_unique<AvalanchePanel>(node_graph_panel));
     connect(static_cast<AvalanchePanel*>((m_panels.end() - 1)->get()), &AvalanchePanel::camera_requested, this,
         [controller = m_terrain_renderer->get_camera_controller()](glm::dvec3 position, glm::dvec3 look_at) {
@@ -198,6 +199,11 @@ void ImGuiManager::install_fonts()
 
 void ImGuiManager::render([[maybe_unused]] WGPURenderPassEncoder renderPass)
 {
+#ifdef ALP_WEBGPU_APP_ENABLE_COMPUTE
+    if (m_node_graph_panel != nullptr)
+        m_simulation_driver.tick(m_node_graph_panel->node_graph());
+#endif
+
     ImGui_ImplWGPU_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
