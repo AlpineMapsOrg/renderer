@@ -29,17 +29,15 @@ class TimeSteppedSimulation;
 /// - Accuracy: as fast as the GPU budget allows. A run of steps starts whenever the previous
 ///   one is done, so simulated time runs at whatever rate the GPU manages - the fastest way
 ///   to a result, for the AvaFrame sandbox and batch runs.
-/// - RealTime: simulated time follows the wall clock times `speed`, like a game engine's
-///   fixed-step loop. Wall time per frame adds to a debt; a run pays off whole time steps of
-///   it. The time step never changes (explicit solver, CFL bound). A run spans
-///   REAL_TIME_RUN_FRAMES frames and is submitted one chunk per frame (Submission::PerFrame),
-///   its steps spread evenly, so every frame advances by about the same simulated time. When
-///   the GPU cannot keep up within the budget, the debt beyond one more run is dropped: the
-///   simulation falls behind (measured_speed() drops, behind() is true) instead of piling up
-///   work.
+/// - RealTime: like a game engine's fixed-step loop with interpolation. A presentation time T
+///   follows the wall clock times `speed`. Each frame runs just enough steps that the
+///   simulation is at or past T, in one chunk (advance_frame()), and the renderer shows the
+///   state at T, blended between the states before and after the last chunk. The time step
+///   never changes (explicit solver, CFL bound), so with steps longer than a frame (low
+///   speeds) the picture still moves every frame. Chunks are capped by the GPU budget; what
+///   the budget cannot simulate is dropped rather than caught up later: the simulation falls
+///   behind (measured_speed() drops, behind() is true) instead of piling up work.
 ///
-/// No interpolation between steps: a frame shows the state after its chunk, so with steps
-/// longer than a frame (low speeds) some frames show no change.
 /// Plain C++ without GPU or Qt, so it is unit tested with a fake simulation.
 class SimulationClock {
 public:
@@ -48,11 +46,12 @@ public:
     struct Settings {
         Mode mode = Mode::RealTime;
         float speed = 1.0f; // RealTime: simulated seconds per wall-clock second
+        bool interpolate = true; // RealTime: show the state at the presentation time, not the latest one
         /* GPU milliseconds per frame the simulation may take. Sizes the chunks from the measured
          * GPU time per step. 0 = manual: the two step counts below are used as they are. */
         float budget_ms = 6.0f;
-        uint32_t manual_steps_per_submit = 2u;
-        uint32_t manual_steps_per_run = 24u; // Accuracy only; RealTime runs what the debt asks for
+        uint32_t manual_steps_per_submit = 2u; // RealTime: steps per frame at most
+        uint32_t manual_steps_per_run = 24u; // Accuracy only
     };
 
     static constexpr float MIN_SPEED = 0.1f;
@@ -62,10 +61,10 @@ public:
     static constexpr uint32_t MIN_STEPS_PER_RUN = 24u;
     /// A longer frame (a stall, a dragged window) counts as this long.
     static constexpr float MAX_FRAME_SECONDS = 0.25f;
-    /// RealTime runs span this many frames, one chunk per frame. Longer runs spread the cost
-    /// per run (rasterising the overlay, the diagnostics readback) over more steps; the
-    /// overlay and diagnostics update once per run.
-    static constexpr uint32_t REAL_TIME_RUN_FRAMES = 8u;
+    /// RealTime closes a run every this many chunks. Longer runs spread the cost per run
+    /// (rasterising the overlay, the diagnostics readback) over more steps; the overlay and
+    /// diagnostics update once per run.
+    static constexpr uint32_t REAL_TIME_RUN_CHUNKS = 8u;
     /// RealTime counts as behind below this fraction of the target speed, and as caught up
     /// again above the second.
     static constexpr float BEHIND_FRACTION = 0.9f;
@@ -78,10 +77,11 @@ public:
     void play();
     void pause();
 
-    /// Once per frame, `wall_seconds` after the previous call. While playing, starts the
-    /// next run when the simulation is idle. Pauses when the simulation cannot advance. While
-    /// paused, a real-time run that is under way still finishes, one chunk per frame.
-    void tick(TimeSteppedSimulation& simulation, float wall_seconds);
+    /// Once per frame, `wall_seconds` after the previous call. While playing, advances the
+    /// simulation (see the modes above). Pauses when the simulation cannot advance. Paused, it
+    /// still closes a real-time run that is open. Returns whether the picture may have changed
+    /// this frame (playing, or a run still under way): the caller should repaint.
+    bool tick(TimeSteppedSimulation& simulation, float wall_seconds);
     /// One accuracy-sized run now, playing or not (a "Step" button). False when the
     /// simulation is busy or not ready.
     bool step(TimeSteppedSimulation& simulation);
@@ -98,8 +98,8 @@ public:
     /// per-frame chunks measure up to ~3x slower per step than the large chunks of Accuracy
     /// (on an M5 the GPU clocks down when it has little to do), and budgeting with those would
     /// cut the load further, down to a fraction of real time. The budget is the guard against
-    /// catching up without end; real overload shows as GPU backpressure (the simulation skips
-    /// a frame's chunk). The chunk size until the cost is measured.
+    /// catching up without end; real overload shows as GPU backpressure (the simulation
+    /// refuses a frame's chunk). The chunk size until the cost is measured.
     float steps_per_frame_budget() const;
 
 private:
@@ -108,15 +108,25 @@ private:
     uint32_t size_chunk(const TimeSteppedSimulation& simulation);
     uint32_t accuracy_run_steps(uint32_t chunk) const;
     void start_accuracy_run(TimeSteppedSimulation& simulation, uint32_t chunk);
+    void real_time_tick(TimeSteppedSimulation& simulation, float wall_seconds);
+    /// Closes an open real-time run with an empty chunk; retried next frame if refused.
+    void close_frame_run(TimeSteppedSimulation& simulation);
     void track_best_cost(const TimeSteppedSimulation& simulation);
     void measure(const TimeSteppedSimulation& simulation, float wall_seconds);
 
     Settings m_settings;
     bool m_playing = false;
     uint32_t m_chunk = 0; // 0 = not sized yet
-    double m_debt = 0.0; // RealTime: simulated seconds owed [s]
-    float m_frame_seconds = 0.0f; // smoothed wall time per frame [s]
     float m_best_ms_per_step = 0.0f; // RealTime budget: lowest GPU cost per step since the reset; 0 = none
+
+    /* RealTime. The presentation time and the simulated times before and after the last chunk;
+     * the renderer blends between those two states. */
+    double m_present = -1.0; // [s] < 0 = start from the simulation's time
+    double m_chunk_start = 0.0;
+    double m_chunk_end = 0.0;
+    float m_budget_credit = 0.0f; // steps the budget still allows, carried between frames (fractional budgets)
+    bool m_frame_run_open = false;
+    uint32_t m_frame_run_chunks = 0; // chunks in the open run
 
     float m_window_wall = 0.0f; // [s]
     float m_window_start = -1.0f; // simulated time at the window start; < 0 = no window

@@ -29,7 +29,6 @@ void SimulationClock::play()
     if (m_playing)
         return;
     m_playing = true;
-    m_debt = 0.0;
     m_measured_speed = 0.0f;
     m_behind = false;
     m_window_start = -1.0f;
@@ -80,12 +79,9 @@ void SimulationClock::measure(const TimeSteppedSimulation& simulation, float wal
 {
     const float time = simulation.simulated_time();
     if (m_window_start < 0.0f || time < m_window_start) {
-        // First frame, or a reset: start over. The debt belongs to the old run, the cost to the
-        // old flow (or the old Detail).
-        if (m_window_start >= 0.0f) {
-            m_debt = 0.0;
+        // First frame, or a reset: start over. The cost belongs to the old flow (or the old Detail).
+        if (m_window_start >= 0.0f)
             m_best_ms_per_step = 0.0f;
-        }
         m_window_start = time;
         m_window_wall = 0.0f;
         return;
@@ -104,66 +100,98 @@ void SimulationClock::measure(const TimeSteppedSimulation& simulation, float wal
     }
 }
 
-void SimulationClock::tick(TimeSteppedSimulation& simulation, float wall_seconds)
+void SimulationClock::close_frame_run(TimeSteppedSimulation& simulation)
+{
+    if (simulation.advance_frame(0u, true)) {
+        m_frame_run_open = false;
+        m_frame_run_chunks = 0;
+    }
+}
+
+bool SimulationClock::tick(TimeSteppedSimulation& simulation, float wall_seconds)
 {
     if (!m_playing) {
-        // A PerFrame run started before the pause still goes out to its end (at most
-        // REAL_TIME_RUN_FRAMES - 1 more chunks): until then the simulation is busy, and a Step,
-        // a Reset or a graph run would wait behind it. A no-op for chained runs.
-        if (simulation.is_advancing())
-            simulation.submit_frame();
-        return;
+        // A real-time run left open by the pause is closed, so a Step, a Reset or a graph run
+        // does not wait behind it.
+        if (m_frame_run_open)
+            close_frame_run(simulation);
+        return simulation.is_advancing();
     }
     if (!simulation.can_advance()) {
         pause();
-        return;
+        return false;
     }
     const float wall = std::clamp(wall_seconds, 0.0f, MAX_FRAME_SECONDS);
     measure(simulation, wall);
     const uint32_t chunk = size_chunk(simulation);
 
     if (m_settings.mode == Mode::Accuracy) {
-        m_debt = 0.0;
+        if (m_frame_run_open) {
+            close_frame_run(simulation); // switched from real time
+            return true;
+        }
+        simulation.set_interpolation(1.0f);
         // is_advancing() keeps runs from piling up when the GPU falls behind the frame rate.
         if (!simulation.is_advancing())
             start_accuracy_run(simulation, chunk);
-        return;
+        return true;
     }
+    real_time_tick(simulation, wall);
+    return true;
+}
 
+void SimulationClock::real_time_tick(TimeSteppedSimulation& simulation, float wall_seconds)
+{
     const double dt = simulation.time_step();
     if (!(dt > 0.0))
         return;
-    const float speed = std::clamp(m_settings.speed, MIN_SPEED, MAX_SPEED);
-    m_frame_seconds = m_frame_seconds <= 0.0f ? wall : 0.9f * m_frame_seconds + 0.1f * wall;
-    const double frame_time = double(speed) * double(m_frame_seconds); // simulated time per frame [s]
-    // A run spans REAL_TIME_RUN_FRAMES frames with one chunk each, its steps at most what the
-    // budget allows over those frames (fractional per frame, or 3.5 steps per frame would only
-    // ever run 3). More debt than one more run is dropped: the simulation slows down instead
-    // of spiralling into ever longer runs.
+    const double now = simulation.simulated_time();
+    // Something other than our chunks moved the simulation (the first frame, a Step, a reset
+    // run): present from where it is.
+    if (!m_frame_run_open && (m_present < 0.0 || now != m_chunk_end))
+        m_present = m_chunk_start = m_chunk_end = now;
+    if (simulation.is_advancing() && !m_frame_run_open)
+        return; // an accuracy run (a Step) is under way
+
     track_best_cost(simulation);
-    const uint32_t max_run = std::max(1u, uint32_t(float(REAL_TIME_RUN_FRAMES) * steps_per_frame_budget()));
-    const double max_debt = double(max_run) * dt;
-    m_debt += double(wall) * double(speed);
-    if (simulation.is_advancing()) {
-        m_debt = std::min(m_debt, 2.0 * max_debt);
-        simulation.submit_frame();
-        return;
+    const float budget = steps_per_frame_budget();
+    m_budget_credit = std::min(m_budget_credit + budget, budget + 1.0f);
+    const float speed = std::clamp(m_settings.speed, MIN_SPEED, MAX_SPEED);
+    m_present += double(wall_seconds) * double(speed);
+
+    // Just enough steps to reach the presentation time, as far as the budget allows.
+    const double needed = (m_present - now) / dt;
+    uint32_t steps = needed > 1e-6 ? uint32_t(std::ceil(needed - 1e-6)) : 0u;
+    steps = std::min(steps, uint32_t(std::max(m_budget_credit, 0.0f)));
+    if (steps > 0) {
+        const bool end_run = m_frame_run_chunks + 1u >= REAL_TIME_RUN_CHUNKS;
+        if (simulation.advance_frame(steps, end_run)) {
+            m_budget_credit -= float(steps);
+            const double after = simulation.simulated_time();
+            if (after < now) // the run began with a reset
+                m_present = m_chunk_start = after - double(steps) * dt;
+            else
+                m_chunk_start = now;
+            m_chunk_end = after;
+            m_frame_run_open = !end_run;
+            m_frame_run_chunks = end_run ? 0u : m_frame_run_chunks + 1u;
+        }
     }
-    // The run pays the debt and the frames it is about to span in advance: its chunks go out
-    // one per frame, so by its end the wall clock has caught up with the simulated time.
-    const double ahead = double(REAL_TIME_RUN_FRAMES - 1u) * frame_time;
-    const uint32_t steps = uint32_t(std::clamp(std::floor((m_debt + ahead) / dt), 0.0, double(max_run)));
-    if (steps == 0)
-        return;
-    m_debt = std::min(m_debt - double(steps) * dt, max_debt);
-    simulation.advance(steps, std::min(steps, REAL_TIME_RUN_FRAMES), TimeSteppedSimulation::Submission::PerFrame);
+    // Time the budget could not simulate is dropped, not caught up later: the presentation runs
+    // at most one step ahead of the simulation.
+    m_present = std::min(m_present, double(simulation.simulated_time()) + dt);
+
+    float alpha = 1.0f;
+    if (m_settings.interpolate && m_chunk_end > m_chunk_start)
+        alpha = float(std::clamp((std::min(m_present, m_chunk_end) - m_chunk_start) / (m_chunk_end - m_chunk_start), 0.0, 1.0));
+    simulation.set_interpolation(alpha);
 }
 
 void SimulationClock::start_accuracy_run(TimeSteppedSimulation& simulation, uint32_t chunk)
 {
     const uint32_t steps = accuracy_run_steps(chunk);
     const uint32_t per_submit = std::min(chunk, steps);
-    simulation.advance(steps, (steps + per_submit - 1u) / per_submit, TimeSteppedSimulation::Submission::Chained);
+    simulation.advance(steps, (steps + per_submit - 1u) / per_submit);
 }
 
 float SimulationClock::steps_per_frame_budget() const
@@ -184,6 +212,7 @@ bool SimulationClock::step(TimeSteppedSimulation& simulation)
 {
     if (!simulation.can_advance() || simulation.is_advancing())
         return false;
+    simulation.set_interpolation(1.0f);
     start_accuracy_run(simulation, size_chunk(simulation));
     return true;
 }

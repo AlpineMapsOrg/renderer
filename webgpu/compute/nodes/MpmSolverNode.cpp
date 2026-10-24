@@ -287,6 +287,8 @@ bool MpmSolverNode::ensure_resources()
 
     m_particle_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
         m_ctx->device(), storage_usage, size_t(num_particles) * PARTICLE_STRIDE_U32, "mpm particle buffer");
+    m_previous_particles = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
+        m_ctx->device(), storage_usage, size_t(num_particles) * PARTICLE_STRIDE_U32, "mpm previous particle buffer");
     m_grid_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
         m_ctx->device(), storage_usage, size_t(grid_res.x) * grid_res.y * grid_res.z * GRID_NODE_STRIDE_U32, "mpm grid buffer");
     m_column_floor_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
@@ -303,6 +305,7 @@ bool MpmSolverNode::ensure_resources()
 
     m_allocated_particles = num_particles;
     m_particle_view.particles = m_particle_buffer.get();
+    m_particle_view.previous_particles = nullptr;
     m_particle_view.particle_count = num_particles;
     m_allocated_grid_res = grid_res;
     m_allocated_raster_resolution = raster_resolution;
@@ -310,7 +313,7 @@ bool MpmSolverNode::ensure_resources()
     m_resource_generation++;
 
     const auto bytes = [](const auto& buffer) { return uint64_t(buffer->size_in_byte()); };
-    m_perf.gpu_bytes = bytes(m_particle_buffer) + bytes(m_grid_buffer) + bytes(m_grid_velocity_buffer) + bytes(m_tile_flag_buffer)
+    m_perf.gpu_bytes = bytes(m_particle_buffer) + bytes(m_previous_particles) + bytes(m_grid_buffer) + bytes(m_grid_velocity_buffer) + bytes(m_tile_flag_buffer)
         + bytes(m_column_peak_buffer) + bytes(m_column_floor_buffer) + bytes(m_density_buffer) + bytes(m_state_buffer) + bytes(m_state_readback)
         + uint64_t(raster_resolution) * raster_resolution * 4u /* RGBA8 output texture */;
 
@@ -577,7 +580,7 @@ void MpmSolverNode::map_state_readback()
         float gravity;
         uint32_t substeps;
     };
-    auto* request = new Request { m_alive, m_reset_count, m_simulated_time, std::max(m_settings.gravity, 1e-3f), m_run_substeps };
+    auto* request = new Request { m_alive, m_reset_count, m_simulated_time, std::max(m_settings.gravity, 1e-3f), m_run_substeps_submitted };
 
     const auto on_mapped = [](WGPUMapAsyncStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
         std::unique_ptr<Request> request(reinterpret_cast<Request*>(userdata));
@@ -744,26 +747,42 @@ bool MpmSolverNode::can_advance() const
     return const_cast<MpmSolverNode*>(this)->has_valid_inputs();
 }
 
-void MpmSolverNode::advance(uint32_t steps, uint32_t chunks, Submission submission)
+void MpmSolverNode::advance(uint32_t steps, uint32_t chunks)
 {
     m_advance_substeps = steps;
     m_advance_chunks = chunks;
-    m_advance_per_frame = submission == Submission::PerFrame;
+    m_advance_frame = false;
     rerun();
 }
 
-void MpmSolverNode::submit_frame()
+bool MpmSolverNode::advance_frame(uint32_t steps, bool end_run)
 {
-    if (!is_running() || !m_run_per_frame || m_run_substeps_left == 0)
-        return;
-    // A GPU that is behind skips this frame's chunk rather than queue more: the simulation falls
+    // A GPU that is behind refuses the frame's chunk rather than queue more: the simulation falls
     // behind instead of the frame rate. A chunk's work-done callback arrives about two frames
     // after its submission, so two in flight is the steady state of one chunk per frame.
-    if (m_gpu_chunks_in_flight >= MAX_PER_FRAME_CHUNKS_IN_FLIGHT)
-        return;
-    submit_chunk();
-    if (m_run_substeps_left == 0)
-        read_back_state(); // the map waits for the GPU itself; the run is done for the clock
+    if (m_gpu_chunks_in_flight >= MAX_FRAME_CHUNKS_IN_FLIGHT)
+        return false;
+    if (!m_frame_run_open) {
+        if (is_running() || steps == 0)
+            return false; // an advance() run is under way, or nothing to open a run with
+        m_advance_substeps = steps;
+        m_advance_chunks = 1;
+        m_advance_frame = true;
+        m_advance_end_run = end_run;
+        const uint64_t serial = m_run_serial;
+        rerun();
+        return m_run_serial != serial; // the run did not start (inputs missing, node disabled)
+    }
+    submit_chunk(steps, end_run);
+    if (end_run)
+        close_frame_run();
+    return true;
+}
+
+void MpmSolverNode::close_frame_run()
+{
+    m_frame_run_open = false;
+    read_back_state(); // the map waits for the GPU itself; the run is done for the clock
 }
 
 void MpmSolverNode::run_impl()
@@ -772,10 +791,12 @@ void MpmSolverNode::run_impl()
     const uint32_t run_substeps = std::clamp(m_advance_substeps > 0 ? m_advance_substeps : m_settings.substeps_per_run, 1u, 4096u);
     const uint32_t per_submit = std::clamp(m_settings.substeps_per_submit, 1u, 4096u);
     const uint32_t run_chunks = m_advance_chunks > 0 ? m_advance_chunks : (run_substeps + per_submit - 1u) / per_submit;
-    const bool per_frame = m_advance_substeps > 0 && m_advance_per_frame;
+    const bool per_frame = m_advance_substeps > 0 && m_advance_frame;
+    const bool frame_end_run = m_advance_end_run;
     m_advance_substeps = 0;
     m_advance_chunks = 0;
-    m_advance_per_frame = false;
+    m_advance_frame = false;
+    m_advance_end_run = false;
 
     if (!has_valid_inputs()) {
         fail_run("MpmSolverNode inputs are not ready. Run the full graph (Shift+R) before stepping the solver.");
@@ -833,6 +854,7 @@ void MpmSolverNode::run_impl()
 
     m_run_substeps_left = run_substeps;
     m_run_substeps = run_substeps;
+    m_run_substeps_submitted = 0;
     m_run_chunks = std::clamp(run_chunks, 1u, run_substeps);
     m_run_chunk_index = 0;
     m_run_per_frame = per_frame;
@@ -852,34 +874,27 @@ void MpmSolverNode::run_impl()
     m_settings.reset_on_next_run = false;
     m_chunks_in_flight = 0;
     if (m_run_per_frame) {
-        // One chunk now, the others from submit_frame(), one per frame. The run is done for the
-        // clock once the last one is submitted (read_back_state() right after it), so the next
-        // run starts in the next frame and every frame gets a chunk.
-        if (m_gpu_chunks_in_flight < MAX_PER_FRAME_CHUNKS_IN_FLIGHT)
-            submit_chunk();
-        if (m_run_substeps_left == 0)
-            read_back_state();
+        // A real-time run: this chunk now, the next ones from advance_frame(), one per frame.
+        // It is done for the clock once the last one is submitted (close_frame_run() right
+        // after it), so the next run starts in the next frame and every frame gets a chunk.
+        m_frame_run_open = true;
+        m_run_substeps_left = 0;
+        submit_chunk(run_substeps, frame_end_run);
+        if (frame_end_run)
+            close_frame_run();
         return;
     }
     // Two chunks in flight: the work-done callback of one arrives two frames after its
     // submission (GPU finish, then the next event pump), so a single chunk in flight would
     // leave the queue idle every other frame. With two, a frame always finds one chunk
     // ahead of its own command buffer and never more.
-    submit_chunk();
+    submit_chained_chunk();
     if (m_run_substeps_left > 0)
-        submit_chunk();
+        submit_chained_chunk();
 }
 
-void MpmSolverNode::submit_chunk()
+void MpmSolverNode::submit_chained_chunk()
 {
-    const glm::uvec3 particle_workgroups(div_ceil(m_allocated_particles, PARTICLE_WORKGROUP_SIZE.x), 1, 1);
-    // One workgroup per tile of columns; each thread walks the layers of its column.
-    const glm::uvec3 grid_workgroups(div_ceil(m_allocated_grid_res.x, GRID_WORKGROUP_SIZE.x), div_ceil(m_allocated_grid_res.y, GRID_WORKGROUP_SIZE.y), 1);
-    const glm::uvec3 prepare_workgroups(
-        div_ceil(m_allocated_grid_res.x, RASTER_WORKGROUP_SIZE.x), div_ceil(m_allocated_grid_res.y, RASTER_WORKGROUP_SIZE.y), 1);
-    const glm::uvec3 raster_workgroups(
-        div_ceil(m_output_dimensions.x, RASTER_WORKGROUP_SIZE.x), div_ceil(m_output_dimensions.y, RASTER_WORKGROUP_SIZE.y), 1);
-
     // Chunk i of n gets floor((i + 1) S / n) - floor(i S / n) of the S substeps: they differ by
     // at most one, and the larger ones are spread out rather than bunched at one end.
     const uint64_t total = m_run_substeps;
@@ -889,11 +904,32 @@ void MpmSolverNode::submit_chunk()
     const uint32_t substeps = std::clamp(planned, 1u, m_run_substeps_left);
     m_run_chunk_index++;
     m_run_substeps_left -= substeps;
-    const bool last_chunk = m_run_substeps_left == 0;
+    submit_chunk(substeps, m_run_substeps_left == 0);
+}
+
+void MpmSolverNode::submit_chunk(uint32_t substeps, bool last_chunk)
+{
+    const glm::uvec3 particle_workgroups(div_ceil(m_allocated_particles, PARTICLE_WORKGROUP_SIZE.x), 1, 1);
+    // One workgroup per tile of columns; each thread walks the layers of its column.
+    const glm::uvec3 grid_workgroups(div_ceil(m_allocated_grid_res.x, GRID_WORKGROUP_SIZE.x), div_ceil(m_allocated_grid_res.y, GRID_WORKGROUP_SIZE.y), 1);
+    const glm::uvec3 prepare_workgroups(
+        div_ceil(m_allocated_grid_res.x, RASTER_WORKGROUP_SIZE.x), div_ceil(m_allocated_grid_res.y, RASTER_WORKGROUP_SIZE.y), 1);
+    const glm::uvec3 raster_workgroups(
+        div_ceil(m_output_dimensions.x, RASTER_WORKGROUP_SIZE.x), div_ceil(m_output_dimensions.y, RASTER_WORKGROUP_SIZE.y), 1);
 
     WGPUCommandEncoderDescriptor encoder_desc {};
     encoder_desc.label = WGPUStringView { .data = "mpm solver command encoder", .length = WGPU_STRLEN };
     webgpu::raii::CommandEncoder encoder(m_ctx->device(), encoder_desc);
+
+    // Real time keeps the particles from before each chunk, for the renderer to interpolate
+    // between them and the new ones. Not on a reseed (the copy would hold the old flow, the seed
+    // runs inside the pass) and not in accuracy playback; an empty chunk leaves them as they are.
+    if (substeps > 0) {
+        const bool keep = m_run_per_frame && !(m_run_first_chunk && m_run_is_reset);
+        if (keep)
+            m_particle_buffer->copy_to_buffer(encoder.handle(), *m_previous_particles);
+        m_particle_view.previous_particles = keep ? m_previous_particles.get() : nullptr;
+    }
 
     // Cleared outside the compute pass; the density raster only accumulates once per run.
     if (m_run_first_chunk)
@@ -970,6 +1006,7 @@ void MpmSolverNode::submit_chunk()
     wgpuCommandBufferRelease(command);
 
     m_run_first_chunk = false;
+    m_run_substeps_submitted += substeps;
     m_chunks_in_flight++;
     m_gpu_chunks_in_flight++;
     m_simulated_time += float(substeps) * m_settings.dt;
@@ -1015,7 +1052,7 @@ void MpmSolverNode::on_chunk_done(int timestamp_slot, uint32_t substeps, uint64_
         return;
     m_chunks_in_flight--;
     if (m_run_substeps_left > 0) {
-        submit_chunk();
+        submit_chained_chunk();
         return;
     }
     if (m_chunks_in_flight > 0)

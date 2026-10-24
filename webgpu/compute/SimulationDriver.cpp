@@ -31,20 +31,22 @@ std::vector<TimeSteppedSimulation*> SimulationDriver::simulations(nodes::NodeGra
     return found;
 }
 
-void SimulationDriver::tick(nodes::NodeGraph* graph)
+bool SimulationDriver::tick(nodes::NodeGraph* graph)
 {
     const auto now = std::chrono::steady_clock::now();
     const float wall_seconds = m_last_tick ? std::chrono::duration<float>(now - *m_last_tick).count() : 0.0f;
     m_last_tick = now;
-    tick(graph, wall_seconds);
+    return tick(graph, wall_seconds);
 }
 
-void SimulationDriver::tick(nodes::NodeGraph* graph, float wall_seconds)
+bool SimulationDriver::tick(nodes::NodeGraph* graph, float wall_seconds)
 {
     if (graph == nullptr)
-        return;
+        return false;
+    bool active = false;
     for (TimeSteppedSimulation* simulation : simulations(*graph))
-        simulation->clock().tick(*simulation, wall_seconds);
+        active |= simulation->clock().tick(*simulation, wall_seconds);
+    return active;
 }
 
 } // namespace webgpu_compute

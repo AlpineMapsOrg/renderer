@@ -31,34 +31,33 @@ namespace webgpu_compute {
 /// implements it next to Node, and the driver finds it in the graph with a dynamic_cast.
 /// Explicit solvers cannot stretch their time step to the frame time (the CFL bound), so the
 /// only knob is how many steps to run; the clock decides that.
+///
+/// Two ways to advance, one per playback mode of the clock:
+/// - advance(): a run of steps at the simulation's own pace (accuracy).
+/// - advance_frame(): one chunk now, so every frame gets one (real time). The chunks form runs
+///   too, closed every few frames, so per-run work (overlays, diagnostics) still happens.
 class TimeSteppedSimulation {
 public:
     virtual ~TimeSteppedSimulation() = default;
 
-    /// How the chunks of a run reach the GPU.
-    enum class Submission {
-        /* At the simulation's own pace, as fast as the GPU takes them: in MpmSolverNode two in
-         * flight, the next one from the previous one's work-done callback. Done when the last
-         * chunk has finished. */
-        Chained,
-        /* One per frame, from submit_frame(), so every rendered frame advances by one chunk.
-         * Done as soon as the last chunk is submitted, so the next run can follow in the very
-         * next frame without a gap. */
-        PerFrame,
-    };
-
     /// The inputs are in place, so advance() can start.
     virtual bool can_advance() const = 0;
-    /// A previous advance() has not finished yet. The clock never starts a second one.
+    /// A run is under way: an advance() that has not finished, or a run of advance_frame()
+    /// chunks that is still open. The clock never starts a second one.
     virtual bool is_advancing() const = 0;
-    /// Starts a run of `steps` time steps in `chunks` GPU submissions, the steps spread evenly
-    /// over the chunks (they differ by at most one). Returns immediately. A PerFrame run
-    /// submits its first chunk right away.
-    virtual void advance(uint32_t steps, uint32_t chunks, Submission submission) = 0;
-    /// PerFrame runs: submits the next chunk, unless the GPU is too far behind (then the frame
-    /// gets none). The clock calls it once per frame while is_advancing(), paused or not.
-    /// Does nothing for a chained run.
-    virtual void submit_frame() = 0;
+    /// Accuracy: starts a run of `steps` time steps in `chunks` GPU submissions, the steps
+    /// spread evenly over them (they differ by at most one), chained at the simulation's own
+    /// pace (in MpmSolverNode two in flight, the next from the previous one's work-done
+    /// callback). Returns immediately; done when is_advancing() is false again.
+    virtual void advance(uint32_t steps, uint32_t chunks) = 0;
+    /// Real time: submits one chunk of `steps` time steps now, opening a run if none is open.
+    /// `end_run` closes the run with this chunk (0 steps are allowed for that). Returns false,
+    /// and submits nothing, while the GPU is too far behind or an advance() run is under way.
+    virtual bool advance_frame(uint32_t steps, bool end_run) = 0;
+    /// Real time: what the next rendered frame should show, as the share of the way from the
+    /// state before the last advance_frame() chunk to the state after it. 1 = the latest
+    /// state. A simulation whose renderer cannot blend ignores it.
+    virtual void set_interpolation(float) { }
 
     /// The fixed time step [s] the next advance() uses.
     virtual float time_step() const = 0;
@@ -68,7 +67,7 @@ public:
     virtual float gpu_ms_per_step() const = 0;
     /// The simulation has come to rest, by its own criterion. Never, if it has none.
     virtual bool at_rest() const { return false; }
-    /// Back to the initial state; takes effect with the next advance().
+    /// Back to the initial state; takes effect with the next run.
     virtual void reset() = 0;
 
     /// Playback state of this simulation. It lives with the simulation so it is gone with it

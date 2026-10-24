@@ -60,9 +60,9 @@ struct SandboxTerrain;
 /// release texture holds the release depth per cell.
 ///
 /// Playback: the node is a TimeSteppedSimulation, so SimulationDriver advances it every frame
-/// through its clock (real time or as fast as the GPU budget allows). advance() runs a given
-/// number of substeps for one run only; a plain rerun() uses `substeps_per_run` and
-/// `substeps_per_submit` from the settings.
+/// through its clock: advance() runs (accuracy) or advance_frame() chunks (real time, with the
+/// particles before each chunk kept for interpolation). A plain rerun() uses `substeps_per_run`
+/// and `substeps_per_submit` from the settings.
 /// What a renderer needs to draw the particles where they are, read straight from the GPU
 /// buffer (layout: struct Particle in mpm_common.wgsl, PARTICLE_STRIDE_U32 words each). Owned
 /// by the solver and kept current across reallocations, so a renderer can hold the pointer for
@@ -70,6 +70,12 @@ struct SandboxTerrain;
 struct MpmParticleView {
     const webgpu::raii::RawBuffer<uint32_t>* particles = nullptr; // nullptr before the first run
     uint32_t particle_count = 0; // allocated; inactive ones have mass 0
+    /* Real-time playback with interpolation (SimulationClock): the particles as they were before
+     * the last chunk (same layout), and the share of the way from them to `particles` that a
+     * frame should show. nullptr when the last chunk did not keep them (after a reset, in
+     * accuracy playback): then show `particles`. */
+    const webgpu::raii::RawBuffer<uint32_t>* previous_particles = nullptr;
+    float interpolation = 1.0f;
     /* Solver metres (particle.position.xy) -> weBIGeo world xy (Web Mercator), as
      * world = M * (x, y, 1). Map: region offset and 1/cos(latitude). Sandbox: the affine fit of
      * SandboxTerrain::sandbox_to_world. Heights are real metres; world z = altitude / cos(latitude). */
@@ -410,8 +416,9 @@ public:
      * they stay what a plain rerun() (the node editor's Step) and Manual pacing use. */
     bool can_advance() const override;
     bool is_advancing() const override { return is_running(); }
-    void advance(uint32_t steps, uint32_t chunks, Submission submission) override;
-    void submit_frame() override;
+    void advance(uint32_t steps, uint32_t chunks) override;
+    bool advance_frame(uint32_t steps, bool end_run) override;
+    void set_interpolation(float alpha) override { m_particle_view.interpolation = alpha; }
     float time_step() const override { return m_settings.dt; }
     float gpu_ms_per_step() const override { return m_perf.gpu_ms_per_substep; }
     void reset() override { request_reset(); }
@@ -421,9 +428,14 @@ public:
 
 public slots:
     void run_impl() override;
-    /// Encodes and submits the next chunk of the current run; chains itself through the
-    /// queue's work-done callback until the run's substeps are exhausted.
-    void submit_chunk();
+    /// Encodes and submits one chunk of `substeps` of the current run; the last one also splats,
+    /// rasterises and copies the diagnostics for the readback.
+    void submit_chunk(uint32_t substeps, bool last_chunk);
+    /// The next chunk of a chained run (its share of the run's substeps); chains itself through
+    /// the queue's work-done callback until they are exhausted.
+    void submit_chained_chunk();
+    /// Closes a real-time run after its last chunk: readback and completion.
+    void close_frame_run();
 
 private:
     /// (Re)allocates GPU buffers and the output texture if the configured sizes changed.
@@ -505,17 +517,21 @@ private:
 
     /* State of the run in flight, see submit_chunk(). */
     uint32_t m_run_substeps_left = 0;
-    uint32_t m_run_substeps = 0; // total of the current run
+    uint32_t m_run_substeps = 0; // total of the current chained run
+    uint32_t m_run_substeps_submitted = 0; // of the current run so far
     uint32_t m_run_chunks = 1; // the substeps are spread evenly over this many chunks
     uint32_t m_run_chunk_index = 0; // next chunk to submit
-    bool m_run_per_frame = false; // Submission::PerFrame: chunks from submit_frame(), not chained
+    bool m_run_per_frame = false; // a real-time run: chunks from advance_frame(), not chained
+    bool m_frame_run_open = false; // a real-time run takes more chunks
+    std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_previous_particles; // before the last real-time chunk
     uint64_t m_run_serial = 0; // tells a chunk's callback whether its run is still the current one
     uint32_t m_gpu_chunks_in_flight = 0; // of every run, for the PerFrame throttle
-    static constexpr uint32_t MAX_PER_FRAME_CHUNKS_IN_FLIGHT = 3u;
+    static constexpr uint32_t MAX_FRAME_CHUNKS_IN_FLIGHT = 3u;
     /* Set by advance() for the next run only; 0 = from the settings. */
     uint32_t m_advance_substeps = 0;
     uint32_t m_advance_chunks = 0;
-    bool m_advance_per_frame = false;
+    bool m_advance_frame = false; // advance_frame(): a real-time run of one chunk so far
+    bool m_advance_end_run = false;
     uint32_t m_chunks_in_flight = 0;
     bool m_run_first_chunk = true;
     bool m_run_is_reset = false;
