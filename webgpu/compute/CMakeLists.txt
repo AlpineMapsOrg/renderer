@@ -46,6 +46,7 @@ set(SOURCES
     nodes/GeoRegionNode.h nodes/GeoRegionNode.cpp
     nodes/LoadTextureNode.h nodes/LoadTextureNode.cpp
     nodes/AvaFrameSandboxNode.h nodes/AvaFrameSandboxNode.cpp
+    nodes/AvaFrameReleaseNode.h nodes/AvaFrameReleaseNode.cpp
     nodes/util.h nodes/util.cpp
 )
 

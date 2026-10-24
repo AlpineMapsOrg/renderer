@@ -18,6 +18,7 @@
 
 #include "NodeRegistry.h"
 
+#include "nodes/AvaFrameReleaseNode.h"
 #include "nodes/AvaFrameSandboxNode.h"
 #include "nodes/BufferToTextureNode.h"
 #include "nodes/ComputeAvalancheTrajectoriesNode.h"
@@ -59,6 +60,7 @@ NodeRegistry::NodeRegistry()
     register_node("ExportNode", [](webgpu::Context& c) { return std::make_unique<nodes::ExportNode>(c); });
     register_node("LoadTextureNode", [](webgpu::Context& c) { return std::make_unique<nodes::LoadTextureNode>(c); });
     register_node("AvaFrameSandboxNode", [](webgpu::Context& c) { return std::make_unique<nodes::AvaFrameSandboxNode>(c); });
+    register_node("AvaFrameReleaseNode", [](webgpu::Context& c) { return std::make_unique<nodes::AvaFrameReleaseNode>(c); });
 }
 
 NodeRegistry& NodeRegistry::instance()
