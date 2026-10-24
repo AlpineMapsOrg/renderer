@@ -19,6 +19,7 @@
 #pragma once
 
 #include "Node.h"
+#include "../TimeSteppedSimulation.h"
 
 #include <webgpu/base/Buffer.h>
 #include <webgpu/base/Context.h>
@@ -57,6 +58,11 @@ struct SandboxTerrain;
 /// the release point texture. With the optional "sandbox" input connected (AvaFrameSandboxNode),
 /// the region is a DEM in metres, the domain is centred on the dataset's avalanche and the
 /// release texture holds the release depth per cell.
+///
+/// Playback: the node is a TimeSteppedSimulation, so SimulationDriver advances it every frame
+/// through its clock (real time or as fast as the GPU budget allows). advance() runs a given
+/// number of substeps for one run only; a plain rerun() uses `substeps_per_run` and
+/// `substeps_per_submit` from the settings.
 /// What a renderer needs to draw the particles where they are, read straight from the GPU
 /// buffer (layout: struct Particle in mpm_common.wgsl, PARTICLE_STRIDE_U32 words each). Owned
 /// by the solver and kept current across reallocations, so a renderer can hold the pointer for
@@ -82,7 +88,7 @@ struct MpmParticleView {
     uint32_t reset_count = 0; // changes when the particles are released anew (Reset), so per-run memory can be cleared
 };
 
-class MpmSolverNode : public Node {
+class MpmSolverNode : public Node, public TimeSteppedSimulation {
     Q_OBJECT
 
 public:
@@ -289,7 +295,7 @@ public:
     static float max_stable_dt(const MpmSolverSettings& settings, float dx);
 
     /// Simulated time [s] accumulated since the last reset.
-    float simulated_time() const { return m_simulated_time; }
+    float simulated_time() const override { return m_simulated_time; }
     /// Wall-clock seconds since the last reset, pauses included.
     float wall_time_since_reset() const { return std::chrono::duration<float>(std::chrono::steady_clock::now() - m_reset_wall_start).count(); }
 
@@ -335,7 +341,7 @@ public:
 
     /// True once the mean kinetic energy has fallen below stop_kinetic_fraction of its peak
     /// since the reset (com1DFA's stop criterion). Like last_state(), one run behind.
-    bool at_rest() const { return m_at_rest; }
+    bool at_rest() const override { return m_at_rest; }
 
     /// Box contacts (see SimStateReadback) summed over every run since the reset, and the
     /// particle-substeps they are a share of. Non-zero walls mean the runout depends on the box.
@@ -400,6 +406,16 @@ public:
     /// upstream nodes hand out null pointers until they have produced their outputs.
     [[nodiscard]] bool has_valid_inputs();
 
+    /* TimeSteppedSimulation. advance() leaves substeps_per_run / substeps_per_submit alone:
+     * they stay what a plain rerun() (the node editor's Step) and Manual pacing use. */
+    bool can_advance() const override;
+    bool is_advancing() const override { return is_running(); }
+    void advance(uint32_t steps, uint32_t chunks, Submission submission) override;
+    void submit_frame() override;
+    float time_step() const override { return m_settings.dt; }
+    float gpu_ms_per_step() const override { return m_perf.gpu_ms_per_substep; }
+    void reset() override { request_reset(); }
+
     void serialize_settings(QJsonObject& out) const override;
     void deserialize_settings(const QJsonObject& in) override;
 
@@ -430,7 +446,7 @@ private:
     void finish_run();
     void append_energy_sample(float time, float gravity);
     /// Work-done callback of one chunk: chains the next one, or finishes the run.
-    void on_chunk_done(int timestamp_slot, uint32_t substeps);
+    void on_chunk_done(int timestamp_slot, uint32_t substeps, uint64_t run_serial);
     void read_back_timestamps(int slot, uint32_t substeps);
 
     static std::unique_ptr<webgpu::raii::TextureWithSampler> create_output_texture(WGPUDevice device, uint32_t width, uint32_t height);
@@ -490,6 +506,16 @@ private:
     /* State of the run in flight, see submit_chunk(). */
     uint32_t m_run_substeps_left = 0;
     uint32_t m_run_substeps = 0; // total of the current run
+    uint32_t m_run_chunks = 1; // the substeps are spread evenly over this many chunks
+    uint32_t m_run_chunk_index = 0; // next chunk to submit
+    bool m_run_per_frame = false; // Submission::PerFrame: chunks from submit_frame(), not chained
+    uint64_t m_run_serial = 0; // tells a chunk's callback whether its run is still the current one
+    uint32_t m_gpu_chunks_in_flight = 0; // of every run, for the PerFrame throttle
+    static constexpr uint32_t MAX_PER_FRAME_CHUNKS_IN_FLIGHT = 3u;
+    /* Set by advance() for the next run only; 0 = from the settings. */
+    uint32_t m_advance_substeps = 0;
+    uint32_t m_advance_chunks = 0;
+    bool m_advance_per_frame = false;
     uint32_t m_chunks_in_flight = 0;
     bool m_run_first_chunk = true;
     bool m_run_is_reset = false;
