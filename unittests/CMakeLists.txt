@@ -31,6 +31,8 @@ if (TARGET webgpu_engine)
     add_subdirectory(webgpu_engine)
 endif()
 
-if (TARGET webgpu_compute)
+# Not in web builds: the simulation clock it tests is plain C++ and runs natively, and one more
+# LTO executable next to the app's made the wasm LTO jobs run out of memory in CI.
+if (TARGET webgpu_compute AND NOT EMSCRIPTEN)
     add_subdirectory(webgpu_compute)
 endif()
