@@ -25,6 +25,9 @@ set(SOURCES
     NodeGraph.h NodeGraph.cpp
     NodeGraphSerialization.h NodeGraphSerialization.cpp
     NodeRegistry.h NodeRegistry.cpp
+    TimeSteppedSimulation.h
+    SimulationClock.h SimulationClock.cpp
+    SimulationDriver.h SimulationDriver.cpp
 
     nodes/Node.h nodes/Node.cpp
     nodes/SelectTilesNode.h nodes/SelectTilesNode.cpp

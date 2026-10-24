@@ -30,3 +30,7 @@ endif()
 if (TARGET webgpu_engine)
     add_subdirectory(webgpu_engine)
 endif()
+
+if (TARGET webgpu_compute)
+    add_subdirectory(webgpu_compute)
+endif()
