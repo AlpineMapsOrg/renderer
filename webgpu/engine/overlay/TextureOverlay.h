@@ -20,6 +20,7 @@
 
 #include "Overlay.h"
 #include <QString>
+#include <functional>
 #include <memory>
 #include <radix/geometry.h>
 #include <radix/raster.h>
@@ -55,7 +56,14 @@ public:
     // Link an external GPU texture directly (non-owning). The caller must keep it alive while linked.
     // pass nullptr to unlink.
     void link_texture(const webgpu::raii::TextureWithSampler* texture);
-    [[nodiscard]] bool is_linked() const { return m_linked_texture != nullptr; }
+    // Link whatever texture `source` returns, asked every frame (non-owning). For a texture its owner
+    // may replace at any time, e.g. a compute node's output: the overlay never holds on to a freed
+    // one. nullptr from the source = nothing to draw this frame. An empty function unlinks.
+    using TextureSource = std::function<const webgpu::raii::TextureWithSampler*()>;
+    void link_texture_source(TextureSource source);
+    [[nodiscard]] bool is_linked() const { return bool(m_linked_source); }
+
+    bool can_draw() const override;
 
     void init(Context& ctx) override;
     void ready(webgpu::Context& ctx) override;
@@ -88,7 +96,9 @@ private:
     std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_pipeline;
     std::unique_ptr<webgpu::Buffer<GpuSettings>> m_settings_uniform;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_overlay_texture; // owned source (load_image/load_texture)
-    const webgpu::raii::TextureWithSampler* m_linked_texture = nullptr; // borrowed source (link_texture)
+    TextureSource m_linked_source; // borrowed source (link_texture, link_texture_source)
+    /// The texture to draw: the linked one, else the owned one; nullptr if there is none.
+    const webgpu::raii::TextureWithSampler* current_texture() const;
 };
 
 } // namespace webgpu_engine

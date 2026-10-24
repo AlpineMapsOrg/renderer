@@ -148,7 +148,7 @@ void OverlayRenderer::draw_bucket(const WGPUCommandEncoder& command_encoder,
 {
     std::vector<Overlay*> enabled;
     for (auto* overlay : bucket) {
-        if (overlay->enabled)
+        if (overlay->enabled && overlay->can_draw())
             enabled.push_back(overlay);
     }
     // Start on T[N % 2] so the final write lands on index 0

@@ -86,7 +86,15 @@ void OverlayRenderNode::run_impl()
             if (copy) {
                 overlay->load_texture(*texture);
             } else {
-                overlay->link_texture(texture);
+                // Linked through the socket, asked every frame: the producer may replace its texture
+                // before this node runs again (the graph runs its nodes in one chain, and a solver
+                // in between takes frames), and a pointer kept from this run would then dangle.
+                overlay->link_texture_source([this]() -> const webgpu::raii::TextureWithSampler* {
+                    auto& socket = input_socket("texture");
+                    if (!socket.is_socket_connected())
+                        return nullptr;
+                    return std::get<data_type<const webgpu::raii::TextureWithSampler*>()>(socket.get_connected_data());
+                });
             }
         }
         overlay->update_gpu_settings();
