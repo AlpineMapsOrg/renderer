@@ -92,6 +92,10 @@ public:
     struct Frame {
         const webgpu::raii::RawBuffer<uint32_t>* particles = nullptr;
         uint32_t particle_count = 0;
+        /* Real-time interpolation: the particles before the solver's last chunk (same layout) and
+         * the share of the way from them to `particles` to draw. nullptr = draw `particles`. */
+        const webgpu::raii::RawBuffer<uint32_t>* previous_particles = nullptr;
+        float interpolation = 1.0f;
         glm::dmat3 world_from_metres = glm::dmat3(1.0);
         float particle_spacing = 1.0f; // [m]
         glm::vec2 domain_origin = glm::vec2(0.0f); // [m] the solver's grid node (0, 0)
@@ -153,7 +157,7 @@ private:
         float strain_window = 0.0f; // [s], 0 = spheres
         uint32_t children = 1u;
         float opacity = 0.0f; // Powder
-        uint32_t padding1 = 0u;
+        float interpolation = 1.0f; // share of the way from the previous particles to the current ones
         uint32_t padding2 = 0u;
     };
     // avalanche_surface_common.wgsl
@@ -174,8 +178,12 @@ private:
         glm::uvec2 height_dim = glm::uvec2(1u);
         float radius = 1.0f; // [m]
         uint32_t track = 0u;
+        float interpolation = 1.0f;
+        uint32_t padding1 = 0u;
+        uint32_t padding2 = 0u;
+        uint32_t padding3 = 0u;
     };
-    static_assert(sizeof(SurfaceConfig) == 96);
+    static_assert(sizeof(SurfaceConfig) == 112);
 
     webgpu::Context* m_ctx = nullptr;
     Source m_source;
@@ -184,7 +192,8 @@ private:
     std::unique_ptr<webgpu::raii::RenderPipeline> m_powder_pipeline;
     std::unique_ptr<webgpu::Buffer<GpuConfig>> m_config;
     std::unique_ptr<webgpu::raii::BindGroup> m_bind_group;
-    WGPUBuffer m_bound_particles = nullptr; // the buffer m_bind_group refers to
+    WGPUBuffer m_bound_particles = nullptr; // the buffers m_bind_group refers to
+    WGPUBuffer m_bound_previous = nullptr;
 
     std::optional<Frame> m_frame; // fetched by prepare() for this frame's draw()
 
@@ -202,6 +211,7 @@ private:
     std::unique_ptr<webgpu::raii::BindGroup> m_field_bind_group;
     std::unique_ptr<webgpu::raii::BindGroup> m_surface_bind_group;
     WGPUBuffer m_splat_bound_particles = nullptr;
+    WGPUBuffer m_splat_bound_previous = nullptr;
     WGPUTexture m_bound_height = nullptr; // the height texture the splat and field bind groups use
     bool m_surface_ready = false; // prepare() splatted this frame's particles
 };

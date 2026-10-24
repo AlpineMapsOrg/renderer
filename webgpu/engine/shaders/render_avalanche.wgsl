@@ -35,6 +35,9 @@
 // [2..4] rows of the APIC matrix C, the particle's velocity gradient [1/s], in .xyz.
 @group(2) @binding(0) var<storage, read> particles: array<vec4f>;
 @group(2) @binding(1) var<uniform> avalanche: AvalancheConfig;
+// The particles before the solver's last chunk (same layout), for real-time interpolation; the
+// current ones again when there is nothing to interpolate (then interpolation is 1).
+@group(2) @binding(2) var<storage, read> previous: array<vec4f>;
 
 const PARTICLE_STRIDE_VEC4: u32 = 8u;
 const AVALANCHE_MARKER: u32 = 0x00FFFFFFu; // G-buffer overlay slot, see avalanche_surface_common.wgsl
@@ -54,7 +57,7 @@ struct AvalancheConfig {
     strain_window: f32, // [s], 0 = spheres
     children: u32, // drawn particles per simulated particle (1 = none), see child_offset()
     opacity: f32, // powder only (render_avalanche_powder.wgsl): peak alpha of a blob
-    padding1: u32,
+    interpolation: f32, // share of the way from `previous` to `particles` to draw the positions at
     padding2: u32,
 }
 
@@ -156,7 +159,9 @@ fn vertexMain(@builtin(vertex_index) vertex_index: u32, @builtin(instance_index)
     let parent = instance / children;
     let child = instance % children;
     let base = parent * PARTICLE_STRIDE_VEC4;
-    let p0 = particles[base];
+    let current = particles[base];
+    // Position between the last two simulated states; everything else from the latest one.
+    let p0 = vec4f(mix(previous[base].xyz, current.xyz, avalanche.interpolation), current.w);
     if p0.w <= 0.0 || parent >= avalanche.particle_count {
         return hidden(); // inactive
     }

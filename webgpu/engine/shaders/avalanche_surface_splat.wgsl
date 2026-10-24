@@ -32,6 +32,8 @@
 @group(0) @binding(1) var<storage, read_write> accum: array<atomic<u32>>;
 @group(0) @binding(2) var height_texture: texture_2d<f32>;
 @group(0) @binding(3) var<uniform> surface: SurfaceConfig;
+// The particles before the solver's last chunk, for real-time interpolation (render_avalanche.wgsl).
+@group(0) @binding(4) var<storage, read> previous: array<vec4f>;
 
 @compute @workgroup_size(256, 1, 1)
 fn computeMain(@builtin(global_invocation_id) id: vec3u) {
@@ -39,7 +41,8 @@ fn computeMain(@builtin(global_invocation_id) id: vec3u) {
     if index >= surface.particle_count {
         return;
     }
-    let p0 = particles[index * PARTICLE_STRIDE_VEC4]; // position, mass
+    let current = particles[index * PARTICLE_STRIDE_VEC4]; // position, mass
+    let p0 = vec4f(mix(previous[index * PARTICLE_STRIDE_VEC4].xyz, current.xyz, surface.interpolation), current.w);
     let height = p0.z - terrain_altitude(p0.xy);
     if p0.w <= 0.0 || height > surface.clearance {
         return; // inactive, or in the air

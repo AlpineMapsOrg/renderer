@@ -86,6 +86,7 @@ void AvalancheRenderer::init(webgpu::Context& ctx)
             std::vector<WGPUBindGroupLayoutEntry> {
                 buffer_entry(0, WGPUShaderStage_Vertex, WGPUBufferBindingType_ReadOnlyStorage), // particles
                 buffer_entry(1, vertex_fragment, WGPUBufferBindingType_Uniform), // config
+                buffer_entry(2, WGPUShaderStage_Vertex, WGPUBufferBindingType_ReadOnlyStorage), // previous particles
             },
             "avalanche renderer bind group layout");
     });
@@ -96,6 +97,7 @@ void AvalancheRenderer::init(webgpu::Context& ctx)
                 buffer_entry(1, WGPUShaderStage_Compute, WGPUBufferBindingType_Storage), // accumulators
                 height_texture_entry(2, WGPUShaderStage_Compute),
                 buffer_entry(3, WGPUShaderStage_Compute, WGPUBufferBindingType_Uniform), // surface config
+                buffer_entry(4, WGPUShaderStage_Compute, WGPUBufferBindingType_ReadOnlyStorage), // previous particles
             },
             "avalanche surface splat bind group layout");
     });
@@ -188,8 +190,10 @@ void AvalancheRenderer::init(webgpu::Context& ctx)
         m_field_bind_group.reset();
         m_surface_bind_group.reset();
         m_bound_particles = nullptr;
+        m_bound_previous = nullptr;
         m_bound_height = nullptr;
         m_splat_bound_particles = nullptr;
+        m_splat_bound_previous = nullptr;
     });
 }
 
@@ -214,6 +218,10 @@ void AvalancheRenderer::prepare(WGPUCommandEncoder encoder, const nucleus::camer
     const glm::vec2 offset_cws = glm::vec2(glm::dvec2(m[2]) - glm::dvec2(camera.position()));
     const float radius = std::max(settings.radius_scale, 0.01f) * frame.particle_spacing; // solid particles, also the surface's
     const bool powder = settings.shape == Shape::Powder;
+    // Without previous particles (or of another size), the current ones stand in and nothing blends.
+    const bool blend = frame.previous_particles != nullptr && frame.previous_particles->size() == frame.particles->size();
+    const webgpu::raii::RawBuffer<uint32_t>& previous = blend ? *frame.previous_particles : *frame.particles;
+    const float interpolation = blend ? std::clamp(frame.interpolation, 0.0f, 1.0f) : 1.0f;
 
     GpuConfig& c = m_config->data;
     c.xy_from_metres = xy_from_metres;
@@ -226,18 +234,21 @@ void AvalancheRenderer::prepare(WGPUCommandEncoder encoder, const nucleus::camer
     c.strain_window = settings.shape == Shape::StrainRate ? std::max(settings.strain_window, 0.0f) : 0.0f;
     c.children = powder ? 1u : std::clamp(settings.children, 1u, 64u);
     c.opacity = std::clamp(settings.powder_opacity, 0.0f, 1.0f);
+    c.interpolation = interpolation;
     m_config->update_gpu_data(m_ctx->queue());
 
     // The solver reallocates its buffer when the particle count or grid changes.
-    if (m_bind_group == nullptr || frame.particles->handle() != m_bound_particles) {
+    if (m_bind_group == nullptr || frame.particles->handle() != m_bound_particles || previous.handle() != m_bound_previous) {
         m_bind_group = std::make_unique<webgpu::raii::BindGroup>(m_ctx->device(),
             m_ctx->resource_registry().bind_group_layout("avalanche"),
             std::vector<WGPUBindGroupEntry> {
                 frame.particles->create_bind_group_entry(0),
                 m_config->raw_buffer().create_bind_group_entry(1),
+                previous.create_bind_group_entry(2),
             },
             "avalanche renderer bind group");
         m_bound_particles = frame.particles->handle();
+        m_bound_previous = previous.handle();
     }
 
     // Flow surface: splat the particles onto the render grid, then the depth field from it.
@@ -264,6 +275,7 @@ void AvalancheRenderer::prepare(WGPUCommandEncoder encoder, const nucleus::camer
     s.height_dim = glm::uvec2(uint32_t(height_texture.width()), uint32_t(height_texture.height()));
     s.radius = radius;
     s.track = settings.track ? 1u : 0u;
+    s.interpolation = interpolation;
     m_surface_config->update_gpu_data(m_ctx->queue());
 
     const size_t node_count = size_t(s.nodes.x) * s.nodes.y;
@@ -285,7 +297,7 @@ void AvalancheRenderer::prepare(WGPUCommandEncoder encoder, const nucleus::camer
         m_field_bind_group.reset();
         m_bound_height = height_texture.handle();
     }
-    if (m_splat_bind_group == nullptr || frame.particles->handle() != m_splat_bound_particles) {
+    if (m_splat_bind_group == nullptr || frame.particles->handle() != m_splat_bound_particles || previous.handle() != m_splat_bound_previous) {
         m_splat_bind_group = std::make_unique<webgpu::raii::BindGroup>(m_ctx->device(),
             m_ctx->resource_registry().bind_group_layout("avalanche_surface_splat"),
             std::vector<WGPUBindGroupEntry> {
@@ -293,9 +305,11 @@ void AvalancheRenderer::prepare(WGPUCommandEncoder encoder, const nucleus::camer
                 m_accum->create_bind_group_entry(1),
                 frame.height_texture->texture_view().create_bind_group_entry(2),
                 m_surface_config->raw_buffer().create_bind_group_entry(3),
+                previous.create_bind_group_entry(4),
             },
             "avalanche surface splat bind group");
         m_splat_bound_particles = frame.particles->handle();
+        m_splat_bound_previous = previous.handle();
     }
     if (m_field_bind_group == nullptr) {
         m_field_bind_group = std::make_unique<webgpu::raii::BindGroup>(m_ctx->device(),

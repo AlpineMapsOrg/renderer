@@ -41,6 +41,7 @@
 @group(2) @binding(0) var depth_texture: texture_2d<f32>;
 @group(3) @binding(0) var<storage, read> particles: array<vec4f>;
 @group(3) @binding(1) var<uniform> avalanche: AvalancheConfig;
+@group(3) @binding(2) var<storage, read> previous: array<vec4f>; // see render_avalanche.wgsl
 
 // Must match AvalancheRenderer::GpuConfig (and render_avalanche.wgsl).
 struct AvalancheConfig {
@@ -54,7 +55,7 @@ struct AvalancheConfig {
     strain_window: f32,
     children: u32,
     opacity: f32, // peak alpha of a blob
-    padding1: u32,
+    interpolation: f32, // share of the way from `previous` to `particles`, see render_avalanche.wgsl
     padding2: u32,
 }
 
@@ -127,7 +128,8 @@ fn view_depth(pos_cws: vec3f) -> f32 {
 @vertex
 fn vertexMain(@builtin(vertex_index) vertex_index: u32, @builtin(instance_index) instance: u32) -> VertexOut {
     let base = instance * PARTICLE_STRIDE_VEC4;
-    let p0 = particles[base];
+    let current = particles[base];
+    let p0 = vec4f(mix(previous[base].xyz, current.xyz, avalanche.interpolation), current.w);
     if p0.w <= 0.0 || instance >= avalanche.particle_count {
         return hidden(); // inactive
     }

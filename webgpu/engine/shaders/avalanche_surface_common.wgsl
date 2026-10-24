@@ -41,6 +41,10 @@ struct SurfaceConfig {
     height_dim: vec2u, // texels of the terrain height texture
     radius: f32, // [m] drawn particle radius
     track: u32, // 1: draw the track, where the flow has been since the release
+    interpolation: f32, // splat: share of the way from the previous particles to the current ones
+    padding1: u32,
+    padding2: u32,
+    padding3: u32,
 }
 
 const PARTICLE_STRIDE_VEC4: u32 = 8u; // struct Particle of mpm_common.wgsl as eight vec4s

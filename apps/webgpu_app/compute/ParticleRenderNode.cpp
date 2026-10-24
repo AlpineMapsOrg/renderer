@@ -114,9 +114,9 @@ void ParticleRenderNode::run_impl()
                 const auto* view = std::get<data_type<const MpmParticleView*>()>(socket.get_connected_data());
                 if (view == nullptr || !view->placed || view->particles == nullptr)
                     return std::nullopt;
-                return webgpu_engine::AvalancheRenderer::Frame {
-                    view->particles, view->particle_count, view->world_from_metres, view->particle_spacing, view->domain_origin, view->dx, view->columns,
-                    view->height_texture, view->region_size, view->reset_count };
+                return webgpu_engine::AvalancheRenderer::Frame { view->particles, view->particle_count, view->previous_particles, view->interpolation,
+                    view->world_from_metres, view->particle_spacing, view->domain_origin, view->dx, view->columns, view->height_texture, view->region_size,
+                    view->reset_count };
             },
             this);
         m_context->request_redraw();
