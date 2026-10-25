@@ -337,3 +337,73 @@ TEST_CASE("nucleus/camera: Definition")
         }
     }
 }
+
+#include "nucleus/camera/AbstractDepthTester.h"
+#include "nucleus/camera/OrbitInteraction.h"
+
+namespace {
+// Flat terrain at z = 0. Like the renderer, a ray that hits nothing (sky) reads back the camera
+// position itself.
+class FlatTerrain : public nucleus::camera::AbstractDepthTester {
+public:
+    const nucleus::camera::Definition* camera = nullptr;
+    float depth(const glm::dvec2&) override { return 0.0f; }
+    glm::dvec3 position(const glm::dvec2& ndc) override
+    {
+        const glm::dvec3 ray = camera->ray_direction(ndc);
+        if (ray.z >= 0.0)
+            return camera->position();
+        return camera->position() + ray * (-camera->position().z / ray.z);
+    }
+};
+
+nucleus::event_parameter::Wheel wheel(int delta, const glm::vec2& position)
+{
+    nucleus::event_parameter::Wheel e;
+    e.angle_delta = QPoint(0, delta);
+    e.point.position = position;
+    return e;
+}
+
+bool finite(const glm::dvec3& v) { return std::isfinite(v.x) && std::isfinite(v.y) && std::isfinite(v.z); }
+} // namespace
+
+TEST_CASE("nucleus/camera: OrbitInteraction zoom limits")
+{
+    using namespace nucleus::camera;
+    Definition camera({ 0.0, -1000.0, 1000.0 }, { 0.0, 0.0, 0.0 });
+    camera.set_viewport_size({ 800, 600 });
+    FlatTerrain terrain;
+    terrain.camera = &camera;
+    OrbitInteraction orbit;
+    const glm::vec2 centre(400.0f, 300.0f);
+    const double min_distance = 10.0 * double(camera.near_plane());
+
+    SECTION("zooming in stops short of the terrain under the cursor")
+    {
+        for (int i = 0; i < 500; i++)
+            camera = orbit.wheel_event(wheel(120, centre), camera, &terrain).value();
+        CHECK(finite(camera.position()));
+        CHECK(glm::distance(camera.position(), glm::dvec3(0.0)) >= min_distance - 1e-6);
+        CHECK(glm::distance(camera.position(), glm::dvec3(0.0)) <= min_distance + 1.0);
+        CHECK(camera.position().z > 0.0);
+    }
+    SECTION("zooming out stops at the far limit")
+    {
+        for (int i = 0; i < 1000; i++)
+            camera = orbit.wheel_event(wheel(-120, centre), camera, &terrain).value();
+        CHECK(finite(camera.position()));
+        CHECK(glm::distance(camera.position(), glm::dvec3(0.0)) <= 500'000.0 + 1e-6);
+        CHECK(glm::distance(camera.position(), glm::dvec3(0.0)) > 400'000.0);
+    }
+    SECTION("zooming at the sky keeps the camera valid")
+    {
+        camera.look_at({ 0.0, 0.0, 1000.0 }, { 0.0, 1000.0, 1200.0 }); // looking up: nothing under the cursor
+        for (int i = 0; i < 50; i++)
+            camera = orbit.wheel_event(wheel(120, centre), camera, &terrain).value();
+        CHECK(finite(camera.position()));
+        for (int i = 0; i < 50; i++)
+            camera = orbit.wheel_event(wheel(-120, centre), camera, &terrain).value();
+        CHECK(finite(camera.position()));
+    }
+}

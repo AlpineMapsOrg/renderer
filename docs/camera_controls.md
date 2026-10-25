@@ -29,6 +29,14 @@ Rotates/pans around a point on the terrain under the cursor.
 
 Source: `nucleus/camera/OrbitInteraction.cpp:49-118`.
 
+**Zoom limits.** Zooming (wheel, right-drag, pinch, tap-tap-move) stops 10 near planes
+(50 world units, about 35 m in the Alps) before the terrain under the cursor, and 500,000
+world units away from it (half the far clipping distance, beyond which tiles are culled).
+With the sky under the cursor, the zoom moves along the view ray towards a point as far away as
+the last terrain hit. Before, the readback returned the camera position there, and the zoom
+turned the camera position into NaN, a black view that no further input could recover.
+`OrbitInteraction::move_towards_centre`, tested in `unittests/nucleus/Camera.cpp`.
+
 ## First-person / flight
 
 Free movement through the scene, mouse-look instead of orbit-around-a-point.

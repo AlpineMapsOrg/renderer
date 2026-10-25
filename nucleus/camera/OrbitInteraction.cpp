@@ -23,6 +23,8 @@
 #include "gesture.h"
 #include <QDebug>
 #include <QtAssert>
+#include <algorithm>
+#include <cmath>
 #include <glm/ext/scalar_constants.hpp>
 
 namespace nucleus::camera {
@@ -93,9 +95,9 @@ std::optional<Definition> OrbitInteraction::touch_event(const event_parameter::T
         zoom(gesture->values[gesture::ValueName::TapTapMoveRelative].y * 0.8f, &camera, depth_tester);
     }
     if (gesture->values.contains(gesture::ValueName::Pinch)) {
-        const auto distance = float(glm::distance(m_operation_centre, camera.position()));
-        const auto new_distance = gesture->values[gesture::ValueName::Pinch].x * distance;
-        camera.move(glm::normalize(m_operation_centre - camera.position()) * double(new_distance - distance));
+        const auto distance = glm::distance(m_operation_centre, camera.position());
+        const auto new_distance = double(gesture->values[gesture::ValueName::Pinch].x) * distance;
+        move_towards_centre(distance - new_distance, &camera);
     }
 
     if (gesture->values.contains(gesture::ValueName::Shove)) {
@@ -151,6 +153,14 @@ std::optional<glm::vec2> OrbitInteraction::operation_centre() { return -m_operat
 void OrbitInteraction::start(const glm::vec2& position, const Definition& camera, AbstractDepthTester* depth_tester)
 {
     m_operation_centre = depth_tester->position(camera.to_ndc(position));
+    // Nothing under the cursor (sky): the depth tester returns the camera position itself, and
+    // moving towards it would divide by zero. Use a point along the ray instead, as far as the
+    // last terrain hit.
+    const double hit_distance = glm::distance(m_operation_centre, camera.position());
+    if (std::isfinite(hit_distance) && hit_distance > double(camera.near_plane()))
+        m_last_hit_distance = hit_distance;
+    else
+        m_operation_centre = camera.position() + camera.ray_direction(camera.to_ndc(position)) * m_last_hit_distance;
 
     auto degFromUp = glm::degrees(glm::acos(glm::dot(camera.z_axis(), glm::dvec3(0, 0, 1))));
     if (m_operation_centre.z > camera.position().z || degFromUp > 80.0) {
@@ -186,8 +196,20 @@ void OrbitInteraction::pan(const glm::vec2& position, const glm::vec2&, Definiti
 
 void OrbitInteraction::zoom(float amount, Definition* camera, AbstractDepthTester*)
 {
-    auto distance = float(glm::distance(m_operation_centre, camera->position()));
-    distance = std::max(distance / 100, 0.07f);
-    camera->move(glm::normalize(m_operation_centre - camera->position()) * double(amount * distance));
+    move_towards_centre(double(amount) * std::max(glm::distance(m_operation_centre, camera->position()) / 100.0, 0.07), camera);
+}
+
+void OrbitInteraction::move_towards_centre(double step, Definition* camera) const
+{
+    const glm::dvec3 to_centre = m_operation_centre - camera->position();
+    const double distance = glm::length(to_centre);
+    if (!std::isfinite(distance) || !std::isfinite(step) || distance <= 0.0)
+        return;
+    // The centre is the first terrain hit along the ray, so stopping short of it keeps the camera
+    // out of the terrain; past the far limit, tiles are culled and the view goes black. Already
+    // beyond a limit, the camera may only move back towards the allowed range.
+    const double min_distance = MIN_DISTANCE_NEAR_PLANES * double(camera->near_plane());
+    const double new_distance = std::clamp(distance - step, std::min(distance, min_distance), std::max(distance, MAX_DISTANCE));
+    camera->move(to_centre / distance * (distance - new_distance));
 }
 }
