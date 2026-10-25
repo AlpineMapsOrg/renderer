@@ -88,4 +88,4 @@ centroid moves 160 m. All other centroids agree to under half a metre.
   comparison stays in the sandbox.
 - The picker (avaGar) was not clicked in a test; scenarios were set through the startup prefs.
 - The release areas' other AvaFrame inputs (entrainment, resistance areas) are not used anywhere.
-- Web build: compiles; the AvaFrame download works there, the map release was not run in a browser.
+- Web build: tested in the browser by Manuel (25 Oct): the download and the map release work. The data is kept in the browser's memory, so a page reload needs the download again.

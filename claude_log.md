@@ -13,6 +13,53 @@ capture of the terminal.
 
 ---
 
+## 2026-10-25
+
+### 1. Rendering doc: from plan to description
+
+Asked by Manuel: turn `12-rendering-plan.md` into `12-rendering.md`, describing what is
+implemented and where; the status with dates is irrelevant. Renamed with `git mv` and rewritten
+from the current code (`AvalancheRenderer.h`, the panel, `ParticleRenderNode`, `Window::paint`):
+scope, what the map shows, a file table, the frame order, solver → renderer data path (now with
+the real-time interpolation), solid particles, powder, flow surface, track and snow cover, panel
+controls with defaults, limits, rejected options. The step-by-step history is condensed into the
+"why" next to each part (elastic F → strain-rate ellipsoids, the replaced binning surface, the
+holes-over-bumps diagnosis). Links updated in README, 02, 03, 06 and the `AvalancheRenderer.h`
+comment; older log entries keep the old name.
+
+### 2. Guide: implementing another time-stepped simulation
+
+Asked by Manuel: a dedicated doc on how a simulation that is neither MPM nor avalanche specific
+uses the driver. New `docs/time_stepped_simulations.md` (next to the other engine/app docs, since
+it is generic): the frame flow, the two modes, the contract of every `TimeSteppedSimulation`
+method (notably: advance `simulated_time()` at submission, refuse `advance_frame()` under
+backpressure, always honour `end_run`), what a "run" means for the graph (every completed run
+re-runs the downstream chain), a commented sketch of a heat-equation node, wiring (no driver
+registration), interpolation, pitfalls (liveness token, run serial, in-flight cap) and testing.
+While writing the sketch, a first draft completed the run twice from a late callback of a closed
+real-time run; it now checks a per-run "per frame" flag, as `MpmSolverNode` does. Linked from
+`webgpu_app_dev.md` and from 13-simulation-driver.md "Adding another simulation".
+
+### 3. Orbit camera: zoom limits
+
+Reported by Manuel: zooming in too far, or out too far, leaves a black view he cannot get out of.
+Cause: with the sky under the cursor the G-buffer position readback is (0,0,0), so the depth
+tester returns the camera position as the operation centre; `OrbitInteraction::zoom` then
+normalised a zero vector and the camera position became NaN. Zooming in also approached the
+terrain with a fixed minimum step, so it could step through it, after which the cursor hits
+nothing again. Fix in `nucleus/camera/OrbitInteraction` (shared with upstream): no hit → a point
+along the ray at the last hit distance; `move_towards_centre()` clamps the distance to the centre
+to [10 near planes, 500,000 world units] (half the far clipping), letting a camera already
+outside that range only move back towards it; pinch uses it too. Three Catch2 sections in
+`unittests/nucleus/Camera.cpp` (flat-terrain fake depth tester: zoom in, zoom out, sky) pass.
+Not tried by hand in the app yet. `docs/camera_controls.md` updated.
+
+### 4. Web build tested in the browser
+
+Manuel tested the web build in the browser: the AvaFrame download, the release areas on the map,
+the 3D rendering and the real-time playback with interpolation all work. Recorded in 06, 12, 13, 14 and the README of mpm-mls-doc, the rendering report and the Notion pages; the ticket "AvaFrame release
+areas on the map" is set to Done (PR #13 merged 24.10.).
+
 ## 2026-10-24
 
 ### 1. Generic simulation driver: real time and accuracy playback (branch `simulation-driver`)

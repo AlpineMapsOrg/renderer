@@ -31,7 +31,7 @@ from the sources when writing the report. Full list in [refs.md](refs.md).
 | [10-benchmark-results.md](10-benchmark-results.md) | Every checked-in benchmark result as a table: Apple M5 (Chrome/Metal) and SwiftShader, per material, per stage. Generated from `bench/results/*.json`. |
 | [report-fixed-point-energy-pump.md](report-fixed-point-energy-pump.md) | Standalone write-up of the fixed-point blow-up investigation. |
 | [11-avaframe-comparison.md](11-avaframe-comparison.md) | **AvaFrame comparison**: MPM variants, com4FlowPy and the weBIGeo trajectory model against com1DFA on five real avalanches, rated with AIMEC. Setup, tables, findings, limits. |
-| [12-rendering-plan.md](12-rendering-plan.md) | **3D rendering on the map**: particles (ellipsoids, detail particles, powder), the mass-splat flow surface, track and snow cover. Research, decisions, what was tried and rejected, verification per step. |
+| [12-rendering.md](12-rendering.md) | **3D rendering on the map**: what is implemented and where — particles (spheres, ellipsoids, detail particles, powder), the mass-splat flow surface, track and snow cover, the frame order, panel controls, limits. |
 | [14-avaframe-release-on-map.md](14-avaframe-release-on-map.md) | **AvaFrame release areas on the map**: the five AvaFrame scenarios release from AvaFrame's areas (resampled through the affine placement), what is approximate, measurements. |
 | [13-simulation-driver.md](13-simulation-driver.md) | **Playback**: the generic `TimeSteppedSimulation` interface and `SimulationDriver`, real time (fixed-step loop with interpolation, one chunk per frame, 0.1–4x) vs accuracy, with measurements. |
 | [avaframe/](avaframe/README.md) | **AvaFrame comparison, phase 1**: prepares AvaFrame's test cases (DEM, release, com1DFA reference rasters, AIMEC path, map overlays) for comparing against the MPM solver. |
@@ -74,12 +74,12 @@ a picker for stored locations.
 
 Known gaps, honestly:
 
-- **3D rendering on the map** (2026-10-23, [12-rendering-plan.md](12-rendering-plan.md)):
+- **3D rendering on the map** ([12-rendering.md](12-rendering.md)):
   an `AvalancheRenderer` in `webgpu/engine/` draws a draped flow surface from a B-spline
   mass splat, a track where the flow has been, a lit snow cover that thins to patches below
   the snow line, and the particles as soft powder (default), ellipsoids or spheres. The 2D
   density raster remains the output in the sandbox and when the 3D view is off. Not
-  measured yet: the GPU cost of the renderer; not tested: the web build.
+  measured yet: the GPU cost of the renderer. Tested in the browser (web build).
 - **Parameters are Stomakhin's paper values**, authored for metre-scale snow. At the default
   12.5 m grid cells the released slab is sub-cell and the flow reads more fluid than slab-like.
   See [05-tuning.md](05-tuning.md).

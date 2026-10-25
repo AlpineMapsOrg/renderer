@@ -174,7 +174,7 @@ did not show):
   that refuses chunks; reset; pause and mode switch close the open run; step; accuracy run
   sizes; chunk hysteresis). Forcing the interpolation to 1 fails the two drawn-time sections;
   removing the run-size cap failed the earlier version.
-- Web build compiles; not run in the browser.
+- Web build: tested in the browser by Manuel (25 Oct): real-time playback and interpolation work.
 
 ## Not done / open
 
@@ -186,6 +186,10 @@ did not show):
   interpolated out.
 
 ## Adding another simulation
+
+A step-by-step guide that is not MPM specific (the contract per method, a sketch of a node,
+wiring, interpolation, pitfalls, testing):
+[docs/time_stepped_simulations.md](../docs/time_stepped_simulations.md). In short:
 
 1. Derive the node from `Node` and `TimeSteppedSimulation`; implement the methods.
    `advance()` usually stores the request and calls `rerun()`; `advance_frame()` opens a run

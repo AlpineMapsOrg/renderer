@@ -31,8 +31,8 @@
 
 ### Rendering (`webgpu/engine/`)
 
-The 3D avalanche on the map (map mode only; the sandbox keeps its 2D view). Design, history
-and verification: [12-rendering-plan.md](12-rendering-plan.md).
+The 3D avalanche on the map (map mode only; the sandbox keeps its 2D view). What is implemented
+and where: [12-rendering.md](12-rendering.md).
 
 | File | Purpose |
 |---|---|
@@ -49,7 +49,7 @@ and verification: [12-rendering-plan.md](12-rendering-plan.md).
 | File | Purpose |
 |---|---|
 | `avalanche/AvalanchePanel.h/.cpp` | Sidebar panel: location picker + transport + playback (mode, speed, pacing) + main knobs, through the solver's clock. Also the sandbox dataset picker. |
-| `compute/ParticleRenderNode.h/.cpp` | Terminal node "Particles 3D": hands the solver's `particle view` to the engine's `AvalancheRenderer`, serialises its settings, and owns the "Avalanche snow cover" overlay (`sync_snow_cover()`, snow line fitted to the solver's terrain scan). See [12-rendering-plan.md](12-rendering-plan.md). |
+| `compute/ParticleRenderNode.h/.cpp` | Terminal node "Particles 3D": hands the solver's `particle view` to the engine's `AvalancheRenderer`, serialises its settings, and owns the "Avalanche snow cover" overlay (`sync_snow_cover()`, snow line fitted to the solver's terrain scan). See [12-rendering.md](12-rendering.md). |
 | `avalanche/SandboxView.h/.cpp` | 2D window for sandbox runs: hillshade, release, com1DFA outline, particle raster, domain box. |
 | `avalanche/AvaFrameData.h/.cpp` | "Download AvaFrame data" in the panel: downloads the five real test avalanches from AvaFrame's repository (release 2.1) and prepares them. A C++ port of `prepare_dataset.py` for these five, with byte-identical rasters. |
 | `compute/nodes/MpmSolverNodeRenderer.h/.cpp` | Node-editor settings panel (full parameter set). |

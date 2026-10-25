@@ -329,7 +329,7 @@ Details and the full table in [13-simulation-driver.md](13-simulation-driver.md)
   and the driver ticked after the paint. Both fixed (tick before paint, repaint while playing).
 - **Accuracy unchanged**: batch avaKot / Stomakhin Coulomb at rest after 80.25 s (phase 6:
   79.60 s), same footprint (12.51 ha) and peak speed (54.01 m/s).
-- Web build compiles; not run in the browser.
+- Web build: tested in the browser by Manuel (25 Oct): real-time playback and interpolation work.
 
 ## 4m. AvaFrame release areas on the map (2026-10-24)
 
@@ -381,8 +381,8 @@ that it shows the flow faithfully. Method, because the app needs a window:
 | Track + snow cover vs neither, same frame | The path stays readable where the flow thinned; avalanche pixels are not painted over by the snow. |
 | Powder vs ellipsoids, same frame | A soft haze over the flow, no hard intersections with terrain or surface. |
 
-**Not checked:** the web build, the GPU cost of the renderer, and steps 5–8 on scenarios
-other than Hintertux. Details per step: [12-rendering-plan.md](12-rendering-plan.md).
+**Not checked:** the GPU cost of the renderer, and steps 5–8 on scenarios other than
+Hintertux. The web build was tested in the browser by Manuel (25 Oct) and renders correctly. What is implemented: [12-rendering.md](12-rendering.md).
 
 ## Bugs found and fixed along the way
 

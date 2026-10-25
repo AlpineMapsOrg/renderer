@@ -294,8 +294,8 @@ Empty texels are written fully transparent.
 ## Rendering shaders (engine, not solver kernels)
 
 The 3D view on the map lives in `webgpu/engine/shaders/` and only *reads* the particle buffer;
-nothing here feeds back into the simulation. Run by `AvalancheRenderer` each frame. Design
-and verification: [12-rendering-plan.md](12-rendering-plan.md).
+nothing here feeds back into the simulation. Run by `AvalancheRenderer` each frame. What is
+implemented and where: [12-rendering.md](12-rendering.md).
 
 | Shader | Stage | What it does |
 |---|---|---|

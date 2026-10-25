@@ -90,6 +90,10 @@ If no specific subclass is registered, the base `NodeRenderer` is used as a fall
 > 2. **Node registry**: call `register_node()` in `NodeRegistry::NodeRegistry()` so the node can be instantiated by name (required for graph serialization / the add-node dialog).
 > 3. **UI renderer**: optionally create a `NodeRenderer` subclass in `apps/webgpu_app/compute/nodes/` and add a `dynamic_cast` branch in `NodeRendererFactory::create()`
 
+#### Time-stepped simulations
+
+A node that advances in fixed time steps and plays back frame by frame (real time or as fast as possible) implements `TimeSteppedSimulation` next to `Node`; `SimulationDriver` then ticks it every frame, with no further registration. See [Time-stepped simulations](time_stepped_simulations.md).
+
 #### OverlayRenderNode
 
 `OverlayRenderNode` (`apps/webgpu_app/compute/OverlayRenderNode.h`) is a special node that bridges the compute graph and the rendering system. Unlike regular compute nodes it lives in the app layer because it holds a reference to `webgpu_engine::Context`. When executed, it forwards the graph's output texture to a `TextureOverlay` managed by the engine's `OverlayRenderer`, making compute results visible in the 3D viewport.
