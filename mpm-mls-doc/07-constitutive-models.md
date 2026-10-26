@@ -19,7 +19,7 @@ too.
 | Model is configurable / regime presets (Li 2021 Table 1) | **done** — switch + seven presets in the sidebar |
 | Basal friction via simple Coulomb using terrain normals | **done**; Voellmy added alongside (2026-09-13) |
 | Single-particle rendering | not done (2D density overlay instead) |
-| Entrainable material along the flow path | **not done** |
+| Entrainable material along the flow path | **done** (2026-10-27): com1DFA's plowing and erosion, cover from AvaFrame's entrainment areas or one thickness — [15-entrainment.md](15-entrainment.md) |
 | Compare against non-real-time models (com1DFA / Flow-Py) | not done |
 | CK-MPM (stretch) | not done |
 
@@ -276,7 +276,8 @@ re-checked every formula against the papers. What it changed in the code:
   enums, `u32` uniform fields, runtime `switch` dispatchers, combos in both panels.
 - ~~**Drucker–Prager**~~ — **done 2026-09-13**, see §2d.
 - ~~**Energy-line validation**~~ — **done 2026-09-13**, see §2g.
-- **Entrainment**, **comparison to com1DFA/Flow-Py** — nothing.
+- ~~**Entrainment**~~ — **done 2026-10-27**, see [15-entrainment.md](15-entrainment.md).
+  Comparison to com1DFA/Flow-Py: done in the AvaFrame comparison (11-avaframe-comparison.md).
 
 ## 3. Making models exchangeable — design
 
@@ -431,7 +432,11 @@ recovered to < 1 %. On-device: live `μ_eff` readout — which immediately expos
 fixed-point energy pump (06, bug 8). Fixed the same day; the sliding-slab and Stomakhin
 runs now cool down and stop.
 
-**7. Entrainment.** Input: an entrainable-snow-depth texture (v3.0 says computing it is out
+**7. Entrainment** ✅ **Done 2026-10-27**, as a cover field per grid column that the grid
+update erodes (com1DFA's plowing and erosion), not as particles - see
+[15-entrainment.md](15-entrainment.md). The notes below are the research it started from.
+
+Input: an entrainable-snow-depth texture (v3.0 says computing it is out
 of scope). Cheapest MPM-compatible mechanism: a flowing particle over a cell with entrainable
 depth **gains mass and volume** and the cell's depth decrements — no particle spawning, no
 free list. Note this breaks the current "mass = 1" invariant into "mass = 1 base unit,

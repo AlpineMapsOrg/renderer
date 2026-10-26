@@ -11,18 +11,18 @@
 | `TimeSteppedSimulation.h` | Interface of a simulation the driver plays back frame by frame; `MpmSolverNode` implements it. See [13-simulation-driver.md](13-simulation-driver.md). |
 | `SimulationClock.h/.cpp` | Per-simulation playback: real time (fixed-step accumulator, speed 0.1–4x) or accuracy (as fast as the GPU budget allows); play/pause/step and the speed readout. |
 | `SimulationDriver.h/.cpp` | Ticks the clock of every `TimeSteppedSimulation` in the graph once per frame, from `ImGuiManager::render()`. |
-| `nodes/AvaFrameReleaseNode.h/.cpp` | Map graph: AvaFrame's release areas resampled onto the region (`resample_release()`, through the dataset's affine placement) and handed to the solver as a `ReleaseArea` (R32Float depth texture, bounds, volume). Null without data. See [14-avaframe-release-on-map.md](14-avaframe-release-on-map.md). |
-| `nodes/AvaFrameSandboxNode.h/.cpp` | AvaFrame sandbox: loads a dataset prepared by `mpm-mls-doc/avaframe/prepare_dataset.py` or the panel's download (`AvaFrameData`) (DEM, release, com1DFA footprint) and feeds the solver in metres. Defines `SandboxTerrain`. |
+| `nodes/AvaFrameReleaseNode.h/.cpp` | Map graph: AvaFrame's release areas resampled onto the region (`resample_release()`, through the dataset's affine placement) and handed to the solver as a `ReleaseArea` (R32Float depth texture, bounds, volume), with the entrainment area the same way (`resample_depth()`, `ReleaseArea::entrainment_*`). Null without data. See [14-avaframe-release-on-map.md](14-avaframe-release-on-map.md), [15-entrainment.md](15-entrainment.md). |
+| `nodes/AvaFrameSandboxNode.h/.cpp` | AvaFrame sandbox: loads a dataset prepared by `mpm-mls-doc/avaframe/prepare_dataset.py` or the panel's download (`AvaFrameData`) (DEM, release, entrainment area without the release cells, com1DFA footprint) and feeds the solver in metres. Defines `SandboxTerrain`. |
 | `shaders/mpm_common.wgsl` | Shared bindings, structs, terrain sampling, B-spline kernel, 3×3 SVD, matrix helpers. Included by every kernel. |
 | `shaders/mpm_material.wgsl` | Constitutive-model dispatcher: `switch` on `settings.constitutive_model`. |
 | `shaders/mpm_material_stomakhin.wgsl` | Stomakhin 2013: fixed corotated + SV clamp + exponential hardening. |
 | `shaders/mpm_material_drucker_prager.wgsl` | Klár 2016: Hencky elasticity + friction cone, closed-form projection. Cohesionless. |
 | `shaders/mpm_material_ccc.wgsl` | Gaume 2018: Hencky elasticity + Cam-Clay ellipse, sinh hardening; Wolper 2019 NACC return incl. its shear hardening (§6.2.3). |
 | `shaders/mpm_friction.wgsl` | Basal-friction dispatcher: `switch` on `settings.basal_friction_model`; Coulomb, Voellmy (local flow depth from the grid update). |
-| `shaders/mpm_prepare.wgsl` | Scans terrain once per reset: altitude range for the readout, and the per-column floor of the terrain-following grid. |
-| `shaders/mpm_seed.wgsl` | Places particles in the release disc (map) or by release depth per cell (sandbox). |
+| `shaders/mpm_prepare.wgsl` | Scans terrain once per reset: altitude range for the readout, the per-column floor of the terrain-following grid, and the entrainment cover per column. |
+| `shaders/mpm_seed.wgsl` | Places particles in the release disc (map) or by release depth per cell (sandbox); leaves the entrainment pool inactive. |
 | `shaders/mpm_p2g.wgsl` | Stage 1: particle → grid. |
-| `shaders/mpm_grid_update.wgsl` | Stage 2: momentum → velocity, gravity, collisions. |
+| `shaders/mpm_grid_update.wgsl` | Stage 2: momentum → velocity, gravity, collisions; entrainment (`entrain_column()`, see [15-entrainment.md](15-entrainment.md)). |
 | `shaders/mpm_g2p.wgsl` | Stages 3+4: grid → particle, plasticity, advection; per-substep diagnostics reduced per workgroup. |
 | `shaders/mpm_column_stats.wgsl` | Sandbox only: sums particle speeds per grid column for the peak velocity raster. |
 | `shaders/mpm_refresh_stress.wgsl` | Recomputes the cached particle stress after a material edit without a reseed. |

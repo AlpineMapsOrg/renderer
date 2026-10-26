@@ -22,6 +22,11 @@ Usage (repository root):
     mpm-mls-doc/avaframe/.venv-avaframe/bin/python mpm-mls-doc/avaframe/compare_aimec.py extern/avaframe_sandbox/avaKot/mpm/<run>
     mpm-mls-doc/avaframe/.venv-avaframe/bin/python mpm-mls-doc/avaframe/compare_aimec.py --latest avaKot avaGar
 
+With --reference null|erosion|plowing the reference is the com1DFA run of that mode computed by
+run_com1dfa.py (AvaFrame 2.1, extern/avaframe_sandbox/<dataset>/com1DFA/<mode>) instead of the
+null-test benchmark; "auto" picks the mode the MPM run used (entrainment off: null). Then the
+results go to <run>/aimec_<mode>/ and <run>/aimec_<mode>.json.
+
 Writes <run>/aimec/ (the AvaFrame avalanche directory, with AIMEC's own plots under
 Outputs/ana3AIMEC) and <run>/aimec.json, one entry per threshold variant:
 - ppr > 1 kPa: AvaFrame's default runout criterion;
@@ -46,6 +51,11 @@ AVAFRAME_SRC = REPO / "extern" / "avaframe"
 VARIANTS = [("ppr>1kPa", "ppr", 1.0), ("pft>0.1m", "pft", 0.1)]
 
 
+def meta_benchmark(meta, scenario):
+    """The null-test benchmark of a scenario (its AIMEC settings serve every reference)."""
+    return next(r["benchmark"] for r in meta["references"] if r["release_scenario"] == scenario)
+
+
 def reference_for(dataset_dir, scenario):
     meta = json.loads((dataset_dir / "dataset.json").read_text())
     for ref in meta["references"]:
@@ -54,7 +64,21 @@ def reference_for(dataset_dir, scenario):
     return meta, None
 
 
-def build_avalanche_dir(run_dir, label, runout_res_type, threshold):
+ENTRAINMENT_MODES = {0: "null", 1: "plowing", 2: "erosion"}
+
+
+def reference_mode(run_dir, reference):
+    """None for the null-test benchmark, else the run_com1dfa.py mode to compare with."""
+    if reference == "benchmark":
+        return None
+    if reference != "auto":
+        return reference
+    params = json.loads((run_dir / "params.json").read_text())
+    mode = params.get("solver_settings", {}).get("entrainment_mode", 0)
+    return ENTRAINMENT_MODES.get(mode, "null")
+
+
+def build_avalanche_dir(run_dir, label, runout_res_type, threshold, mode=None):
     """Lays out an AvaFrame avalanche directory for one comparison and returns (path, cfg file)."""
     params = json.loads((run_dir / "params.json").read_text())
     name, scenario = params["dataset"], params["release_scenario"]
@@ -62,17 +86,26 @@ def build_avalanche_dir(run_dir, label, runout_res_type, threshold):
     meta, ref = reference_for(dataset_dir, scenario)
     if ref is None:
         raise SystemExit(f"{run_dir}: no com1DFA benchmark for {name}/{scenario}")
+    if mode is not None:
+        own = dataset_dir / "com1DFA" / mode
+        summary = json.loads((own / "summary.json").read_text())
+        if summary["release_scenario"] != scenario:
+            raise SystemExit(f"{run_dir}: the com1DFA {mode} run is for {summary['release_scenario']}, not {scenario}")
+        ref = dict(ref, benchmark=f"com1DFA 2.1 {mode}", friction_model=summary["report"].get("Friction model"),
+                   density=summary["report"].get("Density [kgm-3]"), program_version="2.1 (PyPI)",
+                   run_time_s=summary["report"].get("Process run time [s]"),
+                   entrained_volume_m3=summary["report"].get("Entrained volume [m3]"), peak_dir=own / "Outputs" / "com1DFA" / "peakFiles")
 
-    ava = run_dir / "aimec" / label.replace(">", "_gt_")
+    ava = run_dir / ("aimec" if mode is None else f"aimec_{mode}") / label.replace(">", "_gt_")
     if ava.exists():
         shutil.rmtree(ava)
     # Inputs: AvaFrame's own, as com1DFA saw them (DEM, release, path, split point).
     shutil.copytree(AVAFRAME_SRC / meta["source"]["inputs"], ava / "Inputs")
     # Reference: the benchmark rasters under their original names (AvaFrame parses them).
-    bench = AVAFRAME_SRC / "benchmarks" / ref["benchmark"]
+    bench = AVAFRAME_SRC / "benchmarks" / meta_benchmark(meta, scenario)
     ref_dir = ava / "Outputs" / "com1DFA" / "peakFiles"
     ref_dir.mkdir(parents=True)
-    for f in bench.glob("*_p??.asc"):
+    for f in (ref["peak_dir"] if mode is not None else bench).glob("*_p??.asc"):
         shutil.copy(f, ref_dir / f.name)
     # Comparison: the MPM rasters, named like a com1DFA result so AvaFrame's parser accepts them.
     sim_hash = hashlib.sha1(run_dir.name.encode()).hexdigest()[:10]
@@ -132,11 +165,12 @@ KEEP = ["sRunout", "xRunout", "yRunout", "deltaSXY", "runoutAngle", "zRelease", 
         "pprFieldMax", "pftFieldMax", "pfvFieldMax", "pprFieldMean", "pftFieldMean", "pfvFieldMean"]
 
 
-def compare(run_dir):
+def compare(run_dir, reference="benchmark"):
     run_dir = run_dir.resolve()
+    mode = reference_mode(run_dir, reference)
     summary = {"run": str(run_dir.relative_to(REPO)), "variants": {}}
     for label, res_type, threshold in VARIANTS:
-        ava, cfg_file, params, ref = build_avalanche_dir(run_dir, label, res_type, threshold)
+        ava, cfg_file, params, ref = build_avalanche_dir(run_dir, label, res_type, threshold, mode)
         results, ref_hash, path_end, ds = run_aimec(ava, cfg_file)
         rows = {}
         for row_hash, row in results.iterrows():
@@ -172,8 +206,9 @@ def compare(run_dir):
     summary["mpm_params"] = {k: params.get(k) for k in ("dataset", "release_scenario", "material_preset", "label", "simulated_time_s",
                                                         "stopped_by", "max_pft_m", "max_pfv_m_s", "energy_line_mu_eff", "gpu_ms_per_substep")}
     summary["mpm_params"]["basal_friction_model"] = params.get("solver_settings", {}).get("basal_friction_model")
-    summary["reference"] = {k: ref.get(k) for k in ("benchmark", "friction_model", "density", "program_version", "run_time_s")}
-    (run_dir / "aimec.json").write_text(json.dumps(summary, indent=2))
+    summary["mpm_params"]["entrainment"] = params.get("entrainment")
+    summary["reference"] = {k: ref.get(k) for k in ("benchmark", "friction_model", "density", "program_version", "run_time_s", "entrained_volume_m3")}
+    (run_dir / ("aimec.json" if mode is None else f"aimec_{mode}.json")).write_text(json.dumps(summary, indent=2))
     return summary
 
 
@@ -181,6 +216,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("runs", nargs="*", help="run folders, extern/avaframe_sandbox/<dataset>/mpm/<run>")
     parser.add_argument("--latest", nargs="*", default=[], help="the latest run of each named dataset")
+    parser.add_argument("--reference", default="benchmark", choices=["benchmark", "null", "erosion", "plowing", "auto"],
+                        help="the null-test benchmark (default), or a com1DFA run from run_com1dfa.py")
     args = parser.parse_args()
     logging.basicConfig(level=logging.WARNING)
     runs = [Path(r) for r in args.runs]
@@ -192,7 +229,7 @@ def main():
         parser.error("name run folders or use --latest <dataset>")
     for run in runs:
         print(run)
-        compare(run)
+        compare(run, args.reference)
 
 
 if __name__ == "__main__":

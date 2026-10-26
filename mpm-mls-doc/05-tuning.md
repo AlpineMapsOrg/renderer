@@ -19,6 +19,13 @@
 | `terrain_friction` | 0.47 | Basal μ (Li 2021, real terrain). Higher = shorter runout. Pair Voellmy with ~0.155 (com1DFA's Voellmy option). |
 | `voellmy_xi` | 4000 m/s² | Voellmy only. Turbulent drag `g|v|²/(ξ·h)`, `h` the local flow depth; lower ξ = more drag, lower terminal speed. Thin flow is braked harder. |
 | `splat_radius` | 6 m | **Display only.** Too small = invisible. |
+| `entrainment_mode` | off (panel: map Erosion, sandbox Off) | Off / Plowing / Erosion, com1DFA's two laws ([15-entrainment.md](15-entrainment.md)). On or off reseeds. |
+| `erosion_energy` | 5000 J/kg | Erosion only: energy to erode a kilogram of cover. Lower = the flow takes the cover up faster. |
+| `plowing_depth` | 0.1 m | Plowing only: flow depth over a column at which the front takes its cover. The column depth is B-spline smoothed, so it rises about a cell ahead of the particles. |
+| `entrainment_min_speed` | 1 m/s | Slower flow takes nothing. Keeps a settled deposit from eroding the cover under it forever. |
+| `entrainment_density` | 100 kg/m³ | Cover density (com1DFA's rhoEnt): mass per cover volume, so how much the flow gains. |
+| `cover_thickness` / `cover_max_slope` | 0.3 m / 50° | The cover where no entrainment areas are given (generic map scenarios), perpendicular to the slope. |
+| `pool_size` | 2 | Particles available for entrained snow, per release particle (memory: that many times the particle buffer). When it runs out the rest of the cover stays put and the panel says so. |
 
 ## Start from a preset
 

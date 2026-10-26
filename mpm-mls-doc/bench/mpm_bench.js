@@ -50,7 +50,8 @@ const MATERIALS = {
 
 const PARTICLE_BYTES = 128;
 const GRID_NODE_BYTES = 20;
-const SIM_STATE_BYTES = 72; // struct SimState; revisions before the audit fixes use the first 56
+// struct SimState; revisions before the audit fixes use the first 56, before entrainment 72.
+const SIM_STATE_BYTES = 84;
 const TILE = 8; // columns per tile edge, must match TILE_SIZE in mpm_common.wgsl (v2 kernels)
 
 // --------------------------------------------------------------------------------------
@@ -116,7 +117,8 @@ function bindingTable(common) {
         if (access.includes('uniform')) entry = { buffer: { type: 'uniform' } };
         else if (access.includes('storage')) entry = { buffer: { type: access.includes('read_write') ? 'storage' : 'read-only-storage' } };
         else if (type.startsWith('texture_storage_2d')) entry = { storageTexture: { access: 'write-only', format: 'rgba8unorm', viewDimension: '2d' } };
-        else if (type.startsWith('texture_2d')) entry = { texture: { sampleType: name === 'height_texture' ? 'unfilterable-float' : 'float', viewDimension: '2d' } };
+        else if (type.startsWith('texture_2d'))
+            entry = { texture: { sampleType: name === 'height_texture' || name === 'entrainment_texture' ? 'unfilterable-float' : 'float', viewDimension: '2d' } };
         else throw new Error(`unknown binding type for ${name}: ${type}`);
         table.push({ binding: Number(binding), name, visibility: GPUShaderStage.COMPUTE, ...entry });
     }
@@ -157,6 +159,9 @@ export class MpmBench {
             if (!Number.isInteger(this.cfg[k]) || this.cfg[k] < 1) throw new Error(`${k} must be a positive integer, got ${this.cfg[k]}`);
         this.kernels = sources.kernels;
         this.schedule = detectSchedule(sources.common);
+        // Entrainment (2026-10-27) grew the uniform to 240 B and the column stats to 24 B, and
+        // split the particles into the release and a pool (left empty here).
+        this.entrainment = /release_particles\s*:/.test(sources.common);
         this.bindings = bindingTable(sources.common);
         this.hasTimestamps = device.features.has('timestamp-query');
         this.bytes = {};
@@ -220,7 +225,7 @@ export class MpmBench {
         const d = this.device;
         const c = this.cfg;
         const r = {};
-        r.settings = this.buffer('settings', 192, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+        r.settings = this.buffer('settings', this.entrainment ? 240 : 192, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
         r.particles = this.buffer('particles', c.particles * PARTICLE_BYTES);
         r.grid = this.buffer('grid', this.nodes * GRID_NODE_BYTES);
         r.state = this.buffer('state', SIM_STATE_BYTES);
@@ -231,7 +236,7 @@ export class MpmBench {
             r.tile_flags = this.buffer('tile_flags', this.tiles[0] * this.tiles[1] * 4);
         }
         if (this.bindings.some((b) => b.name === 'column_stats'))
-            r.column_stats = this.buffer('column_stats', c.gridRes * c.gridRes * 16);
+            r.column_stats = this.buffer('column_stats', c.gridRes * c.gridRes * (this.entrainment ? 24 : 16));
         const texture = (name, w, h, format, usage) => {
             this.bytes[name] = w * h * 4;
             return d.createTexture({ size: [w, h], format, usage, label: name });
@@ -239,6 +244,8 @@ export class MpmBench {
         r.output_texture = texture('output_texture', c.rasterRes, c.rasterRes, 'rgba8unorm', GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING);
         r.height_texture = texture('height_texture', c.heightTexels, c.heightTexels, 'r32float', GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST);
         r.release_point_texture = texture('release_point_texture', c.heightTexels, c.heightTexels, 'rgba8unorm', GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST);
+        if (this.entrainment) // no cover: a 1x1 placeholder, as in the node
+            r.entrainment_texture = texture('entrainment_texture', 1, 1, 'r32float', GPUTextureUsage.TEXTURE_BINDING);
         return r;
     }
 
@@ -269,7 +276,7 @@ export class MpmBench {
     packSettings() {
         const c = this.cfg;
         const m = MATERIALS[c.model];
-        const buf = new ArrayBuffer(192) /* release_mode etc. stay 0: the disc */;
+        const buf = new ArrayBuffer(this.entrainment ? 240 : 192) /* release_mode etc. stay 0: the disc; entrainment off */;
         const f = new Float32Array(buf);
         const u = new Uint32Array(buf);
         const dx = c.domainSize / c.gridRes;
@@ -299,6 +306,8 @@ export class MpmBench {
         const sinPhi = Math.sin(((m.phi ?? 30) * Math.PI) / 180);
         f[39] = (Math.sqrt(2 / 3) * 2 * sinPhi) / (3 - sinPhi);
         f[40] = m.M ?? 0.7; f[41] = m.beta ?? 0.2; f[42] = m.xi ?? 0.002; f[43] = m.p0 ?? 3000;
+        if (this.entrainment)
+            u[50] = c.particles; // release_particles: every particle is release, no pool
         this.device.queue.writeBuffer(this.resources.settings, 0, buf);
         this.dx = dx;
     }

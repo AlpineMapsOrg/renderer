@@ -349,6 +349,24 @@ the run before it. Results then depended on the order of the batch. All MPM resu
   rasters (the same for every model, including com4FlowPy and the trajectories), and the two app
   screenshots.
 
+## Entrainment comparison (2026-10-27)
+
+com1DFA with entrainment, computed locally, as the reference for the MPM's entrainment
+([15-entrainment.md](../15-entrainment.md)):
+
+```bash
+mpm-mls-doc/avaframe/.venv-avaframe/bin/python mpm-mls-doc/avaframe/run_com1dfa.py            # 5 avalanches x null, erosion, plowing
+WEBIGEO_SANDBOX_BATCH=mpm-mls-doc/avaframe/batch_entrainment.json <webgpu_app>                 # the MPM side
+mpm-mls-doc/avaframe/.venv-avaframe/bin/python mpm-mls-doc/avaframe/compare_aimec.py <run> --reference auto
+```
+
+`run_com1dfa.py` writes `<dataset>/com1DFA/<mode>/` (AvaFrame avalanche directory and
+`summary.json` with com1DFA's report). `--reference null|erosion|plowing|auto` rates a run
+against one of them (`aimec_<mode>.json`); without it, against the null-test benchmark as
+before. The datasets now carry `entrainment.asc` (the ENT shapefile, 0.3 m): re-run
+`prepare_dataset.py --real` or the app's download. **The script deletes each dataset folder
+it prepares, including earlier runs in `mpm/`**: copy them aside first.
+
 ## Not done yet
 
 - Phase 1's overlay PNGs, for the Overlays panel, are superseded by Phase 4's in-app overlay,

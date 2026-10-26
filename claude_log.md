@@ -13,6 +13,38 @@ capture of the terminal.
 
 ---
 
+## 2026-10-27
+
+### 1. Entrainment (branch `entrainment`)
+
+Asked by Manuel: plan and implement entrainment, a document like 12-rendering, a Notion
+summary; then a comparison with com1DFA with entrainment and against the old null benchmark,
+and a report on claude.ai. Decisions (asked): everywhere (sandbox, AvaFrame map scenarios,
+generic map scenarios with a cover slider), both com1DFA laws (plowing, erosion), validation on
+all five avalanches. Notion ticket "Entrainment: dormant snow cover picked up by the flow".
+
+**Built** (15-entrainment.md): AvaFrame's ENT shapefiles in the datasets (Python and C++,
+byte-identical); cover per grid column set in `mpm_prepare`; the grid update erodes it
+(plowing / erosion τ_b|u|/e_b) and turns eroded snow into pool particles at rest, written with
+negative mass so G2P only flips them and the next P2G adds them without momentum. Panel
+controls, mode per context (map erosion, sandbox off), export block.
+
+**Design change on the way:** the plan from the 12 Oct research was dormant cover particles
+woken in G2P (with tile stamps against stale grid velocities). Implemented and working in the
+sandbox, but the generic map cover needed 16 M particles, and it seeded nothing on the map
+because the preset's `seed_anywhere` made every sample count as release. Replaced by the
+per-column cover, as com1DFA does it; memory now scales with what is entrained.
+
+**Mistake on the way:** re-running `prepare_dataset.py --real` deletes each dataset folder,
+including the `mpm/` and `com4FlowPy/` run results. A backup taken just before restored them
+(and the full `index.json`). Now noted in avaframe/README.md.
+
+**Verified:** see 06 §4n and 15-entrainment.md. Off reproduces the 11 Oct AIMEC runouts
+exactly; erosion entrains 80–83 % of com1DFA 2.1's volume (Madlein 55 %); com1DFA's plowing
+over-entrains (its own TODO); mean runout error to com1DFA 149 m off, 119 m erosion. Map:
+Hintertux and Breite Ries entrain; web build compiles; unit tests pass. Report:
+https://claude.ai/artifact/3j7VDeZNRUf3mF3sE9TpNc
+
 ## 2026-10-25
 
 ### 1. Rendering doc: from plan to description

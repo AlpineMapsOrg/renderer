@@ -142,7 +142,7 @@ With k = 1/m_real: mass' = 1, volume' = V_real/m_real = 1/ρ. Grid mass then rea
 "particles in the neighbourhood" — O(10–1000) — and the momentum accumulator's range is a
 statement about particle counts and speeds, not about how much snow the scenario contains.
 
-## `SimState` — 72 bytes
+## `SimState` — 84 bytes
 
 ```wgsl
 struct SimState {
@@ -159,8 +159,14 @@ struct SimState {
     sum_path_lo / _hi,               // 14 horizontal path * 1e5, summed since the RESET
     ceiling_contacts: atomic<u32>,   // 16 particle-substeps touching the band ceiling - zeroed each run
     wall_contacts: atomic<u32>,      // 17 ... touching the domain walls             - zeroed each run
+    cover_volume: atomic<u32>,       // 18 entrainment: cover in the domain, 0.01 m^3 - written once per reset
+    entrained_particles: atomic<u32>,// 19 pool slots handed out (can run past the pool) - from the reset on
+    pool_exhausted: atomic<u32>,     // 20 cover the flow could not take, pool full, 0.01 m^3 - from the reset on
 }
 ```
+
+Slots 18–20 (entrainment, 2026-10-27): see [15-entrainment.md](15-entrainment.md). Like 5 and
+14–15 they hold from the reset on, so `reset_run_counters()` leaves them alone.
 
 Three slots changed meaning or were added on 2026-10-03 (audit M1, M2, M3, M5):
 
@@ -196,17 +202,17 @@ Both buffers are **allocated once in the constructor and never reallocated** —
 readback in flight while `ensure_resources()` recreated them would be a use-after-free. They
 are fixed-size, so there is no reason to reallocate them anyway.
 
-## Uniform — 192 bytes
+## Uniform — 240 bytes
 
 Mirrored between `MpmSolverSettingsUniform` (C++) and `MpmSettings` (WGSL). A
-`static_assert(sizeof(...) == 192)` catches size drift, **but not field reordering** — if you
+`static_assert(sizeof(...) == 240)` catches size drift, **but not field reordering** — if you
 add a field, change both sides and check the offsets by hand.
 
 Rules that make the two agree:
 
 - `vec3` aligns to 16, `vec2` to 8, scalars to 4
 - struct alignment = its largest member's (16 here, from the leading `vec3u`)
-- struct size must be a multiple of its alignment → 192 ✓
+- struct size must be a multiple of its alignment → 240 ✓
 - glm types in C++ are tightly packed at 4-byte alignment, which happens to match because
   every `vec2` in this layout already sits at an 8-byte offset
 
@@ -215,22 +221,25 @@ texture dims · dt, gravity, mass, volume · μ₀, λ₀, ξ, θ_c · θ_s, fri
 raster dims + domain UV · domain UV size, seed_anywhere, splat radius · density reference,
 release centre x/y, release radius · constitutive_model, basal_friction_model, voellmy_xi, dp_alpha ·
 ccc_m, ccc_beta, ccc_xi, ccc_p0_initial · release_mode, release_volume, release_max_depth,
-release_half_y (AvaFrame sandbox, 2026-10-10).
+release_half_y (AvaFrame sandbox, 2026-10-10) · entrainment_mode, cover_mode,
+release_particles, pool_particles · cover_thickness, cover_cos_max_slope, cover_density_ratio,
+erosion_energy · plowing_depth, entrainment_min_speed, snow_density, entrainment_density
+(entrainment, 2026-10-27).
 
-No pad slots left. The next field grows the struct to 208 B. The benchmark
-(`bench/mpm_bench.js`) allocates the same size; leaving the new fields at zero means the disc
-release.
+No pad slots left. The next field grows the struct to 256 B. The benchmark
+(`bench/mpm_bench.js`) allocates the same size; it sets `release_particles` to all particles
+(no pool) and leaves the rest at zero, which means the disc release without entrainment.
 
 ## Buffer sizes
 
 | Buffer | Size |
 |---|---|
-| particles | `num_particles × 32` u32 (128 B each) |
+| particles | `(num_particles + pool) × 32` u32 (128 B each); the pool for entrained snow is `pool_size` × the release particles while entrainment is on, else 0 |
 | grid | `res.x·res.y·layers × 5` u32 (20 B each) |
 | column floors | `res.x·res.y` i32 |
 | state | 14 u32 |
 | density raster | `raster_resolution²` u32 |
-| column stats | `res.x·res.y × 4` u32 (16 B: peak depth, peak speed as f32; particle count, speed sum as atomic u32) |
+| column stats | `res.x·res.y × 6` u32 (24 B: peak depth, peak speed as f32; particle count, speed sum as atomic u32; entrainment cover and its eroded rest as f32) |
 
 Grid memory used to be **O(N³)** — 128³ = 42 MB, 256³ = 335 MB — and that is what kept
 the domain at 1.6 km. It is now `res_xy² × layers`: 320² × 16 = 33 MB for a 4 km domain

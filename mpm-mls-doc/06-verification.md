@@ -347,6 +347,26 @@ Details in [14-avaframe-release-on-map.md](14-avaframe-release-on-map.md).
 - Not clicked: the release picker of avaGar. The map's terrain under the release (another DEM than
   AvaFrame's) is the unquantified part of the approximation.
 
+## 4n. Entrainment (2026-10-27)
+
+- **Data:** the C++ preparation's `entrainment.asc` and `dataset.json` entry are byte-identical
+  to `prepare_dataset.py`'s on all five datasets (scratch harness, as for the original port).
+- **Unit test:** `resample_depth()` keeps an entrainment raster's volume and bounds
+  (`test_ReleaseResampling.cpp`).
+- **Cover mass:** seeded cover equals the dataset's (Hintertux sandbox 258 575 m³ against
+  258 531; on the map 258 413).
+- **Off changes nothing:** batch runs without entrainment reproduce the 11 Oct AIMEC runout
+  differences exactly on all five avalanches.
+- **Against com1DFA 2.1 with entrainment** (five avalanches, erosion and plowing): erosion
+  entrains 80–83 % of com1DFA's volume (Madlein 55 %); mean runout error 119 m with erosion
+  against 149 m without. Details and tables: [15-entrainment.md](15-entrainment.md).
+- **Map:** Hintertux (AvaFrame cover) and Breite Ries (uniform cover) run and entrain; the web
+  build compiles.
+- **Bug on the way:** a first design seeded the whole cover as dormant particles. It needed
+  16 M particles for the generic map cover and seeded nothing there at first, because the map
+  preset's `seed_anywhere` made every cover sample count as "under the release". Replaced by
+  the per-column cover; `under_release()` now limits `seed_anywhere` to the disc.
+
 ## 5. On real terrain
 
 Runs end to end on the Schneeberg DEM: seeds, flows downhill, deposits, animates, and the

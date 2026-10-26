@@ -33,6 +33,7 @@ from the sources when writing the report. Full list in [refs.md](refs.md).
 | [11-avaframe-comparison.md](11-avaframe-comparison.md) | **AvaFrame comparison**: MPM variants, com4FlowPy and the weBIGeo trajectory model against com1DFA on five real avalanches, rated with AIMEC. Setup, tables, findings, limits. |
 | [12-rendering.md](12-rendering.md) | **3D rendering on the map**: what is implemented and where — particles (spheres, ellipsoids, detail particles, powder), the mass-splat flow surface, track and snow cover, the frame order, panel controls, limits. |
 | [14-avaframe-release-on-map.md](14-avaframe-release-on-map.md) | **AvaFrame release areas on the map**: the five AvaFrame scenarios release from AvaFrame's areas (resampled through the affine placement), what is approximate, measurements. |
+| [15-entrainment.md](15-entrainment.md) | **Entrainment**: the flow picks up the snow cover (com1DFA's plowing and erosion), cover per grid column from AvaFrame's entrainment areas or one thickness, eroded snow from a particle pool; files, panel, validation against com1DFA with entrainment. |
 | [13-simulation-driver.md](13-simulation-driver.md) | **Playback**: the generic `TimeSteppedSimulation` interface and `SimulationDriver`, real time (fixed-step loop with interpolation, one chunk per frame, 0.1–4x) vs accuracy, with measurements. |
 | [avaframe/](avaframe/README.md) | **AvaFrame comparison, phase 1**: prepares AvaFrame's test cases (DEM, release, com1DFA reference rasters, AIMEC path, map overlays) for comparing against the MPM solver. |
 | [refs.md](refs.md) | Bibliography. |
@@ -87,8 +88,9 @@ Known gaps, honestly:
   Drucker–Prager and Cohesive Cam Clay switchable at runtime, Coulomb and Voellmy basal
   friction, seven presets from Li et al. 2021, a per-run diagnostics readback, and the
   com1DFA energy-line test — which recovers the set basal friction to under 1 % offline
-  and runs live in the sidebar. What remains there is entrainment —
-  [07-constitutive-models.md](07-constitutive-models.md).
+  and runs live in the sidebar — [07-constitutive-models.md](07-constitutive-models.md).
+  **Entrainment** came last (2026-10-27): com1DFA's plowing and erosion, in the sandbox, on
+  the map and in the web build — [15-entrainment.md](15-entrainment.md).
 - **Audited against the papers** (issue #3, 2026-10-03). The fixes are in: Cam Clay is now
   the full Wolper NACC return including its shear hardening, the plastic ratio and the
   energy line measure what Li and Tonnel measure, Voellmy uses the local flow depth, and the

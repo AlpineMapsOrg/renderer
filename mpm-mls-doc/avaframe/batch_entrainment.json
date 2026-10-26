@@ -1,0 +1,201 @@
+{
+  "_comment": "Entrainment comparison: Cam Clay with Li's case V parameters and Coulomb friction (the phase-6 configuration closest to com1DFA), on the five real datasets, without entrainment and with com1DFA's two modes. Run with WEBIGEO_SANDBOX_BATCH=<this file>; see mpm-mls-doc/15-entrainment.md.",
+  "runs": [
+    {
+      "label": "ent_null",
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512,
+        "entrainment_mode": 0
+      },
+      "max_time": 400
+    },
+    {
+      "label": "ent_erosion",
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512,
+        "entrainment_mode": 2
+      },
+      "max_time": 400
+    },
+    {
+      "label": "ent_plowing",
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512,
+        "entrainment_mode": 1
+      },
+      "max_time": 400
+    },
+    {
+      "label": "ent_null",
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512,
+        "entrainment_mode": 0
+      },
+      "max_time": 400
+    },
+    {
+      "label": "ent_erosion",
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512,
+        "entrainment_mode": 2
+      },
+      "max_time": 400
+    },
+    {
+      "label": "ent_plowing",
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512,
+        "entrainment_mode": 1
+      },
+      "max_time": 400
+    },
+    {
+      "label": "ent_null",
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512,
+        "entrainment_mode": 0
+      },
+      "max_time": 400
+    },
+    {
+      "label": "ent_erosion",
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512,
+        "entrainment_mode": 2
+      },
+      "max_time": 400
+    },
+    {
+      "label": "ent_plowing",
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512,
+        "entrainment_mode": 1
+      },
+      "max_time": 400
+    },
+    {
+      "label": "ent_null",
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512,
+        "entrainment_mode": 0
+      },
+      "max_time": 400
+    },
+    {
+      "label": "ent_erosion",
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512,
+        "entrainment_mode": 2
+      },
+      "max_time": 400
+    },
+    {
+      "label": "ent_plowing",
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512,
+        "entrainment_mode": 1
+      },
+      "max_time": 400
+    },
+    {
+      "label": "ent_null",
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512,
+        "entrainment_mode": 0
+      },
+      "max_time": 400
+    },
+    {
+      "label": "ent_erosion",
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512,
+        "entrainment_mode": 2
+      },
+      "max_time": 400
+    },
+    {
+      "label": "ent_plowing",
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512,
+        "entrainment_mode": 1
+      },
+      "max_time": 400
+    }
+  ],
+  "quit": true
+}
