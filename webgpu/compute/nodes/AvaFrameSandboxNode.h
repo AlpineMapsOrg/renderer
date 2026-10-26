@@ -58,6 +58,21 @@ struct SandboxTerrain {
     glm::dvec2 release_min = glm::dvec2(0.0); // bounds of the release cells, sandbox metres
     glm::dvec2 release_max = glm::dvec2(0.0);
 
+    /* Entrainment area (com1DFA's ENT shapefile): the snow cover the flow can pick up, as
+     * vertical depth [m] (thickness / cos(slope), like the release), 0 outside it and under the
+     * release cells - com1DFA removes the overlap with the release of each run. Empty when the
+     * dataset has none (no ENT shapefile, or prepared before entrainment existed). */
+    std::string entrainment_name; // e.g. entKot
+    nucleus::Raster<float> entrainment_depth;
+    double entrainment_volume = 0.0; // [m^3], after removing the release overlap
+    double entrainment_area = 0.0; // horizontal [m^2]
+    float entrainment_max_depth = 0.0f; // [m], vertical
+    glm::dvec2 entrainment_min = glm::dvec2(0.0); // bounds of the covered cells, sandbox metres
+    glm::dvec2 entrainment_max = glm::dvec2(0.0);
+    /* R32Float texture of entrainment_depth, set by AvaFrameSandboxNode once uploaded (the
+     * solver binds it like the release texture); nullptr without a cover. */
+    const webgpu::raii::TextureWithSampler* entrainment_texture = nullptr;
+
     /* com1DFA reference of this scenario, resampled onto the DEM grid (nearest cell): peak flow
      * thickness [m], velocity [m/s], pressure [kPa], and the footprint pft > 0. All empty when
      * the dataset has no benchmark for the scenario. */
@@ -201,6 +216,7 @@ private:
     radix::geometry::Aabb<2, double> m_region_aabb;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_height_texture;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_release_texture;
+    std::unique_ptr<webgpu::raii::TextureWithSampler> m_entrainment_texture;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_preview_texture;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_layer_texture;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_release_mask_texture;

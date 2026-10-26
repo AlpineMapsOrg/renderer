@@ -404,13 +404,14 @@ namespace avaframe_data {
     const std::vector<Source>& real_datasets()
     {
         static const std::vector<Source> datasets = {
-            { "avaKot", { "relKot" }, { { "avaKotNullTest", "relKot_989874a9be_C_S_null_dfa" } } },
+            { "avaKot", { "relKot" }, { { "avaKotNullTest", "relKot_989874a9be_C_S_null_dfa" } }, "entKot" },
             { "avaGar", { "relGar", "relGar2", "relGar6" },
                 { { "avaGarNullTest", "relGar_8d83c84a99_C_L_null_dfa" }, { "avaGarNullTest2", "relGar2_9598ec5adc_C_L_null_dfa" },
-                    { "avaGarNullTest6", "relGar6_9dd147f24b_C_L_null_dfa" } } },
-            { "avaHit", { "relHit" }, { { "avaHitNullTest", "relHit_8e7eda03a1_C_L_null_dfa" } } },
-            { "avaWog", { "relWog" }, { { "avaWogNullTest", "relWog_005698a9de_C_L_null_dfa" } } },
-            { "avaMal", { "relMal1to3" }, { { "avaMalNullTest", "relMal1to3_e94d7bcc61_C_L_null_dfa" } } },
+                    { "avaGarNullTest6", "relGar6_9dd147f24b_C_L_null_dfa" } },
+                "entGar" },
+            { "avaHit", { "relHit" }, { { "avaHitNullTest", "relHit_8e7eda03a1_C_L_null_dfa" } }, "entHit" },
+            { "avaWog", { "relWog" }, { { "avaWogNullTest", "relWog_005698a9de_C_L_null_dfa" } }, "entWog" },
+            { "avaMal", { "relMal1to3" }, { { "avaMalNullTest", "relMal1to3_e94d7bcc61_C_L_null_dfa" } }, "entMal" },
         };
         return datasets;
     }
@@ -423,6 +424,10 @@ namespace avaframe_data {
         for (const char* scenario : s.scenarios) {
             files.push_back(inputs + "/REL/" + scenario + ".shp");
             files.push_back(inputs + "/REL/" + scenario + ".dbf");
+        }
+        if (s.entrainment != nullptr) {
+            files.push_back(inputs + "/ENT/" + s.entrainment + ".shp");
+            files.push_back(inputs + "/ENT/" + s.entrainment + ".dbf");
         }
         for (const Benchmark& b : s.benchmarks) {
             const QString dir = QString("benchmarks/%1/").arg(b.name);
@@ -581,6 +586,69 @@ namespace avaframe_data {
             scenario_names.append(scenario);
         }
         meta["release_scenarios"] = scenarios;
+
+        // Entrainment area (Inputs/ENT): the snow cover com1DFA's entrainment can pick up. Like a
+        // release scenario, thickness per feature and perpendicular to the slope; 0.3 m where a
+        // feature has none. Kept whole: the loader removes the cells under the chosen release,
+        // as com1DFA does for each run.
+        if (s.entrainment != nullptr) {
+            const QString ent = s.entrainment;
+            const QByteArray* shp = file(inputs + "/ENT/" + ent + ".shp");
+            const QByteArray* dbf = shp ? file(inputs + "/ENT/" + ent + ".dbf") : nullptr;
+            if (dbf == nullptr)
+                return {};
+            const auto shapes = read_shp(*shp, ent + ".shp", error);
+            if (!shapes)
+                return {};
+            const auto records = read_dbf(*dbf);
+            std::vector<double> thickness(dem.cells(), 0.0);
+            QJsonArray features;
+            for (size_t f = 0; f < shapes->size() && f < records.size(); f++) {
+                const auto& rec = records[f];
+                const auto mask = rasterise(dem, (*shapes)[f]);
+                const QString text = rec.contains("thickness") ? rec.at("thickness") : QString();
+                const double th = text.isEmpty() ? ENT_THICKNESS_IF_MISSING : text.toDouble();
+                size_t cells = 0;
+                for (size_t i = 0; i < mask.size(); i++) {
+                    if (mask[i]) {
+                        thickness[i] = th;
+                        cells++;
+                    }
+                }
+                QJsonValue name = text_or_null(rec, "Name");
+                if (name.toString().isEmpty())
+                    name = text_or_null(rec, "name");
+                features.append(QJsonObject { { "name", name }, { "thickness_m", th }, { "cells", qint64(cells) },
+                    { "area_m2", round_to(double(cells) * cell_area, 1) },
+                    { "thickness_from", text.isEmpty() ? QString("default %1 m").arg(ENT_THICKNESS_IF_MISSING) : QString("shapefile") } });
+            }
+            for (size_t i = 0; i < thickness.size(); i++) {
+                if (std::isnan(dem.data[i]))
+                    thickness[i] = NaN;
+            }
+            if (!write_asc(out.filePath("entrainment.asc"), dem, thickness, 3)) {
+                error = "cannot write " + out.filePath("entrainment.asc");
+                return {};
+            }
+            double volume = 0.0, slope_sum = 0.0;
+            size_t covered = 0;
+            for (int row = 0; row < dem.nrows; row++) {
+                for (int col = 0; col < dem.ncols; col++) {
+                    const double th = thickness[size_t(row) * size_t(dem.ncols) + size_t(col)];
+                    if (!(th > 0.0))
+                        continue;
+                    const double c = slope_cos(dem, row, col);
+                    volume += th / c;
+                    slope_sum += std::acos(c) / DEG;
+                    covered++;
+                }
+            }
+            meta["entrainment"] = QJsonObject { { "name", ent }, { "file", "entrainment.asc" }, { "features", features },
+                { "thickness_convention", "perpendicular to the slope (vertical depth = thickness / cos(slope))" },
+                { "density_kg_m3", ENT_DENSITY }, { "volume_m3", round_to(volume * cell_area, 1) },
+                { "area_m2", round_to(double(covered) * cell_area, 1) },
+                { "mean_slope_deg", covered ? QJsonValue(round_to(slope_sum / double(covered), 1)) : QJsonValue(QJsonValue::Null) } };
+        }
 
         // References: com1DFA null-test benchmarks, matched to their release scenario.
         QJsonArray references;

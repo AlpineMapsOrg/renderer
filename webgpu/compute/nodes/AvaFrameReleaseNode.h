@@ -43,6 +43,16 @@ struct ReleaseArea {
     double area = 0.0; // [m^2], horizontal
     float max_depth = 0.0f; // [m]
     std::string label; // e.g. "avaKot / relKot"
+
+    /* AvaFrame's entrainment area on the same region, laid out like depth_texture: the snow
+     * cover the flow can pick up (vertical depth [m], 0 under the release). Null texture and
+     * zero volume when the dataset has none. */
+    const webgpu::raii::TextureWithSampler* entrainment_texture = nullptr; // R32Float
+    glm::dvec2 entrainment_min = glm::dvec2(0.0); // bounds of the covered texels [region metres]
+    glm::dvec2 entrainment_max = glm::dvec2(0.0);
+    double entrainment_volume = 0.0; // [m^3]
+    double entrainment_area = 0.0; // [m^2]
+    float entrainment_max_depth = 0.0f; // [m]
 };
 
 /// A sandbox terrain's release depth resampled onto a map region.
@@ -66,6 +76,9 @@ struct ResampledRelease {
 /// texel_size_metres, at most 4096 per side. Empty (zero volume) without a placement.
 ResampledRelease resample_release(const SandboxTerrain& terrain, const radix::geometry::Aabb<2, double>& region_world, double metres_per_world_unit,
     double texel_size_metres);
+/// The same for any depth raster on the dataset's grid, e.g. the entrainment depth.
+ResampledRelease resample_depth(const SandboxTerrain& terrain, const nucleus::Raster<float>& depth, const radix::geometry::Aabb<2, double>& region_world,
+    double metres_per_world_unit, double texel_size_metres);
 
 /// The release areas of a real AvaFrame dataset on the map (the five avalanches of the AvaFrame
 /// comparison), for the map's real-time scenarios: loads the dataset (load_sandbox_terrain()),
@@ -107,6 +120,7 @@ private:
     std::unique_ptr<SandboxTerrain> m_terrain; // loaded dataset, kept while path and scenario stay
     std::string m_terrain_key;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_texture;
+    std::unique_ptr<webgpu::raii::TextureWithSampler> m_entrainment_texture;
     ReleaseArea m_area;
     bool m_area_valid = false;
     std::string m_status;

@@ -6,6 +6,7 @@ For each AvaFrame dataset this writes, into extern/avaframe_sandbox/<name>/:
     dataset.json                 metadata: location, grid, release scenarios, references, path
     dem.asc                      the DEM, normalised (xllcorner form, float, NODATA -9999)
     release_<scenario>.asc       release thickness [m] per DEM cell, 0 outside (one per REL shapefile)
+    entrainment.asc              entrainment thickness [m] per DEM cell, 0 outside (the ENT shapefile, if any)
     reference/<benchmark>/       com1DFA reference results (pft, pfv, ppr .asc) + params.json
     path.json                    AIMEC path (polyline) and split point, grid and lat/lon
     preview_<scenario>.png       check image: hillshade, release (cyan), com1DFA footprint
@@ -52,6 +53,9 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[2]
 NODATA = -9999.0
 REAL_DATASETS = ["avaKot", "avaGar", "avaHit", "avaWog", "avaMal"]
+# com1DFA defaults for the entrainment area (com1DFACfg.ini, AvaFrame 2.1): entThIfMissingInShp, rhoEnt.
+ENT_THICKNESS_IF_MISSING = 0.3 # [m]
+ENT_DENSITY = 100.0 # [kg/m^3]
 
 
 # ---------------------------------------------------------------------------------------------
@@ -419,6 +423,35 @@ def prepare(avaframe, out_root, name, version):
             "volume_projected_m3": round(float(np.nansum(thickness)) * dem.cellsize ** 2, 1),
             "mean_slope_deg": round(float(np.degrees(np.arccos(cos_slope[released])).mean()), 1) if released.any() else None})
         footprint_by_scenario[scenario] = np.nan_to_num(thickness) > 0
+
+    # Entrainment area (Inputs/ENT, one shapefile): the snow cover com1DFA's entrainment can pick
+    # up. Thickness per feature, perpendicular to the slope like the release; 0.3 m where a
+    # feature has none (com1DFA's entThIfMissingInShp). Kept whole here: com1DFA removes the
+    # cells that overlap the release of each run, which the loader does per release scenario.
+    ent_shps = sorted((inputs / "ENT").glob("*.shp"))
+    if ent_shps:
+        shp = ent_shps[0]
+        _, shapes = read_shp(shp)
+        records = read_dbf(shp.with_suffix(".dbf"))
+        thickness = np.zeros(dem.data.shape)
+        features = []
+        for mask, rec in zip(rasterise_polygons(dem, shapes), records):
+            th = float(rec.get("thickness") or ENT_THICKNESS_IF_MISSING)
+            thickness[mask] = th
+            features.append({"name": rec.get("Name") or rec.get("name"), "thickness_m": th, "cells": int(mask.sum()),
+                             "area_m2": round(float(mask.sum()) * dem.cellsize ** 2, 1),
+                             "thickness_from": "shapefile" if rec.get("thickness") else f"default {ENT_THICKNESS_IF_MISSING} m"})
+        thickness[np.isnan(dem.data)] = np.nan
+        write_asc(out / "entrainment.asc", dem, thickness, fmt="%.3f")
+        covered = np.nan_to_num(thickness) > 0
+        cos_slope = slope_cos(dem)
+        meta["entrainment"] = {
+            "name": shp.stem, "file": "entrainment.asc", "features": features,
+            "thickness_convention": "perpendicular to the slope (vertical depth = thickness / cos(slope))",
+            "density_kg_m3": ENT_DENSITY,
+            "volume_m3": round(float(np.sum(thickness[covered] / cos_slope[covered])) * dem.cellsize ** 2, 1),
+            "area_m2": round(float(covered.sum()) * dem.cellsize ** 2, 1),
+            "mean_slope_deg": round(float(np.degrees(np.arccos(cos_slope[covered])).mean()), 1) if covered.any() else None}
 
     # References: com1DFA null-test benchmarks, matched to their release scenario.
     for ref in find_benchmarks(avaframe, name):

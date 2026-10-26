@@ -496,36 +496,76 @@ std::unique_ptr<SandboxTerrain> load_sandbox_terrain(const std::string& dataset_
     }
     fill_nodata(t->heights, t->nodata);
 
-    // Release: AvaFrame's thickness is slope-normal; the solver stacks particles vertically,
-    // so it gets thickness / cos(slope). Slope from central differences on the DEM, as in
-    // prepare_dataset.py (and com1DFA's own cell normals).
+    // Release and entrainment: AvaFrame's thicknesses are slope-normal; the solver stacks
+    // particles vertically, so it gets thickness / cos(slope). Slope from central differences on
+    // the DEM, as in prepare_dataset.py (and com1DFA's own cell normals).
     const glm::ivec2 size(dem->size);
     const auto h = [&](int x, int y) { return double(t->heights.pixel(glm::uvec2(std::clamp(x, 0, size.x - 1), std::clamp(y, 0, size.y - 1)))); };
-    t->release_depth = nucleus::Raster<float>(dem->size, 0.0f);
-    t->release_min = glm::dvec2(std::numeric_limits<double>::max());
-    t->release_max = glm::dvec2(std::numeric_limits<double>::lowest());
     const double cell_area = dem->cellsize * dem->cellsize;
-    for (int y = 0; y < size.y; y++) {
-        for (int x = 0; x < size.x; x++) {
-            const float thickness = release->at(uint32_t(x), uint32_t(y));
-            if (!(thickness > 0.0f) || t->nodata.pixel(glm::uvec2(x, y)))
-                continue;
-            const double dzdx = (h(x + 1, y) - h(x - 1, y)) / (2.0 * dem->cellsize);
-            const double dzdy = (h(x, y - 1) - h(x, y + 1)) / (2.0 * dem->cellsize);
-            const double cos_slope = 1.0 / std::sqrt(1.0 + dzdx * dzdx + dzdy * dzdy);
-            const float depth = float(double(thickness) / cos_slope);
-            t->release_depth.pixel(glm::uvec2(x, y)) = depth;
-            t->release_volume += double(depth) * cell_area;
-            t->release_area += cell_area;
-            t->release_max_depth = std::max(t->release_max_depth, depth);
-            const glm::dvec2 cell_min(double(x) * dem->cellsize, double(size.y - 1 - y) * dem->cellsize);
-            t->release_min = glm::min(t->release_min, cell_min);
-            t->release_max = glm::max(t->release_max, cell_min + glm::dvec2(dem->cellsize));
+    struct DepthStats {
+        double volume = 0.0;
+        double area = 0.0;
+        float max_depth = 0.0f;
+        glm::dvec2 min = glm::dvec2(std::numeric_limits<double>::max());
+        glm::dvec2 max = glm::dvec2(std::numeric_limits<double>::lowest());
+    };
+    // Vertical depth per cell from a slope-normal thickness raster; `skip` leaves cells out.
+    const auto vertical_depth = [&](const auto& thickness_grid, nucleus::Raster<float>& depth_out, const auto& skip) {
+        DepthStats stats;
+        depth_out = nucleus::Raster<float>(dem->size, 0.0f);
+        for (int y = 0; y < size.y; y++) {
+            for (int x = 0; x < size.x; x++) {
+                const float thickness = thickness_grid.at(uint32_t(x), uint32_t(y));
+                if (!(thickness > 0.0f) || t->nodata.pixel(glm::uvec2(x, y)) || skip(x, y))
+                    continue;
+                const double dzdx = (h(x + 1, y) - h(x - 1, y)) / (2.0 * dem->cellsize);
+                const double dzdy = (h(x, y - 1) - h(x, y + 1)) / (2.0 * dem->cellsize);
+                const double cos_slope = 1.0 / std::sqrt(1.0 + dzdx * dzdx + dzdy * dzdy);
+                const float depth = float(double(thickness) / cos_slope);
+                depth_out.pixel(glm::uvec2(x, y)) = depth;
+                stats.volume += double(depth) * cell_area;
+                stats.area += cell_area;
+                stats.max_depth = std::max(stats.max_depth, depth);
+                const glm::dvec2 cell_min(double(x) * dem->cellsize, double(size.y - 1 - y) * dem->cellsize);
+                stats.min = glm::min(stats.min, cell_min);
+                stats.max = glm::max(stats.max, cell_min + glm::dvec2(dem->cellsize));
+            }
         }
-    }
+        return stats;
+    };
+    const DepthStats released = vertical_depth(*release, t->release_depth, [](int, int) { return false; });
+    t->release_volume = released.volume;
+    t->release_area = released.area;
+    t->release_max_depth = released.max_depth;
+    t->release_min = released.min;
+    t->release_max = released.max;
     if (t->release_volume <= 0.0) {
         error = "release scenario " + t->scenario + " is empty.";
         return nullptr;
+    }
+
+    // The cover, without the cells of this release scenario (com1DFA's checkOverlap with crop).
+    // A dataset prepared before entrainment existed simply has none; not an error.
+    const QJsonObject entrainment = meta["entrainment"].toObject();
+    if (!entrainment.isEmpty()) {
+        std::string ent_error;
+        const auto ent = read_ascii_grid(dir.filePath(entrainment["file"].toString()), ent_error);
+        if (!ent || ent->size != dem->size) {
+            qWarning() << "AvaFrame dataset: entrainment area not loaded:" << QString::fromStdString(ent ? "grid does not match the DEM" : ent_error);
+        } else {
+            const DepthStats covered = vertical_depth(*ent, t->entrainment_depth,
+                [&](int x, int y) { return t->release_depth.pixel(glm::uvec2(uint32_t(x), uint32_t(y))) > 0.0f; });
+            if (covered.volume > 0.0) {
+                t->entrainment_name = entrainment["name"].toString().toStdString();
+                t->entrainment_volume = covered.volume;
+                t->entrainment_area = covered.area;
+                t->entrainment_max_depth = covered.max_depth;
+                t->entrainment_min = covered.min;
+                t->entrainment_max = covered.max;
+            } else {
+                t->entrainment_depth = {};
+            }
+        }
     }
 
     // com1DFA footprint of this scenario, on the DEM grid (nearest cell of the reference grid,
@@ -625,6 +665,12 @@ void AvaFrameSandboxNode::run_impl()
     m_height_texture->texture().write(m_ctx->queue(), t->heights);
     m_release_texture = create_texture(m_ctx->device(), t->grid_size, WGPUTextureFormat_R32Float, "avaframe sandbox release depth");
     m_release_texture->texture().write(m_ctx->queue(), t->release_depth);
+    m_entrainment_texture.reset();
+    if (t->entrainment_volume > 0.0) {
+        m_entrainment_texture = create_texture(m_ctx->device(), t->grid_size, WGPUTextureFormat_R32Float, "avaframe sandbox entrainment depth");
+        m_entrainment_texture->texture().write(m_ctx->queue(), t->entrainment_depth);
+        t->entrainment_texture = m_entrainment_texture.get();
+    }
     m_preview_texture = create_texture(m_ctx->device(), t->grid_size, WGPUTextureFormat_RGBA8Unorm, "avaframe sandbox preview");
     m_preview_texture->texture().write(m_ctx->queue(), make_preview(*t));
     // For models that take a release point mask (alpha > 0), like the trajectory model.
@@ -639,7 +685,9 @@ void AvaFrameSandboxNode::run_impl()
 
     qInfo().nospace() << "AvaFrameSandboxNode: " << QString::fromStdString(t->name) << " / " << QString::fromStdString(t->scenario) << ", DEM "
                       << t->grid_size.x << "x" << t->grid_size.y << " @ " << t->cellsize << " m, release " << t->release_volume << " m3 on "
-                      << t->release_area << " m2 (max depth " << t->release_max_depth << " m), reference "
+                      << t->release_area << " m2 (max depth " << t->release_max_depth << " m), entrainment "
+                      << (t->entrainment_volume > 0.0 ? QString("%1 m3 on %2 m2").arg(t->entrainment_volume, 0, 'f', 0).arg(t->entrainment_area, 0, 'f', 0) : QString("none"))
+                      << ", reference "
                       << (t->reference_name.empty() ? QString("none") : QString::fromStdString(t->reference_name)) << ", suggested domain "
                       << t->suggested_domain_size << " m";
     if (t->sandbox_to_world)

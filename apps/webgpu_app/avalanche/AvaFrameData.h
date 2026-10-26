@@ -55,7 +55,12 @@ namespace avaframe_data {
         const char* name; // e.g. avaKot
         std::vector<const char*> scenarios; // release shapefiles in Inputs/REL, sorted like the script's glob
         std::vector<Benchmark> benchmarks; // com1DFA null tests of this dataset, sorted by folder
+        const char* entrainment = nullptr; // entrainment shapefile in Inputs/ENT, e.g. entKot; nullptr = none
     };
+    /// com1DFA defaults for the entrainment area (com1DFACfg.ini, AvaFrame 2.1): the thickness of
+    /// a feature without one (entThIfMissingInShp) and the density of the entrained snow (rhoEnt).
+    constexpr double ENT_THICKNESS_IF_MISSING = 0.3; // [m]
+    constexpr double ENT_DENSITY = 100.0; // [kg/m^3]
     /// The five real datasets with a com1DFA reference: avaKot, avaGar, avaHit, avaWog, avaMal.
     const std::vector<Source>& real_datasets();
     /// Repository paths of every file a dataset needs.
