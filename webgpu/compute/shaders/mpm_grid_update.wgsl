@@ -18,6 +18,8 @@
 
 ///use mpm_common
 ///use mpm_friction
+///use mpm_material
+///use random
 
 // Stage 2 of the MPM step: turn accumulated momentum into velocity, apply gravity and
 // resolve boundary conditions (terrain and domain walls). The velocity goes to grid_velocity
@@ -31,8 +33,8 @@
 
 var<workgroup> tile_active: u32;
 
-// Returns the node's mass, which the column sums into its peak depth.
-fn update_node(node_xy: vec2i, layer: i32, cell: u32, flow_depth: f32) -> f32 {
+// Returns the node's mass, which the column sums into its peak depth, and mass times speed.
+fn update_node(node_xy: vec2i, layer: i32, cell: u32, flow_depth: f32) -> vec2f {
     let mass_lo = atomicLoad(&grid[cell].mass_lo);
     let mass_hi = atomicLoad(&grid[cell].mass_hi);
     let momentum_fixed = vec3i(atomicLoad(&grid[cell].vx), atomicLoad(&grid[cell].vy), atomicLoad(&grid[cell].vz));
@@ -50,7 +52,7 @@ fn update_node(node_xy: vec2i, layer: i32, cell: u32, flow_depth: f32) -> f32 {
     if mass <= 0.0 {
         // Empty node - make sure G2P never gathers stale velocity from it.
         grid_velocity[cell] = vec4f(0.0);
-        return 0.0;
+        return vec2f(0.0);
     }
 
     let momentum = vec3f(momentum_fixed) / MOMENTUM_SCALE;
@@ -74,7 +76,71 @@ fn update_node(node_xy: vec2i, layer: i32, cell: u32, flow_depth: f32) -> f32 {
     if layer >= res.z - 3 && velocity.z > 0.0 { velocity.z = 0.0; }
 
     grid_velocity[cell] = vec4f(velocity, 0.0);
-    return mass;
+    return vec2f(mass, mass * length(velocity));
+}
+
+// Entrainment (com1DFA, Tonnel et al. 2023), per column like com1DFA's per cell: the flow over the
+// column takes snow from its cover (column_stats.cover, set at the reset by mpm_prepare).
+//   Plowing: the front takes the whole cover, as soon as the flow is plowing_depth deep.
+//   Erosion: the flow erodes tau_b |u| / e_b of cover mass per area and second, tau_b the basal
+//            shear stress of the solver's friction law (Coulomb mu rho g h cos(slope), plus
+//            Voellmy's rho g |u|^2 / xi) - com1DFA's default mode.
+// Eroded cover becomes particles from the pool after the release particles, each with the mass
+// of a release particle (cover volume V rho_snow / rho_cover each, V the real volume per release
+// particle), placed at rest on the ground of the column's cell. They are written with negative
+// mass, which keeps them out of this substep's G2P gather: G2P only sets them to mass at rest
+// (see mpm_g2p), and the next P2G adds that mass without momentum - so the flow slows by exactly
+// the momentum the snow takes up, com1DFA's -u rho dV/dt term, from the grid alone.
+const MAX_SPAWN_PER_SUBSTEP: u32 = 64u; // per column; the rest waits in `eroded`
+fn entrain_column(node_xy: vec2i, column: u32, flow_depth: f32, speed: f32) {
+    let stats = &column_stats[column];
+    var cover = (*stats).cover;
+    if (cover <= 0.0 && (*stats).eroded <= 0.0) || flow_depth <= 0.0 || speed < settings.entrainment_min_speed {
+        return;
+    }
+    let world_xy = settings.domain_origin + vec2f(node_xy) * settings.dx;
+    var eroded = 0.0;
+    if settings.entrainment_mode == ENTRAINMENT_PLOWING {
+        if flow_depth >= settings.plowing_depth {
+            eroded = cover;
+        }
+    } else {
+        var tau = settings.terrain_friction * settings.snow_density * settings.gravity * flow_depth * terrain_normal(world_xy).z;
+        if settings.basal_friction_model == FRICTION_VOELLMY {
+            tau += settings.snow_density * settings.gravity * speed * speed / settings.voellmy_xi;
+        }
+        let rate = tau * speed / settings.erosion_energy; // [kg/m^2/s]
+        eroded = min(cover, rate * settings.dt * settings.dx * settings.dx / settings.entrainment_density);
+    }
+    cover -= eroded;
+    var pending = (*stats).eroded + eroded;
+
+    let per_particle = seeded_particle_volume() / settings.cover_density_ratio; // [m^3 of cover]
+    var count = min(u32(floor(pending / per_particle)), MAX_SPAWN_PER_SUBSTEP);
+    for (var n = 0u; n < count; n++) {
+        let slot = atomicAdd(&state.entrained_particles, 1u);
+        if slot >= settings.pool_particles {
+            // Pool used up: the snow stays on the ground.
+            atomicAdd(&state.pool_exhausted, u32(round(pending * COVER_VOLUME_SCALE)));
+            cover += pending;
+            pending = 0.0;
+            break;
+        }
+        seed(vec4u(column, slot, settings.random_seed, 0x5bd1e995u));
+        let xy = world_xy + (rand2() - vec2f(0.5)) * settings.dx;
+        var p: Particle;
+        p.position = vec3f(xy, terrain_height(xy) + rand() * 0.5);
+        p.mass = -settings.particle_mass; // entrained this substep, see above
+        p.velocity = vec3f(0.0);
+        p.plastic_state = material_initial_state();
+        store_c(&p, mat3x3f(vec3f(0.0), vec3f(0.0), vec3f(0.0)));
+        store_f(&p, identity3());
+        store_kirchhoff(&p, mat3x3f(vec3f(0.0), vec3f(0.0), vec3f(0.0)));
+        particles[settings.release_particles + slot] = p;
+        pending -= per_particle;
+    }
+    (*stats).cover = cover;
+    (*stats).eroded = pending;
 }
 
 @compute @workgroup_size(8, 8, 1) // TILE_SIZE x TILE_SIZE
@@ -113,8 +179,15 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>, @builtin(workgroup_
     }
 
     var column_mass = 0.0;
+    var column_momentum = 0.0; // sum of mass * speed
     for (var layer = 0u; layer < settings.grid_res.z; layer++) {
-        column_mass += update_node(node_xy, i32(layer), layer * layer_stride + column, flow_depth);
+        let node = update_node(node_xy, i32(layer), layer * layer_stride + column, flow_depth);
+        column_mass += node.x;
+        column_momentum += node.y;
+    }
+    if settings.entrainment_mode != ENTRAINMENT_OFF && column_mass > 0.0 {
+        let depth = column_mass / settings.particle_mass * seeded_particle_volume() / (settings.dx * settings.dx);
+        entrain_column(node_xy, column, depth, column_momentum / column_mass);
     }
 
     // Peaks of the column (see ColumnStats). Depth from the column's mass as for Voellmy above.

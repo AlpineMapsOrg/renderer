@@ -49,10 +49,10 @@ namespace {
     /* grid_velocity in mpm_common.wgsl: one vec4f per node. */
     constexpr uint32_t GRID_VELOCITY_STRIDE_U32 = 4u; // 16 bytes
     /* Size of struct ColumnStats in mpm_common.wgsl, in units of uint32: peak depth and speed
-     * (f32), then two per-substep accumulators. */
-    constexpr uint32_t COLUMN_STATS_STRIDE_U32 = 4u; // 16 bytes
+     * (f32), two per-substep accumulators, then the column's snow cover and its eroded rest. */
+    constexpr uint32_t COLUMN_STATS_STRIDE_U32 = 6u; // 24 bytes (the last two: entrainment cover)
     /* Size of struct SimState in mpm_common.wgsl, in units of uint32. */
-    constexpr uint32_t SIM_STATE_SIZE_U32 = 18u; // 72 bytes
+    constexpr uint32_t SIM_STATE_SIZE_U32 = 21u; // 84 bytes
     /* Slots of struct SimState. */
     constexpr size_t STATE_SEED_FIRST_HITS = 5;
     constexpr size_t STATE_SUM_X = 6;
@@ -62,6 +62,10 @@ namespace {
     constexpr size_t STATE_SUM_PATH = 14;
     constexpr size_t STATE_CEILING_CONTACTS = 16;
     constexpr size_t STATE_WALL_CONTACTS = 17;
+    constexpr size_t STATE_COVER_VOLUME = 18;
+    constexpr size_t STATE_ENTRAINED_PARTICLES = 19;
+    constexpr size_t STATE_POOL_EXHAUSTED = 20;
+    constexpr double COVER_VOLUME_SCALE = 100.0; // mpm_common.wgsl
     /* Mirrors the constants in mpm_common.wgsl. */
     constexpr double SUM_POSITION_SCALE = 1.0e4;
     constexpr double SUM_SPEED_SQ_SCALE = 1.0e5;
@@ -206,9 +210,33 @@ MpmSolverNode::MpmSolverNode(webgpu::Context& ctx, const MpmSolverSettings& sett
                 buffer_entry(9, WGPUBufferBindingType_Storage), // grid node velocities
                 buffer_entry(10, WGPUBufferBindingType_Storage), // active tile flags
                 buffer_entry(11, WGPUBufferBindingType_Storage), // column stats: peak depth and speed
+                texture_entry(12, WGPUTextureSampleType_UnfilterableFloat), // snow cover depth (R32Float), entrainment
             },
             "mpm solver bind group layout");
     });
+
+    // Bound in place of a cover texture when there is none: 1x1, depth 0.
+    {
+        WGPUTextureDescriptor texture_desc {};
+        texture_desc.label = WGPUStringView { .data = "mpm no snow cover", .length = WGPU_STRLEN };
+        texture_desc.dimension = WGPUTextureDimension_2D;
+        texture_desc.size = { 1, 1, 1 };
+        texture_desc.mipLevelCount = 1;
+        texture_desc.sampleCount = 1;
+        texture_desc.format = WGPUTextureFormat_R32Float;
+        texture_desc.usage = WGPUTextureUsage(WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst);
+        WGPUSamplerDescriptor sampler_desc {};
+        sampler_desc.addressModeU = WGPUAddressMode_ClampToEdge;
+        sampler_desc.addressModeV = WGPUAddressMode_ClampToEdge;
+        sampler_desc.addressModeW = WGPUAddressMode_ClampToEdge;
+        sampler_desc.magFilter = WGPUFilterMode_Nearest;
+        sampler_desc.minFilter = WGPUFilterMode_Nearest;
+        sampler_desc.mipmapFilter = WGPUMipmapFilterMode_Nearest;
+        sampler_desc.lodMaxClamp = 1.0f;
+        sampler_desc.maxAnisotropy = 1;
+        m_no_cover_texture = std::make_unique<webgpu::raii::TextureWithSampler>(ctx.device(), texture_desc, sampler_desc);
+        m_no_cover_texture->texture().write(ctx.queue(), nucleus::Raster<float>(glm::uvec2(1), 0.0f));
+    }
 
     // See PipelineRegistration: one factory per registry, shared by all solver instances.
     auto& registration = pipeline_registrations()[&reg];
@@ -262,8 +290,12 @@ bool MpmSolverNode::ensure_resources()
     wgpuDeviceGetLimits(m_ctx->device(), &limits);
     const uint64_t max_binding = std::max<uint64_t>(limits.maxStorageBufferBindingSize, 1u << 20);
 
+    // The release particles, then the slots of the snow cover (plan_cover() keeps both together
+    // within the limits; this only guards the release alone).
     uint32_t num_particles = std::clamp(m_settings.num_particles, 1u, MAX_PARTICLES);
     num_particles = uint32_t(std::min<uint64_t>(num_particles, max_binding / (PARTICLE_STRIDE_U32 * 4u)));
+    const uint32_t release_particles = num_particles;
+    num_particles += m_cover.slot_count;
     glm::uvec3 grid_res(std::clamp(m_settings.grid_resolution_xy, 8u, MAX_GRID_RESOLUTION_XY),
         std::clamp(m_settings.grid_resolution_xy, 8u, MAX_GRID_RESOLUTION_XY),
         std::clamp(m_settings.grid_layers, 8u, MAX_GRID_LAYERS));
@@ -272,12 +304,12 @@ bool MpmSolverNode::ensure_resources()
         grid_res.z--;
     while (uint64_t(grid_res.x) * grid_res.y * grid_res.z > max_nodes)
         grid_res.x = grid_res.y = grid_res.x - 8u;
-    const bool limited = num_particles != std::clamp(m_settings.num_particles, 1u, MAX_PARTICLES)
+    const bool limited = release_particles != std::clamp(m_settings.num_particles, 1u, MAX_PARTICLES)
         || grid_res.z != std::clamp(m_settings.grid_layers, 8u, MAX_GRID_LAYERS)
         || grid_res.x != std::clamp(m_settings.grid_resolution_xy, 8u, MAX_GRID_RESOLUTION_XY);
     const uint32_t raster_resolution = std::clamp(m_settings.raster_resolution, 64u, 4096u);
 
-    if (m_particle_buffer && num_particles == m_allocated_particles && grid_res == m_allocated_grid_res
+    if (m_particle_buffer && num_particles == m_allocated_particles && release_particles == m_release_particles && grid_res == m_allocated_grid_res
         && raster_resolution == m_allocated_raster_resolution) {
         return false;
     }
@@ -307,6 +339,7 @@ bool MpmSolverNode::ensure_resources()
     m_output_texture = create_output_texture(m_ctx->device(), raster_resolution, raster_resolution);
 
     m_allocated_particles = num_particles;
+    m_release_particles = release_particles;
     m_particle_view.particles = m_particle_buffer.get();
     m_particle_view.previous_particles = nullptr;
     m_particle_view.particle_count = num_particles;
@@ -327,13 +360,16 @@ bool MpmSolverNode::ensure_resources()
 
 void MpmSolverNode::ensure_bind_group(const webgpu::raii::TextureWithSampler& height_texture, const webgpu::raii::TextureWithSampler& release_texture)
 {
+    const webgpu::raii::TextureWithSampler& cover_texture = m_cover.texture != nullptr ? *m_cover.texture : *m_no_cover_texture;
     if (m_bind_group && m_bind_group_generation == m_resource_generation && m_bind_group_run_id == get_run_id()
-        && m_bind_group_height == height_texture.texture().handle() && m_bind_group_release == release_texture.texture().handle())
+        && m_bind_group_height == height_texture.texture().handle() && m_bind_group_release == release_texture.texture().handle()
+        && m_bind_group_cover == cover_texture.texture().handle())
         return;
     m_bind_group_generation = m_resource_generation;
     m_bind_group_run_id = get_run_id();
     m_bind_group_height = height_texture.texture().handle();
     m_bind_group_release = release_texture.texture().handle();
+    m_bind_group_cover = cover_texture.texture().handle();
 
     m_bind_group = std::make_unique<webgpu::raii::BindGroup>(m_ctx->device(),
         m_ctx->resource_registry().bind_group_layout("mpm_solver"),
@@ -350,6 +386,7 @@ void MpmSolverNode::ensure_bind_group(const webgpu::raii::TextureWithSampler& he
             m_grid_velocity_buffer->create_bind_group_entry(9),
             m_tile_flag_buffer->create_bind_group_entry(10),
             m_column_peak_buffer->create_bind_group_entry(11),
+            cover_texture.texture_view().create_bind_group_entry(12),
         },
         "mpm solver bind group");
 }
@@ -366,8 +403,7 @@ float MpmSolverNode::max_stable_dt(const MpmSolverSettings& settings, float dx)
     return CFL_NUMBER * dx / std::max(wave_speed, 1e-3f);
 }
 
-void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture,
-    const SandboxTerrain* sandbox, const ReleaseArea* release_area)
+MpmSolverNode::DomainPlacement MpmSolverNode::place_domain(const radix::geometry::Aabb<2, double>& region_aabb, const SandboxTerrain* sandbox) const
 {
     // The solver works in metres. World units are Web Mercator, which stretches distances by
     // 1/cos(latitude) - 1.47 at 47 degrees N - while heights are real metres, so taking world
@@ -375,13 +411,12 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     // offsets are scaled to metres here and the domain box scaled back for the map; across a
     // few kilometres the scale varies by well under 0.1 %, so one factor for the region is enough.
     // The sandbox region is a DEM in metres already.
-    if (sandbox != nullptr) {
-        m_metres_per_world_unit = 1.0;
-    } else {
+    DomainPlacement placement;
+    if (sandbox == nullptr) {
         const glm::dvec2 region_centre = nucleus::srs::world_to_lat_long((region_aabb.min + region_aabb.max) * 0.5);
-        m_metres_per_world_unit = std::cos(glm::radians(region_centre.x));
+        placement.metres_per_world_unit = std::cos(glm::radians(region_centre.x));
     }
-    const double to_metres = m_metres_per_world_unit;
+    const double to_metres = placement.metres_per_world_unit;
     const glm::fvec2 region_size = glm::fvec2(region_aabb.size() * to_metres);
     // The domain cannot usefully exceed the terrain we actually have: outside the region the
     // height texture clamps to its edge texel, which would be a flat extrusion, not terrain.
@@ -389,7 +424,6 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     // along them, and its NODATA rim is filled the same way anyway (AvaFrameSandboxNode).
     const float region_limit = sandbox != nullptr ? std::max(region_size.x, region_size.y) : std::max(std::min(region_size.x, region_size.y), 1.0f);
     const float domain_size = std::clamp(m_settings.domain_size_xy, 1.0f, region_limit);
-    const float dx = domain_size / float(m_allocated_grid_res.x);
 
     // Place the domain inside the region and keep it fully covered by the terrain data.
     // Geographic anchors are converted here, where the region bounds are known, so tile
@@ -400,7 +434,53 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
         : glm::fvec2((nucleus::srs::lat_long_to_world(m_settings.domain_center) - region_aabb.min) * to_metres);
     const glm::fvec2 requested_origin = requested_centre - glm::fvec2(domain_size * 0.5f);
     const glm::fvec2 max_origin = glm::max(region_size - glm::fvec2(domain_size), glm::fvec2(0.0f));
-    const glm::fvec2 domain_origin = glm::clamp(requested_origin, glm::fvec2(0.0f), max_origin);
+    placement.region_size = region_size;
+    placement.origin = glm::clamp(requested_origin, glm::fvec2(0.0f), max_origin);
+    placement.size = domain_size;
+    return placement;
+}
+
+void MpmSolverNode::plan_cover(const SandboxTerrain* sandbox, const ReleaseArea* release_area)
+{
+    CoverPlan plan;
+    if (m_settings.entrainment_mode != ENTRAINMENT_OFF) {
+        // AvaFrame's entrainment areas where they exist (sandbox; AvaFrame scenarios on the map),
+        // else on the map one thickness on every slope up to the limit.
+        if (sandbox != nullptr && sandbox->entrainment_texture != nullptr) {
+            plan.mode = 1u;
+            plan.texture = sandbox->entrainment_texture;
+        } else if (sandbox == nullptr && release_area != nullptr && release_area->entrainment_texture != nullptr) {
+            plan.mode = 1u;
+            plan.texture = release_area->entrainment_texture;
+        } else if (sandbox == nullptr && m_settings.cover_thickness > 0.0f) {
+            plan.mode = 2u;
+        }
+        // The pool, within the device's limit on the particle buffer.
+        if (plan.mode != 0u) {
+            WGPULimits limits {};
+            wgpuDeviceGetLimits(m_ctx->device(), &limits);
+            const uint64_t max_binding = std::max<uint64_t>(limits.maxStorageBufferBindingSize, 1u << 20);
+            const uint64_t max_total = std::min<uint64_t>(MAX_PARTICLES, max_binding / (PARTICLE_STRIDE_U32 * 4u));
+            const uint64_t release_particles = std::clamp(m_settings.num_particles, 1u, MAX_PARTICLES);
+            const uint64_t wanted = uint64_t(std::max(m_settings.pool_size, 0.0f) * double(release_particles));
+            plan.slot_count = uint32_t(std::min<uint64_t>(wanted, max_total > release_particles ? max_total - release_particles : 0u));
+            if (plan.slot_count == 0u)
+                plan = {};
+        }
+    }
+    m_cover = plan;
+}
+
+void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture,
+    const SandboxTerrain* sandbox, const ReleaseArea* release_area)
+{
+    const DomainPlacement placement = place_domain(region_aabb, sandbox);
+    m_metres_per_world_unit = placement.metres_per_world_unit;
+    const double to_metres = placement.metres_per_world_unit;
+    const glm::fvec2 region_size = placement.region_size;
+    const float domain_size = placement.size;
+    const glm::fvec2 domain_origin = placement.origin;
+    const float dx = domain_size / float(m_allocated_grid_res.x);
 
     auto& data = m_settings_uniform.data;
     data.grid_res = m_allocated_grid_res;
@@ -513,7 +593,7 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     // keeps the runout visible as the same snow covers a larger area.
     constexpr float SPREAD_TOLERANCE = 6.0f;
     const float splat_area = 3.14159265f * radius_texels * radius_texels;
-    data.density_reference = std::max(float(m_allocated_particles) * splat_area / (SPREAD_TOLERANCE * std::max(release_area_texels, 1.0f)), 1.0f);
+    data.density_reference = std::max(float(m_release_particles) * splat_area / (SPREAD_TOLERANCE * std::max(release_area_texels, 1.0f)), 1.0f);
 
     data.constitutive_model = static_cast<uint32_t>(m_settings.constitutive_model);
     data.basal_friction_model = static_cast<uint32_t>(m_settings.basal_friction_model);
@@ -528,6 +608,20 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     data.ccc_beta = std::max(m_settings.ccc_beta, 0.0f);
     data.ccc_xi = std::max(m_settings.ccc_xi, 1e-6f);
     data.ccc_p0_initial = std::max(m_settings.ccc_p0_initial, 0.0f);
+
+    // Entrainment. The cover's slots are whatever was allocated beyond the release.
+    data.entrainment_mode = m_cover.mode != 0u ? uint32_t(m_settings.entrainment_mode) : 0u;
+    data.cover_mode = m_cover.mode;
+    data.release_particles = m_release_particles;
+    data.pool_particles = m_allocated_particles - m_release_particles;
+    data.cover_thickness = std::max(m_settings.cover_thickness, 0.0f);
+    data.cover_cos_max_slope = std::cos(glm::radians(std::clamp(m_settings.cover_max_slope, 0.0f, 85.0f)));
+    data.snow_density = std::max(m_settings.snow_density, 1.0f);
+    data.entrainment_density = std::max(m_settings.entrainment_density, 1.0f);
+    data.cover_density_ratio = data.entrainment_density / data.snow_density;
+    data.erosion_energy = std::max(m_settings.erosion_energy, 1.0f);
+    data.plowing_depth = std::max(m_settings.plowing_depth, 0.0f);
+    data.entrainment_min_speed = std::max(m_settings.entrainment_min_speed, 0.0f);
 
     m_settings_uniform.update_gpu_data(m_ctx->queue());
 
@@ -654,7 +748,11 @@ void MpmSolverNode::on_state_mapped(float time, float gravity, uint32_t substeps
     m_last_state.max_speed = float(data[3]) / 1000.0f;
     m_last_state.plastic_particles = data[4];
 
-    const double active = std::max(double(m_last_state.active_particles), 1.0);
+    // Picked-up cover particles flow like release ones and are in every sum.
+    m_last_state.cover_volume = double(data[STATE_COVER_VOLUME]) / COVER_VOLUME_SCALE;
+    m_last_state.entrained_particles = std::min(data[STATE_ENTRAINED_PARTICLES], m_allocated_particles - m_release_particles);
+    m_last_state.pool_exhausted_volume = double(data[STATE_POOL_EXHAUSTED]) / COVER_VOLUME_SCALE;
+    const double active = std::max(double(m_last_state.active_particles) + double(m_last_state.entrained_particles), 1.0);
     m_last_state.centre_of_mass = glm::dvec3(double(wide(data, STATE_SUM_X)), double(wide(data, STATE_SUM_Y)), double(wide(data, STATE_SUM_Z)))
         / SUM_POSITION_SCALE / active;
     m_last_state.mean_speed_sq = float(double(wide(data, STATE_SUM_SPEED_SQ)) / SUM_SPEED_SQ_SCALE / active);
@@ -663,9 +761,14 @@ void MpmSolverNode::on_state_mapped(float time, float gravity, uint32_t substeps
     m_last_state.wall_contacts = data[STATE_WALL_CONTACTS];
     m_contacts_since_reset.ceiling += m_last_state.ceiling_contacts;
     m_contacts_since_reset.wall += m_last_state.wall_contacts;
-    m_contacts_since_reset.particle_substeps += uint64_t(m_last_state.active_particles) * substeps;
+    m_contacts_since_reset.particle_substeps += (uint64_t(m_last_state.active_particles) + m_last_state.entrained_particles) * substeps;
     m_last_state.run_substeps = substeps;
-    m_last_state.release_area_share = float(double(data[STATE_SEED_FIRST_HITS]) / std::max(double(m_allocated_particles), 1.0));
+    m_last_state.release_area_share = float(double(data[STATE_SEED_FIRST_HITS]) / std::max(double(m_release_particles), 1.0));
+    m_last_state.particle_volume = particle_volume_from(data);
+    const double particle_mass = m_last_state.particle_volume * double(m_settings_uniform.data.snow_density);
+    m_last_state.cover_mass = m_last_state.cover_volume * double(m_settings_uniform.data.entrainment_density);
+    m_last_state.entrained_mass = double(m_last_state.entrained_particles) * particle_mass;
+    m_last_state.entrained_volume = m_last_state.entrained_mass / double(std::max(m_settings_uniform.data.entrainment_density, 1.0f));
     m_last_state.valid = true;
 
     // com1DFA's stop criterion on the kinetic energy (equal particle masses, so the mean of
@@ -676,6 +779,17 @@ void MpmSolverNode::on_state_mapped(float time, float gravity, uint32_t substeps
 
     if (m_last_state.active_particles > 0)
         append_energy_sample(time, gravity);
+}
+
+double MpmSolverNode::particle_volume_from(const std::vector<uint32_t>& state) const
+{
+    // As seeded_particle_volume() in mpm_common.wgsl: the release volume shared out.
+    const auto& u = m_settings_uniform.data;
+    const double active = std::max(double(state[2]), 1.0);
+    if (u.release_mode == 1u)
+        return double(u.release_volume) / active;
+    const double share = double(state[STATE_SEED_FIRST_HITS]) / std::max(double(m_release_particles), 1.0);
+    return share * glm::pi<double>() * double(u.release_radius) * double(u.release_radius) * double(u.slab_thickness) / active;
 }
 
 void MpmSolverNode::append_energy_sample(float time, float gravity)
@@ -844,11 +958,29 @@ void MpmSolverNode::run_impl()
         = *std::get<data_type<const webgpu::raii::TextureWithSampler*>()>(input_socket("release point texture").get_connected_data());
 
     m_run_started = std::chrono::steady_clock::now();
-    ensure_resources();
     const SandboxTerrain* sandbox_terrain = sandbox();
     // On the map, release areas given per cell take the place of the release point mask: the
     // seed reads its depth from the same binding, as in the sandbox.
     const ReleaseArea* map_release = sandbox_terrain == nullptr ? release_area() : nullptr;
+    // The snow cover is planned for each seed, before the buffers are sized: its slots come
+    // after the release particles. Reallocating forces a seed, which then needs its plan too.
+    const bool planned = m_settings.reset_on_next_run;
+    if (planned)
+        plan_cover(sandbox_terrain, map_release);
+    ensure_resources();
+    if (m_settings.reset_on_next_run && !planned) {
+        plan_cover(sandbox_terrain, map_release);
+        ensure_resources();
+    }
+    // The texture of a planned cover is the upstream node's, which it recreates whenever it runs:
+    // take it from the input again each run, never a pointer kept from the seed.
+    if (m_cover.mode == 1u) {
+        m_cover.texture = sandbox_terrain != nullptr ? sandbox_terrain->entrainment_texture
+            : map_release != nullptr                 ? map_release->entrainment_texture
+                                                     : nullptr;
+        if (m_cover.texture == nullptr)
+            m_cover.mode = 0u; // gone (input disconnected): the dormant cover stays where it is
+    }
     update_gpu_settings(*region_aabb, height_texture, sandbox_terrain, map_release);
     ensure_bind_group(height_texture, map_release != nullptr ? *map_release->depth_texture : release_point_texture);
 
@@ -1262,6 +1394,14 @@ void MpmSolverNode::serialize_settings(QJsonObject& out) const
     out["random_seed"] = static_cast<int>(s.random_seed);
     out["seed_anywhere"] = s.seed_anywhere;
     out["stop_kinetic_fraction"] = s.stop_kinetic_fraction;
+    out["entrainment_mode"] = static_cast<int>(s.entrainment_mode);
+    out["entrainment_density"] = s.entrainment_density;
+    out["erosion_energy"] = s.erosion_energy;
+    out["plowing_depth"] = s.plowing_depth;
+    out["entrainment_min_speed"] = s.entrainment_min_speed;
+    out["cover_thickness"] = s.cover_thickness;
+    out["cover_max_slope"] = s.cover_max_slope;
+    out["pool_size"] = s.pool_size;
 }
 
 void MpmSolverNode::deserialize_settings(const QJsonObject& in)
@@ -1305,6 +1445,14 @@ void MpmSolverNode::deserialize_settings(const QJsonObject& in)
     s.release_radius = read_float("release_radius", s.release_radius);
     s.random_seed = read_uint("random_seed", s.random_seed);
     s.stop_kinetic_fraction = read_float("stop_kinetic_fraction", s.stop_kinetic_fraction);
+    s.entrainment_mode = static_cast<EntrainmentMode>(std::min(read_uint("entrainment_mode", s.entrainment_mode), uint32_t(EROSION)));
+    s.entrainment_density = read_float("entrainment_density", s.entrainment_density);
+    s.erosion_energy = read_float("erosion_energy", s.erosion_energy);
+    s.plowing_depth = read_float("plowing_depth", s.plowing_depth);
+    s.entrainment_min_speed = read_float("entrainment_min_speed", s.entrainment_min_speed);
+    s.cover_thickness = read_float("cover_thickness", s.cover_thickness);
+    s.cover_max_slope = read_float("cover_max_slope", s.cover_max_slope);
+    s.pool_size = read_float("pool_size", s.pool_size);
     if (in.contains("seed_anywhere"))
         s.seed_anywhere = in["seed_anywhere"].toBool(s.seed_anywhere);
     s.reset_on_next_run = true;

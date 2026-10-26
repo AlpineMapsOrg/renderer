@@ -123,6 +123,24 @@ TEST_CASE("webgpu_compute::resample_release")
         CHECK(r.volume == Approx(5000.0).epsilon(0.15));
     }
 
+    SECTION("any depth raster: the entrainment cover resamples like the release")
+    {
+        // A 0.4 m cover over cells 50-89 in x and 10-29 in y from the south: 200 m x 100 m.
+        nucleus::Raster<float> cover(terrain.grid_size, 0.0f);
+        for (uint32_t y = 10; y < 30; y++)
+            for (uint32_t x = 50; x < 90; x++)
+                cover.pixel(glm::uvec2(x, terrain.grid_size.y - 1 - y)) = 0.4f;
+        terrain.sandbox_to_world = placement(origin, 0.0, 1.0);
+        const auto r = resample_depth(terrain, cover, region(origin, origin + glm::dvec2(500.0, 400.0)), 1.0, 5.0);
+        CHECK(r.volume == Approx(0.4 * 200.0 * 100.0));
+        CHECK(r.min.x == Approx(250.0));
+        CHECK(r.min.y == Approx(50.0));
+        CHECK(r.max.x == Approx(450.0));
+        CHECK(r.max.y == Approx(150.0));
+        // The release raster is untouched by it.
+        CHECK(resample_release(terrain, region(origin, origin + glm::dvec2(500.0, 400.0)), 1.0, 5.0).volume == Approx(5000.0));
+    }
+
     SECTION("without a placement or outside the region there is no release")
     {
         const auto unplaced = resample_release(terrain, region(origin, origin + glm::dvec2(500.0, 400.0)), 1.0, 5.0);

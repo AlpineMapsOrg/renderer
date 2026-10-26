@@ -67,6 +67,13 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>, @builtin(local_invo
 
 fn update_particle(index: u32) {
     var p = particles[index];
+    // Snow the flow entrained in this substep's grid update (mpm_grid_update, entrain_column):
+    // it joins the flow at rest. Not gathered now - it was not in this substep's P2G.
+    if p.mass < 0.0 {
+        p.mass = -p.mass;
+        particles[index] = p;
+        return;
+    }
     if p.mass <= 0.0 {
         return;
     }

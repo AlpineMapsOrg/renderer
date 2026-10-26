@@ -22,6 +22,7 @@
 #include "ui/ImGuiPanel.h"
 
 #include <webgpu/compute/SimulationClock.h>
+#include <webgpu/compute/nodes/MpmSolverNode.h>
 
 #include <QJsonArray>
 #include <QJsonObject>
@@ -176,6 +177,12 @@ private:
     /// Writes mode, speed and GPU budget into the solver's clock. Every frame: cheap, and it
     /// keeps a freshly loaded solver (whose clock starts with defaults) in line with the panel.
     void sync_clock(webgpu_compute::nodes::MpmSolverNode& solver);
+    /// The entrainment mode of the current context (map or sandbox), as the panel keeps it.
+    webgpu_compute::nodes::MpmSolverNode::EntrainmentMode& entrainment_mode();
+    /// Puts the context's entrainment mode into the solver (every frame, not during a batch);
+    /// switching it on or off reseeds, because the cover is seeded with the release.
+    void sync_entrainment(webgpu_compute::nodes::MpmSolverNode& solver);
+    void draw_entrainment(webgpu_compute::nodes::MpmSolverNode& solver, webgpu_compute::nodes::MpmSolverNode::MpmSolverSettings& settings, bool& settings_changed, bool& step_now);
     bool playing() const;
     void set_playing(bool playing);
     /// One run now, through the clock (accuracy-sized); after a settings edit or Reset.
@@ -268,6 +275,10 @@ private:
     Playback m_sandbox_playback { webgpu_compute::SimulationClock::Mode::Accuracy, Pacing::Balanced };
     float m_playback_speed = 1.0f; // real time: simulated seconds per wall-clock second
     bool m_playback_interpolate = true; // real time: draw the particles between the last two simulated states
+    /* Entrainment per context: on the map the flow picks up the snow cover (com1DFA's default
+     * law); off in the sandbox, whose comparison runs with com1DFA's null tests. */
+    webgpu_compute::nodes::MpmSolverNode::EntrainmentMode m_map_entrainment = webgpu_compute::nodes::MpmSolverNode::EROSION;
+    webgpu_compute::nodes::MpmSolverNode::EntrainmentMode m_sandbox_entrainment = webgpu_compute::nodes::MpmSolverNode::ENTRAINMENT_OFF;
 
     bool m_startup_sandbox = false; // autostart loads the sandbox instead of the map
     std::string m_sandbox_root;

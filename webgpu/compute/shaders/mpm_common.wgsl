@@ -84,12 +84,40 @@ struct MpmSettings {
     release_volume: f32, // [m^3], RELEASE_GRID only
     release_max_depth: f32, // [m], RELEASE_GRID only
     release_half_y: f32, // half height of the release bounds [m]; release_radius is the half width
+
+    // Entrainment (see entrain_column() in mpm_grid_update.wgsl). Particles [0, release_particles)
+    // are the release; [release_particles, num_particles) a pool the entrained snow is drawn from.
+    entrainment_mode: u32, // ENTRAINMENT_OFF, _PLOWING or _EROSION
+    cover_mode: u32, // COVER_NONE, COVER_TEXTURE or COVER_UNIFORM
+    release_particles: u32,
+    pool_particles: u32,
+
+    cover_thickness: f32, // COVER_UNIFORM: slope-normal thickness [m]
+    cover_cos_max_slope: f32, // COVER_UNIFORM: no cover on slopes steeper than this
+    cover_density_ratio: f32, // density of the cover / density of the flowing snow
+    erosion_energy: f32, // e_b [J/kg], EROSION
+
+    plowing_depth: f32, // [m], flow depth over a column that takes its cover, PLOWING
+    entrainment_min_speed: f32, // [m/s], slower flow picks nothing up
+    snow_density: f32, // [kg/m^3] of the flowing snow, for the basal shear stress
+    entrainment_density: f32, // [kg/m^3] of the cover
 }
 
 // Release disc masked by the release point texture (alpha) - the map.
 const RELEASE_DISC: u32 = 0u;
 // Release depth per cell in the release texture (r, metres, vertical) - the AvaFrame sandbox.
 const RELEASE_GRID: u32 = 1u;
+
+// Entrainment law (com1DFA, Tonnel et al. 2023): plowing takes the whole cover at the front,
+// erosion at the rate tau_b |u| / e_b per area.
+const ENTRAINMENT_OFF: u32 = 0u;
+const ENTRAINMENT_PLOWING: u32 = 1u;
+const ENTRAINMENT_EROSION: u32 = 2u;
+// Where the snow cover comes from: none, the entrainment texture (vertical depth per cell, the
+// AvaFrame areas), or one slope-normal thickness everywhere up to a slope.
+const COVER_NONE: u32 = 0u;
+const COVER_TEXTURE: u32 = 1u;
+const COVER_UNIFORM: u32 = 2u;
 
 // The six scalars in the vec3 padding hold the Kirchhoff stress tau = P F^T of the particle's
 // current elastic state (symmetric for every model here, so six components). G2P computes it
@@ -188,7 +216,15 @@ struct SimState {
     // result depends on the box, not only on the physics - more layers or a larger domain.
     ceiling_contacts: atomic<u32>,
     wall_contacts: atomic<u32>,
+
+    // Entrainment, from the reset on: the cover in the domain (mpm_prepare, in COVER_VOLUME_SCALE
+    // units of cover volume), the pool slots handed out to entrained snow so far (can run past
+    // the pool), and the cover volume the flow could not take because the pool was used up.
+    cover_volume: atomic<u32>,
+    entrained_particles: atomic<u32>,
+    pool_exhausted: atomic<u32>, // COVER_VOLUME_SCALE units
 }
+const COVER_VOLUME_SCALE: f32 = 100.0; // 0.01 m^3; 4e7 m^3 of cover still fit a u32
 
 // Per-particle contributions have to fit a u32 on their own: 4500 m * 1e4 = 4.5e7 and
 // (100 m/s)^2 * 1e5 = 1e9 both do. The sums are 64-bit, so particle count is irrelevant.
@@ -209,7 +245,7 @@ fn seeded_particle_volume() -> f32 {
     if settings.release_mode == RELEASE_GRID {
         return settings.release_volume / max(f32(atomicLoad(&state.active_particles)), 1.0);
     }
-    let hit_share = f32(atomicLoad(&state.seed_first_hits)) / f32(max(settings.num_particles, 1u));
+    let hit_share = f32(atomicLoad(&state.seed_first_hits)) / f32(max(settings.release_particles, 1u));
     let area = hit_share * 3.14159265 * settings.release_radius * settings.release_radius;
     return area * settings.slab_thickness / max(f32(atomicLoad(&state.active_particles)), 1.0);
 }
@@ -244,9 +280,16 @@ struct ColumnStats {
     peak_speed: f32, // [m/s], mean speed of the particles in the column
     particles: atomic<u32>, // this substep
     speed_sum: atomic<u32>, // this substep, [SPEED_SUM_SCALE]
+    // Entrainment: the snow cover left on the column's cell [m^3 of cover], set at the reset
+    // (mpm_prepare), and cover already eroded but not yet turned into a particle [m^3].
+    cover: f32,
+    eroded: f32,
 }
 const SPEED_SUM_SCALE: f32 = 100.0; // cm/s; 2^21 particles at 20 m/s still fit a u32
 @group(0) @binding(11) var<storage, read_write> column_stats: array<ColumnStats>;
+// Snow cover depth per cell [m, vertical] in region uv like the release texture (COVER_TEXTURE);
+// a 1x1 placeholder otherwise.
+@group(0) @binding(12) var entrainment_texture: texture_2d<f32>;
 
 // ---------------------------------------------------------------------------------------
 // Fixed point helpers
@@ -312,6 +355,38 @@ fn terrain_normal(world_xy: vec2f) -> vec3f {
     let dhdx = (terrain_height(world_xy + vec2f(h, 0.0)) - terrain_height(world_xy - vec2f(h, 0.0))) / (2.0 * h);
     let dhdy = (terrain_height(world_xy + vec2f(0.0, h)) - terrain_height(world_xy - vec2f(0.0, h))) / (2.0 * h);
     return normalize(vec3f(-dhdx, -dhdy, 1.0));
+}
+
+// Vertical depth of the snow cover at a point [m], 0 where there is none. The texture holds
+// vertical depth already; the uniform cover is a slope-normal thickness, like AvaFrame's, so a
+// vertical column holds thickness / cos(slope).
+fn cover_depth_at(world_xy: vec2f) -> f32 {
+    if settings.cover_mode == COVER_TEXTURE {
+        let dim = textureDimensions(entrainment_texture);
+        let texel = vec2u(clamp(world_to_uv(world_xy), vec2f(0.0), vec2f(0.9999)) * vec2f(dim));
+        return max(textureLoad(entrainment_texture, texel, 0).r, 0.0);
+    }
+    if settings.cover_mode == COVER_UNIFORM {
+        let up = terrain_normal(world_xy).z; // cos(slope)
+        if up < settings.cover_cos_max_slope {
+            return 0.0;
+        }
+        return settings.cover_thickness / max(up, 0.05);
+    }
+    return 0.0;
+}
+
+// The release lies here, so there is no cover: its snow is the release (com1DFA removes the
+// overlap too). The texture cover has these cells removed already (the loader); this is for the
+// uniform one. With seed_anywhere the release is the whole disc.
+fn under_release(world_xy: vec2f) -> bool {
+    let dim = textureDimensions(release_point_texture);
+    let texel = textureLoad(release_point_texture, vec2u(clamp(world_to_uv(world_xy), vec2f(0.0), vec2f(0.9999)) * vec2f(dim)), 0);
+    if settings.release_mode == RELEASE_GRID {
+        return texel.r > 0.0;
+    }
+    let centre = vec2f(settings.release_centre_x, settings.release_centre_y);
+    return distance(world_xy, centre) <= settings.release_radius && (settings.seed_anywhere > 0.5 || texel.a > 0.0);
 }
 
 // ---------------------------------------------------------------------------------------

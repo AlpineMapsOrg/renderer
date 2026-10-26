@@ -127,6 +127,15 @@ public:
         VOELLMY = 1, // Coulomb + turbulent drag g|v|^2/(xi h), h the local flow depth; pair with a lower mu (~0.155)
     };
 
+    /* Entrainment: how the flow picks up the snow cover along its path (com1DFA's two modes,
+     * Tonnel et al. 2023). Values must match the constants in mpm_common.wgsl. See
+     * mpm-mls-doc/15-entrainment.md. */
+    enum EntrainmentMode : uint32_t {
+        ENTRAINMENT_OFF = 0,
+        PLOWING = 1, // the front takes the whole cover
+        EROSION = 2, // the flow erodes the cover at tau_b |u| / e_b per area (com1DFA's default)
+    };
+
     struct MpmSolverSettings {
         ConstitutiveModel constitutive_model = STOMAKHIN_2013;
         BasalFrictionModel basal_friction_model = COULOMB;
@@ -224,6 +233,25 @@ public:
          * release area to sit on. */
         bool seed_anywhere = false;
 
+        /* Entrainment. The snow cover is a field per grid column, set at the reset; the grid
+         * update erodes it where the flow passes and turns the eroded snow into particles from a
+         * pool after the release particles (entrain_column() in mpm_grid_update.wgsl). The cover
+         * comes from AvaFrame's entrainment areas where given (sandbox, AvaFrame scenarios on the
+         * map), else from cover_thickness. Switching it on or off, and changes to the cover, take
+         * effect with the next reset. Defaults are com1DFA's (com1DFACfg.ini, 2.1). */
+        EntrainmentMode entrainment_mode = ENTRAINMENT_OFF;
+        float entrainment_density = 100.0f; // [kg/m^3] of the cover (rhoEnt)
+        float erosion_energy = 5000.0f; // e_b [J/kg] (entEroEnergy), EROSION
+        float plowing_depth = 0.1f; // [m] flow depth over a column that takes its cover, PLOWING
+        float entrainment_min_speed = 1.0f; // [m/s] slower flow picks nothing up
+        /* The cover where no entrainment areas are given: one slope-normal thickness on every
+         * slope up to cover_max_slope, outside the release. 0 = no cover there. */
+        float cover_thickness = 0.3f; // [m] (entThIfMissingInShp)
+        float cover_max_slope = 50.0f; // [deg] steeper slopes hold no snow (Kyburz et al. 2024 cut at 50)
+        /* Pool for the entrained snow, in particles per release particle. When it runs out the
+         * rest of the cover stays on the ground (pool_exhausted_volume in the readback). */
+        float pool_size = 2.0f;
+
         bool reset_on_next_run = true;
     };
 
@@ -281,8 +309,23 @@ private:
         float release_volume; // [m^3], release_mode 1
         float release_max_depth; // [m], release_mode 1
         float release_half_y; // half height of the release bounds [m], release_mode 1 (release_radius = half width)
+
+        uint32_t entrainment_mode;
+        uint32_t cover_mode; // 0 none, 1 texture, 2 uniform thickness
+        uint32_t release_particles; // particles [0, release_particles) are the release, the rest the entrainment pool
+        uint32_t pool_particles;
+
+        float cover_thickness; // uniform: slope-normal [m]
+        float cover_cos_max_slope;
+        float cover_density_ratio; // cover density / snow density
+        float erosion_energy;
+
+        float plowing_depth;
+        float entrainment_min_speed;
+        float snow_density;
+        float entrainment_density;
     };
-    static_assert(sizeof(MpmSolverSettingsUniform) == 192, "uniform layout must match the WGSL struct");
+    static_assert(sizeof(MpmSolverSettingsUniform) == 240, "uniform layout must match the WGSL struct");
 
 public:
     MpmSolverNode(webgpu::Context& ctx);
@@ -345,6 +388,16 @@ public:
         uint32_t wall_contacts = 0;
         uint32_t run_substeps = 0; // substeps of the run these counters describe
         float release_area_share = 0.0f; // share of the release disc that holds snow (seeding estimate)
+
+        /* Entrainment, from the reset on. Every particle has the same mass, so the entrained
+         * mass is a count times the mass of a particle (its real volume times the snow density). */
+        double cover_volume = 0.0; // [m^3] of cover in the domain at the reset
+        uint32_t entrained_particles = 0; // pool particles the flow has taken up
+        double pool_exhausted_volume = 0.0; // [m^3] of cover the flow could not take: the pool was full
+        double particle_volume = 0.0; // [m^3] real snow volume of one particle
+        double cover_mass = 0.0; // [kg]
+        double entrained_mass = 0.0; // [kg]
+        double entrained_volume = 0.0; // [m^3] as cover, at the cover's density - com1DFA's "entrained volume"
     };
     const SimStateReadback& last_state() const { return m_last_state; }
 
@@ -446,9 +499,29 @@ private:
     bool ensure_resources();
     /// Builds the bind group unless the cached one still refers to the current resources.
     void ensure_bind_group(const webgpu::raii::TextureWithSampler& height_texture, const webgpu::raii::TextureWithSampler& release_texture);
+    /// The real snow volume one particle stands for [m^3], from the last readback (0 before).
+    double particle_volume_from(const std::vector<uint32_t>& state) const;
     void create_pipelines(WGPUDevice device, const webgpu::RenderResourceRegistry& reg);
     void update_gpu_settings(const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture,
         const SandboxTerrain* sandbox, const ReleaseArea* release_area);
+
+    /// Where the domain lies in the region, in metres.
+    struct DomainPlacement {
+        double metres_per_world_unit = 1.0;
+        glm::fvec2 region_size = glm::fvec2(0.0f); // [m]
+        glm::fvec2 origin = glm::fvec2(0.0f); // region-relative [m]
+        float size = 0.0f; // [m]
+    };
+    DomainPlacement place_domain(const radix::geometry::Aabb<2, double>& region_aabb, const SandboxTerrain* sandbox) const;
+
+    /// The snow cover for the next reset: where it comes from and the size of the pool the
+    /// entrained snow is drawn from (m_cover). Called before the buffers are sized.
+    void plan_cover(const SandboxTerrain* sandbox, const ReleaseArea* release_area);
+    struct CoverPlan {
+        uint32_t mode = 0; // as cover_mode in the uniform
+        uint32_t slot_count = 0; // pool particles
+        const webgpu::raii::TextureWithSampler* texture = nullptr; // COVER_TEXTURE
+    };
     void write_initial_state();
     /// Zeroes the per-run counters (max speed, plastic particles) without touching the
     /// terrain scan or the seed count.
@@ -501,6 +574,12 @@ private:
     uint64_t m_bind_group_run_id = ~uint64_t(0);
     WGPUTexture m_bind_group_height = nullptr;
     WGPUTexture m_bind_group_release = nullptr;
+    WGPUTexture m_bind_group_cover = nullptr;
+
+    CoverPlan m_cover; // the cover of the current seed
+    /* Bound in place of the cover texture when there is none (a binding cannot be left out). */
+    std::unique_ptr<webgpu::raii::TextureWithSampler> m_no_cover_texture;
+
 
     /* Async callbacks (queue work done, buffer map) carry a copy of this instead of `this`.
      * The destructor clears the pointee, so a callback that fires after the node is gone -
@@ -508,7 +587,8 @@ private:
     std::shared_ptr<MpmSolverNode*> m_alive;
 
     /* Sizes the currently allocated resources were created for. */
-    uint32_t m_allocated_particles = 0;
+    uint32_t m_allocated_particles = 0; // release particles plus the slots of the snow cover
+    uint32_t m_release_particles = 0;
     glm::uvec3 m_allocated_grid_res = glm::uvec3(0);
     uint32_t m_allocated_raster_resolution = 0;
 

@@ -180,6 +180,11 @@ void AvalanchePanel::load_startup_settings()
     m_sandbox_playback.pacing = read_pacing("playback/sandbox_pacing", read_pacing("playback/pacing", m_sandbox_playback.pacing));
     m_playback_speed = std::clamp(settings.value("playback/speed", 1.0).toFloat(), SimulationClock::MIN_SPEED, SimulationClock::MAX_SPEED);
     m_playback_interpolate = settings.value("playback/interpolate", true).toBool();
+    const auto read_entrainment = [&](const char* key, nodes::MpmSolverNode::EntrainmentMode fallback) {
+        return nodes::MpmSolverNode::EntrainmentMode(std::clamp(settings.value(key, int(fallback)).toInt(), 0, int(nodes::MpmSolverNode::EROSION)));
+    };
+    m_map_entrainment = read_entrainment("entrainment/map_mode", m_map_entrainment);
+    m_sandbox_entrainment = read_entrainment("entrainment/sandbox_mode", m_sandbox_entrainment);
     m_selected_scenario = std::clamp(settings.value("startup/scenario", 0).toInt(), 0, int(m_scenarios.size()) - 1);
     m_selected_material_preset = std::clamp(settings.value("startup/material_preset", 0).toInt(), 0, int(m_material_presets.size()) - 1);
     m_startup_sandbox = settings.value("startup/sandbox", false).toBool();
@@ -225,6 +230,8 @@ void AvalanchePanel::save_startup_settings() const
     settings.setValue("playback/sandbox_pacing", int(m_sandbox_playback.pacing));
     settings.setValue("playback/speed", double(m_playback_speed));
     settings.setValue("playback/interpolate", m_playback_interpolate);
+    settings.setValue("entrainment/map_mode", int(m_map_entrainment));
+    settings.setValue("entrainment/sandbox_mode", int(m_sandbox_entrainment));
     settings.setValue("startup/sandbox", m_startup_sandbox);
     settings.setValue("sandbox/root", QString::fromStdString(m_sandbox_root));
     settings.setValue("sandbox/auto_export", m_sandbox_auto_export);
@@ -610,6 +617,12 @@ void AvalanchePanel::export_sandbox_result(const std::string& stopped_by)
     run_info["material_preset"] = QString::fromStdString(m_material_presets[size_t(m_selected_material_preset)].name);
     run_info["stopped_by"] = QString::fromStdString(stopped_by);
     run_info["particles"] = int(solver->last_state().active_particles);
+    // Entrainment, comparable with com1DFA's entrained mass and volume (at the cover's density).
+    const auto& state = solver->last_state();
+    run_info["entrainment"] = QJsonObject { { "mode", int(solver->get_settings().entrainment_mode) }, { "cover_volume_m3", state.cover_volume },
+        { "cover_mass_kg", state.cover_mass }, { "entrained_particles", int(state.entrained_particles) }, { "particle_volume_m3", state.particle_volume },
+        { "entrained_mass_kg", state.entrained_mass }, { "entrained_volume_m3", state.entrained_volume },
+        { "pool_exhausted_volume_m3", state.pool_exhausted_volume } };
     run_info["gpu_ms_per_substep"] = double(solver->perf_stats().gpu_ms_per_substep);
     run_info["energy_line_mu_eff"] = double(solver->energy_line_friction());
     // Computing time: wall clock since the reset (pauses included, so meaningful for batch runs)
@@ -1089,6 +1102,7 @@ void AvalanchePanel::draw()
     if (solver == nullptr)
         return;
     sync_clock(*solver);
+    sync_entrainment(*solver);
     if (m_autoplay_pending && solver->has_valid_inputs() && !solver->is_running()) {
         solver->clock().play();
         m_autoplay_pending = false;
@@ -1110,6 +1124,109 @@ void AvalanchePanel::sync_clock(nodes::MpmSolverNode& solver)
     clock.manual_steps_per_submit = solver.get_settings().substeps_per_submit;
     clock.manual_steps_per_run = solver.get_settings().substeps_per_run;
     solver.clock().set_settings(clock);
+}
+
+nodes::MpmSolverNode::EntrainmentMode& AvalanchePanel::entrainment_mode()
+{
+    return find_node<nodes::AvaFrameSandboxNode>() != nullptr ? m_sandbox_entrainment : m_map_entrainment;
+}
+
+void AvalanchePanel::sync_entrainment(nodes::MpmSolverNode& solver)
+{
+    // A batch run sets entrainment in its own settings, like everything else it measures.
+    if (m_batch_phase != BatchPhase::Idle && m_batch_phase != BatchPhase::Done)
+        return;
+    const auto mode = entrainment_mode();
+    auto settings = solver.get_settings();
+    if (settings.entrainment_mode == mode)
+        return;
+    const bool on_off = (settings.entrainment_mode == nodes::MpmSolverNode::ENTRAINMENT_OFF) != (mode == nodes::MpmSolverNode::ENTRAINMENT_OFF);
+    settings.entrainment_mode = mode;
+    solver.set_settings(settings);
+    if (on_off)
+        solver.request_reset(); // the cover is seeded with the release
+}
+
+void AvalanchePanel::draw_entrainment(nodes::MpmSolverNode& solver, nodes::MpmSolverNode::MpmSolverSettings& settings, bool& settings_changed, bool& step_now)
+{
+    using Solver = nodes::MpmSolverNode;
+    ImGui::TextDisabled("Entrainment");
+    auto& mode = entrainment_mode();
+    int selected = int(mode);
+    if (ImGui::Combo("Entrainment", &selected, "Off\0Plowing\0Erosion (com1DFA default)\0")) {
+        mode = Solver::EntrainmentMode(selected);
+        settings.entrainment_mode = mode;
+        settings_changed = true;
+        sync_entrainment(solver); // reseeds when it went on or off
+        settings = solver.get_settings();
+        save_startup_settings();
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("The flow picks up the snow cover along its path, as AvaFrame's com1DFA does.\n"
+                          "Plowing: the front takes the whole cover at once. Erosion: the flow erodes it at\n"
+                          "basal shear stress x speed / erosion energy per area, so it is taken up gradually.\n"
+                          "Switching it on or off restarts the simulation (the cover is seeded with the release).");
+    if (mode == Solver::ENTRAINMENT_OFF)
+        return;
+
+    if (mode == Solver::EROSION) {
+        settings_changed |= ImGui::DragFloat("Erosion energy", &settings.erosion_energy, 50.0f, 100.0f, 100000.0f, "%.0f J/kg");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Energy to erode one kilogram of cover (com1DFA's entEroEnergy, 5000).\nLower = the flow picks the cover up faster.");
+    } else {
+        settings_changed |= ImGui::DragFloat("Pick-up depth", &settings.plowing_depth, 0.01f, 0.0f, 3.0f, "%.2f m");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Flow depth over a cover particle at which the front takes it along.");
+    }
+    settings_changed |= ImGui::DragFloat("Minimum speed", &settings.entrainment_min_speed, 0.1f, 0.0f, 20.0f, "%.1f m/s");
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Slower flow picks nothing up.");
+
+    // Where the cover comes from. Its size changes the seed, so those edits reset on release.
+    ImGui::TextDisabled("Snow cover (changes reset the run)");
+    const auto* sandbox = find_node<nodes::AvaFrameSandboxNode>();
+    const nodes::SandboxTerrain* terrain = sandbox != nullptr ? sandbox->terrain() : nullptr;
+    const auto* release_node = sandbox == nullptr ? find_node<nodes::AvaFrameReleaseNode>() : nullptr;
+    const nodes::ReleaseArea* area = release_node != nullptr ? release_node->release_area() : nullptr;
+    if (terrain != nullptr) {
+        if (terrain->entrainment_volume > 0.0)
+            ImGui::TextDisabled("AvaFrame entrainment area %s: %.0f m3 on %.1f ha", terrain->entrainment_name.c_str(), terrain->entrainment_volume,
+                terrain->entrainment_area / 1e4);
+        else
+            ImGui::TextDisabled("This dataset has no entrainment area (download the AvaFrame data again).");
+    } else if (area != nullptr && area->entrainment_volume > 0.0) {
+        ImGui::TextDisabled("AvaFrame entrainment area: %.0f m3 on %.1f ha", area->entrainment_volume, area->entrainment_area / 1e4);
+    } else {
+        settings_changed |= ImGui::DragFloat("Cover thickness", &settings.cover_thickness, 0.01f, 0.0f, 3.0f, "%.2f m");
+        step_now |= ImGui::IsItemDeactivatedAfterEdit();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Snow on the ground the avalanche can pick up, measured perpendicular to the slope\n"
+                              "(AvaFrame uses 0.3 m). Everywhere in the domain outside the release, up to the slope below.");
+        settings_changed |= ImGui::DragFloat("Cover up to", &settings.cover_max_slope, 0.5f, 0.0f, 85.0f, "%.0f deg");
+        step_now |= ImGui::IsItemDeactivatedAfterEdit();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Steeper slopes hold no snow cover.");
+    }
+    settings_changed |= ImGui::DragFloat("Cover density", &settings.entrainment_density, 1.0f, 10.0f, 600.0f, "%.0f kg/m3");
+    step_now |= ImGui::IsItemDeactivatedAfterEdit();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Density of the snow cover (com1DFA's rhoEnt, 100). It sets how much mass the cover holds.");
+    if (step_now)
+        settings.reset_on_next_run = true;
+
+    const auto& state = solver.last_state();
+    if (state.valid && state.cover_volume > 0.0) {
+        ImGui::TextDisabled("Cover %.0f m3 (%.0f t); entrained %.0f m3 (%.0f t, %.1f %%)", state.cover_volume, state.cover_mass / 1000.0,
+            state.entrained_volume, state.entrained_mass / 1000.0, 100.0 * state.entrained_volume / state.cover_volume);
+        if (state.pool_exhausted_volume > 0.0) {
+            ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "Pool full: %.0f m3 of cover left on the ground.", state.pool_exhausted_volume);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("The flow took up as much snow as the pool of %.0f particles per release particle holds.\n"
+                                  "A larger pool (graph editor, pool_size) lets it take more.", double(settings.pool_size));
+        }
+    } else if (state.valid) {
+        ImGui::TextDisabled("No snow cover in the domain.");
+    }
 }
 
 bool AvalanchePanel::playing() const
@@ -1531,6 +1648,8 @@ void AvalanchePanel::draw_panel()
     settings_changed |= ImGui::DragFloat("Friction coefficient", &settings.terrain_friction, 0.01f, 0.0f, 2.0f, "%.2f");
     if (settings.basal_friction_model == nodes::MpmSolverNode::VOELLMY)
         settings_changed |= ImGui::DragFloat("Turbulent friction", &settings.voellmy_xi, 10.0f, 100.0f, 20000.0f, "%.0f m/s2");
+
+    draw_entrainment(*solver, settings, settings_changed, step_now);
 
     // Domain changes reallocate GPU buffers, so they reseed - apply them on release only.
     ImGui::TextDisabled("Simulation domain (changes reset the run)");
