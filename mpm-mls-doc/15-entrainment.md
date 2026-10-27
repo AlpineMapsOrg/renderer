@@ -133,6 +133,14 @@ Runout difference to com1DFA [m, along the AIMEC path]:
   MPM stays about twice as fast as com1DFA. Time to rest unchanged within 2 s.
 - Pool never ran out (2× the release particles).
 
+**Which is more accurate?** With erosion, slightly, not decisively (closer to com1DFA; there
+are no measured runouts). Erosion lowers the mean runout error from 149 to 119 m (four of
+five improve, Kontertal slightly worse) and improves the runout-area precision on three of
+five; plowing gives nothing on average. The MPM's main error is its speed (about twice
+com1DFA's, ~150 m of runout), which entrainment does not fix, and its effect points both ways.
+So: erosion as the default wherever entrainment is on, the sandbox comparisons kept with and
+without, and entrainment not presented as what makes the MPM accurate.
+
 **On the map** (native build): Hintertux cover 258 413 m³ (dataset 258 531), erosion took
 189 601 m³; Breite Ries (generic, 0.3 m up to 50°) 5.3 M m³ of cover, 82 960 m³ taken
 (~46 000 pool particles).
