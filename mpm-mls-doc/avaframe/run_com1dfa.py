@@ -6,6 +6,7 @@ computed with AvaFrame 1.11. For the entrainment comparison this computes com1DF
 AvaFrame 2.1 in three modes, on the same inputs and with the benchmark's own settings:
 
     null      no entrainment - the same version as the other two, as their baseline
+    coulomb   no entrainment, Coulomb friction mu 0.47 (the MPM's basal law) instead of samosAT
     erosion   entrainment, com1DFA's default: erosion at tau_b |u| / e_b (entEroEnergy 5000 J/kg)
     plowing   entrainment, frontal plowing (entEroEnergy 0)
 
@@ -46,6 +47,9 @@ MODES = {
     "null": {"simTypeList": "null"},
     "erosion": {"simTypeList": "ent", "entEroEnergy": "5000"},
     "plowing": {"simTypeList": "ent", "entEroEnergy": "0"},
+    # Not entrainment: com1DFA with the MPM's basal law (Coulomb, mu 0.47), to tell a difference
+    # in the friction law from one in the numerics.
+    "coulomb": {"simTypeList": "null", "frictModel": "Coulomb", "mucoulomb": "0.47"},
 }
 
 

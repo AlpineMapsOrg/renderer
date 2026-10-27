@@ -137,6 +137,23 @@ def build_avalanche_dir(run_dir, label, runout_res_type, threshold, mode=None):
 def run_aimec(ava, cfg_file):
     from avaframe.ana3AIMEC import ana3AIMEC, aimecTools, dfa2Aimec
     from avaframe.in3Utils import cfgUtils
+    from avaframe.out3Plot import outAIMEC
+
+    # AIMEC draws its runout-statistics figure unconditionally, and matplotlib raises on it for
+    # some result pairs (NaN colour-bar limits, Madlein vs com1DFA-Coulomb). The figure is only
+    # a picture; the numbers do not depend on it.
+    if not getattr(outAIMEC.visuRunoutStat, "_tolerant", False):
+        plot = outAIMEC.visuRunoutStat
+
+        def tolerant(*args, **kwargs):
+            try:
+                return plot(*args, **kwargs)
+            except ValueError as error:
+                logging.warning("AIMEC runout statistics figure skipped: %s", error)
+                return None
+
+        tolerant._tolerant = True
+        outAIMEC.visuRunoutStat = tolerant
 
     cfg = cfgUtils.getModuleConfig(ana3AIMEC, fileOverride=cfg_file, toPrint=False)
     setup = cfg["AIMECSETUP"]
@@ -216,7 +233,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("runs", nargs="*", help="run folders, extern/avaframe_sandbox/<dataset>/mpm/<run>")
     parser.add_argument("--latest", nargs="*", default=[], help="the latest run of each named dataset")
-    parser.add_argument("--reference", default="benchmark", choices=["benchmark", "null", "erosion", "plowing", "auto"],
+    parser.add_argument("--reference", default="benchmark", choices=["benchmark", "null", "erosion", "plowing", "coulomb", "auto"],
                         help="the null-test benchmark (default), or a com1DFA run from run_com1dfa.py")
     args = parser.parse_args()
     logging.basicConfig(level=logging.WARNING)

@@ -45,6 +45,19 @@ over-entrains (its own TODO); mean runout error to com1DFA 149 m off, 119 m eros
 Hintertux and Breite Ries entrain; web build compiles; unit tests pass. Report:
 https://claude.ai/artifact/3j7VDeZNRUf3mF3sE9TpNc
 
+### 2. Accuracy and performance: findings and ideas
+
+Asked by Manuel: ways to improve accuracy and performance (finer grid, many more particles,
+grid only where the avalanche goes, numerical precision, graphics tricks); a report.
+Experiment: com1DFA with the MPM's Coulomb μ 0.47 (`run_com1dfa.py --modes coulomb`). It flows
+at 48–57 m/s, the MPM at 97–130 m/s (1.9–2.6×), while the MPM's energy line gives μ_eff
+0.54–0.58: the bulk is braked, the excess is likely in the thin fringe that barely touches the
+friction nodes (hypothesis, test proposed). AIMEC's runout-statistics figure raised on Madlein vs
+com1DFA-Coulomb; `compare_aimec.py` now skips a failing figure. Report with the ranked ideas
+(corridor/dynamic sparse grid, anisotropic cells, particle-level friction, sorted/shared-memory
+P2G, subgroups, G2P2G, quantized particles, softer E, depth-averaged MPM):
+https://claude.ai/artifact/9fKVw5UDVUFMkSQxvdWaxh
+
 ## 2026-10-25
 
 ### 1. Rendering doc: from plan to description
