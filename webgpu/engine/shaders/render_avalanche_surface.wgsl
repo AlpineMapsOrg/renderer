@@ -23,7 +23,9 @@
 // at the render grid's resolution. Particles above the blanket (spray, the front) stay
 // visible; those inside are hidden by the depth test. Where the flow has been but is no longer
 // (peak depth), a thin, duller track layer stays; the blanket's rim fades into that colour,
-// which also outlines it against a snow-covered slope.
+// which also outlines it against a snow-covered slope. With entrainment, the cover the flow can
+// still pick up lies as a layer of fresh, slightly blue snow; the flow erodes it, so it ends at
+// the track.
 
 ///use util/shared_config
 ///use util/camera_config
@@ -39,6 +41,8 @@
 const SNOW_ALBEDO = vec3f(0.93, 0.95, 0.98);
 const TRACK_ALBEDO = vec3f(0.80, 0.82, 0.86); // scoured, compacted, a little dirty
 const TRACK_SPEED_COLOUR = vec3f(0.55, 0.56, 0.58); // the track in the speed colours: no flow
+const COVER_ALBEDO = vec3f(0.85, 0.91, 1.0); // fresh snow the flow can pick up, a little blue to stand out
+const COVER_SPEED_COLOUR = vec3f(0.62, 0.72, 0.86);
 
 struct VertexOut {
     @builtin(position) position: vec4f,
@@ -47,6 +51,7 @@ struct VertexOut {
     @location(2) speed: f32, // [m/s]
     @location(3) depth: f32, // [m] flow depth
     @location(4) peak: f32, // [m] peak flow depth (0 without the track)
+    @location(5) layer: f32, // [m] entrainment cover left (0 without entrainment)
 }
 
 struct FragOut {
@@ -78,6 +83,10 @@ fn coverage(node: vec2i) -> f32 {
     return max(field[index + 1u], field[index + 3u]);
 }
 
+fn layer(node: vec2i) -> f32 {
+    return field[clamped(node) * FIELD_STRIDE_F32 + 4u];
+}
+
 fn hidden() -> VertexOut {
     var out: VertexOut;
     out.position = vec4f(2.0, 2.0, 2.0, 1.0); // outside the clip volume
@@ -91,7 +100,8 @@ fn vertexMain(@builtin(vertex_index) vertex_index: u32, @builtin(instance_index)
     // Almost every cell of the domain is empty. The depths inside a cell are interpolated from
     // its corners, so they reach min_depth only if a corner does.
     let deepest = max(max(coverage(cell), coverage(cell + vec2i(1, 0))), max(coverage(cell + vec2i(0, 1)), coverage(cell + vec2i(1, 1))));
-    if deepest < surface.min_depth {
+    let thickest = max(max(layer(cell), layer(cell + vec2i(1, 0))), max(layer(cell + vec2i(0, 1)), layer(cell + vec2i(1, 1))));
+    if deepest < surface.min_depth && thickest < COVER_MIN_DEPTH {
         return hidden();
     }
 
@@ -116,18 +126,21 @@ fn vertexMain(@builtin(vertex_index) vertex_index: u32, @builtin(instance_index)
     out.depth = field[index + 1u];
     out.speed = field[index + 2u];
     out.peak = field[index + 3u];
+    out.layer = field[index + 4u];
     return out;
 }
 
 @fragment
 fn fragmentMain(in: VertexOut) -> FragOut {
-    if in.depth < surface.min_depth && in.peak < surface.min_depth {
+    let path = in.depth >= surface.min_depth || in.peak >= surface.min_depth;
+    if !path && in.layer < COVER_MIN_DEPTH {
         discard;
     }
+    // Flow over the track over the cover: where the flow has been, the cover is (partly) eroded.
     let flowing = smoothstep(surface.min_depth, 3.0 * surface.min_depth, in.depth);
-    var albedo = mix(TRACK_ALBEDO, SNOW_ALBEDO, flowing);
+    var albedo = select(COVER_ALBEDO, mix(TRACK_ALBEDO, SNOW_ALBEDO, flowing), path);
     if surface.colour_mode == 1u {
-        albedo = mix(TRACK_SPEED_COLOUR, viridis(in.speed / surface.speed_max), flowing);
+        albedo = select(COVER_SPEED_COLOUR, mix(TRACK_SPEED_COLOUR, viridis(in.speed / surface.speed_max), flowing), path);
     }
     var out: FragOut;
     out.albedo = pack4x8unorm(vec4f(albedo, 1.0));

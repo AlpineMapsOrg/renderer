@@ -160,8 +160,10 @@ fn vertexMain(@builtin(vertex_index) vertex_index: u32, @builtin(instance_index)
     let child = instance % children;
     let base = parent * PARTICLE_STRIDE_VEC4;
     let current = particles[base];
-    // Position between the last two simulated states; everything else from the latest one.
-    let p0 = vec4f(mix(previous[base].xyz, current.xyz, avalanche.interpolation), current.w);
+    // Position between the last two simulated states; everything else from the latest one. A slot
+    // entrainment filled during the last chunk was empty before (mass 0, at the origin): no blend.
+    let before = previous[base];
+    let p0 = vec4f(mix(select(current.xyz, before.xyz, before.w > 0.0), current.xyz, avalanche.interpolation), current.w);
     if p0.w <= 0.0 || parent >= avalanche.particle_count {
         return hidden(); // inactive
     }

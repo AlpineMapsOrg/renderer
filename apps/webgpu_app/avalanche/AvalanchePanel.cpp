@@ -1514,6 +1514,12 @@ void AvalanchePanel::draw_panel()
                                       "like AvaFrame's peak flow thickness): the path stays visible where the flow has\n"
                                       "thinned out or moved on. Cleared by Reset.");
                 ImGui::SameLine();
+                ImGui::Checkbox("Entrainable snow", &view.entrainment_cover);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("With entrainment: the snow cover the flow can still pick up, as a layer of fresh,\n"
+                                      "slightly blue snow. The flow erodes it as it passes, so it ends at the track. Nothing\n"
+                                      "is drawn with entrainment off.");
+                ImGui::SameLine();
             }
             ImGui::Checkbox("Snow cover", &view.snow_cover);
             if (ImGui::IsItemHovered())

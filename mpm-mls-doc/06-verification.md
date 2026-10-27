@@ -400,9 +400,12 @@ that it shows the flow faithfully. Method, because the app needs a window:
 | Holes over bumps: no airborne cut-off, then a 1-particle threshold, same frame | Holes stay: no particles within 12 m. A property of the flow, not of the renderer. |
 | Track + snow cover vs neither, same frame | The path stays readable where the flow thinned; avalanche pixels are not painted over by the snow. |
 | Powder vs ellipsoids, same frame | A soft haze over the flow, no hard intersections with terrain or surface. |
+| Entrainable snow on, off and in speed colours, same frame (Madlein, paused at 25 s, 27 Oct) | The cover lies on AvaFrame's entrainment area and ends where the track begins; off, the terrain shows there. |
+| Entrainable snow, bilinear vs Catmull-Rom terrain, same frame | Bilinear: the cover is lit in rectangular blocks of the height texels. Catmull-Rom: smooth. |
 
-**Not checked:** the GPU cost of the renderer, and steps 5–8 on scenarios other than
-Hintertux. The web build was tested in the browser by Manuel (25 Oct) and renders correctly. What is implemented: [12-rendering.md](12-rendering.md).
+**Not checked:** the GPU cost of the renderer, steps 5–8 on scenarios other than
+Hintertux, and the entrainable snow beyond Madlein. The interpolation rule for newly filled
+pool slots is checked by reading only: accuracy playback does not interpolate. The web build was tested in the browser by Manuel (25 Oct) and renders correctly. What is implemented: [12-rendering.md](12-rendering.md).
 
 ## Bugs found and fixed along the way
 

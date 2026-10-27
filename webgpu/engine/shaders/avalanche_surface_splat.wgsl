@@ -42,7 +42,8 @@ fn computeMain(@builtin(global_invocation_id) id: vec3u) {
         return;
     }
     let current = particles[index * PARTICLE_STRIDE_VEC4]; // position, mass
-    let p0 = vec4f(mix(previous[index * PARTICLE_STRIDE_VEC4].xyz, current.xyz, surface.interpolation), current.w);
+    let before = previous[index * PARTICLE_STRIDE_VEC4]; // an empty slot before (entrained since): no blend
+    let p0 = vec4f(mix(select(current.xyz, before.xyz, before.w > 0.0), current.xyz, surface.interpolation), current.w);
     let height = p0.z - terrain_altitude(p0.xy);
     if p0.w <= 0.0 || height > surface.clearance {
         return; // inactive, or in the air

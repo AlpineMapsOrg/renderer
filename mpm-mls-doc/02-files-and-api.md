@@ -36,13 +36,13 @@ and where: [12-rendering.md](12-rendering.md).
 
 | File | Purpose |
 |---|---|
-| `avalanche/AvalancheRenderer.h/.cpp` | Draws the particles and the flow surface. `prepare()` (compute: splat + field, before the G-buffer pass), `draw()` (particles + surface into the G-buffer), `draw_transparent()` (Powder, after compose). Fed by a source callback (`Frame`), not by the solver directly. Positions are blended between `Frame::previous_particles` and `particles` by `Frame::interpolation` (real-time playback). |
+| `avalanche/AvalancheRenderer.h/.cpp` | Draws the particles and the flow surface. `prepare()` (compute: splat + field, before the G-buffer pass), `draw()` (particles + surface into the G-buffer), `draw_transparent()` (Powder, after compose). Fed by a source callback (`Frame`), not by the solver directly. Positions are blended between `Frame::previous_particles` and `particles` by `Frame::interpolation` (real-time playback), except for slots that were empty before (entrained since). `Frame::column_stats` (the solver's) feeds the entrainable-snow layer. |
 | `shaders/render_avalanche.wgsl` | Particles as sphere or strain-rate-ellipsoid impostors in the G-buffer, optionally as 8/27 detail (child) particles. Writes the avalanche marker into the overlay slot. |
 | `shaders/render_avalanche_powder.wgsl` | Powder: large soft transparent blobs with per-particle noise, blended over the lit frame, faded against the G-buffer depth. |
 | `shaders/avalanche_surface_splat.wgsl` | Flow surface 1/3: B-spline splat of particle volume onto the render grid (fixed-point atomics). |
-| `shaders/avalanche_surface_field.wgsl` | Flow surface 2/3: depth, blanket height, speed, and the persistent peak depth (track). |
-| `shaders/render_avalanche_surface.wgsl` | Flow surface 3/3: the draped blanket and the track into the G-buffer. |
-| `shaders/avalanche_surface_common.wgsl`, `avalanche_surface_terrain.wgsl` | Shared uniform/layouts, B-spline, avalanche marker; the solver's terrain sampled like `mpm_common`. |
+| `shaders/avalanche_surface_field.wgsl` | Flow surface 2/3: depth, blanket height, speed, the persistent peak depth (track), and the entrainment cover from the solver's column stats. |
+| `shaders/render_avalanche_surface.wgsl` | Flow surface 3/3: the draped blanket, the track and the entrainable snow into the G-buffer. |
+| `shaders/avalanche_surface_common.wgsl`, `avalanche_surface_terrain.wgsl` | Shared uniform/layouts, B-spline, avalanche marker; the solver's terrain texture sampled Catmull-Rom (smooth normals). |
 
 ### App side (`apps/webgpu_app/`)
 
@@ -117,8 +117,8 @@ sandbox ignores it. See [14-avaframe-release-on-map.md](14-avaframe-release-on-m
 the result covers the *domain*, not the whole region), `density buffer` (`RawBuffer<u32>*`),
 `raster dimensions` (`uvec2`), `particle buffer` (`RawBuffer<u32>*`), and `particle view`
 (`const MpmParticleView*`): what the 3D renderer needs without CPU readback — the buffer
-and count, the metres → world affine, particle spacing, the grid (origin, dx, columns), the
-solver's height texture and region size, and `reset_count` (changes on Reset; clears the
+and count, the metres → world affine, particle spacing, the grid (origin, dx, columns) and its
+`column_stats` (the entrainment cover per column), the solver's height texture and region size, and `reset_count` (changes on Reset; clears the
 track). Kept current across reallocations.
 
 ### Methods

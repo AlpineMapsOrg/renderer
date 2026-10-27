@@ -343,6 +343,7 @@ bool MpmSolverNode::ensure_resources()
     m_particle_view.particles = m_particle_buffer.get();
     m_particle_view.previous_particles = nullptr;
     m_particle_view.particle_count = num_particles;
+    m_particle_view.column_stats = m_column_peak_buffer.get();
     m_allocated_grid_res = grid_res;
     m_allocated_raster_resolution = raster_resolution;
     m_output_dimensions = glm::uvec2(raster_resolution);

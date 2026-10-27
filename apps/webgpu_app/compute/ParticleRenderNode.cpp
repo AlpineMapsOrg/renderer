@@ -116,7 +116,7 @@ void ParticleRenderNode::run_impl()
                     return std::nullopt;
                 return webgpu_engine::AvalancheRenderer::Frame { view->particles, view->particle_count, view->previous_particles, view->interpolation,
                     view->world_from_metres, view->particle_spacing, view->domain_origin, view->dx, view->columns, view->height_texture, view->region_size,
-                    view->reset_count };
+                    view->reset_count, view->column_stats };
             },
             this);
         m_context->request_redraw();
@@ -139,6 +139,7 @@ void ParticleRenderNode::serialize_settings(QJsonObject& out) const
     out["surface"] = renderer->settings.surface;
     out["surface_refine"] = int(renderer->settings.surface_refine);
     out["track"] = renderer->settings.track;
+    out["entrainment_cover"] = renderer->settings.entrainment_cover;
     out["snow_cover"] = renderer->settings.snow_cover;
     out["children"] = int(renderer->settings.children);
 }
@@ -166,6 +167,8 @@ void ParticleRenderNode::deserialize_settings(const QJsonObject& in)
         s.surface_refine = uint32_t(std::clamp(in["surface_refine"].toInt(), 1, 4));
     if (in.contains("track"))
         s.track = in["track"].toBool(s.track);
+    if (in.contains("entrainment_cover"))
+        s.entrainment_cover = in["entrainment_cover"].toBool(s.entrainment_cover);
     if (in.contains("snow_cover"))
         s.snow_cover = in["snow_cover"].toBool(s.snow_cover);
     if (in.contains("children"))

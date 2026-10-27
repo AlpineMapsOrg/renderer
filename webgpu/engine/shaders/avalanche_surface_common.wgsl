@@ -42,9 +42,8 @@ struct SurfaceConfig {
     radius: f32, // [m] drawn particle radius
     track: u32, // 1: draw the track, where the flow has been since the release
     interpolation: f32, // splat: share of the way from the previous particles to the current ones
-    padding1: u32,
-    padding2: u32,
-    padding3: u32,
+    cover: u32, // 1: the entrainment cover from the solver's column stats is drawn
+    columns: vec2u, // the solver's columns (render node i * spacing / kernel is column i)
 }
 
 const PARTICLE_STRIDE_VEC4: u32 = 8u; // struct Particle of mpm_common.wgsl as eight vec4s
@@ -52,8 +51,9 @@ const ACCUM_STRIDE_U32: u32 = 3u; // B-spline weight, weight * speed, weight * h
 const WEIGHT_SCALE: f32 = 65536.0; // one particle adds at most 0.5625 * this per node
 const SPEED_SCALE: f32 = 256.0; // [1 / (m/s)]
 const HEIGHT_SCALE: f32 = 256.0; // [1 / m]
-const FIELD_STRIDE_F32: u32 = 4u; // surface altitude [m], depth [m], speed [m/s], peak depth [m]
+const FIELD_STRIDE_F32: u32 = 5u; // surface altitude [m], depth [m], speed [m/s], peak depth [m], cover depth [m]
 const TRACK_DEPTH: f32 = 0.3; // [m] the track layer: scoured, compacted snow where the flow has passed
+const COVER_MIN_DEPTH: f32 = 0.02; // [m] thinner entrainment cover is not drawn: eroded
 // Written into the G-buffer overlay slot by the avalanche's fragments: alpha 0, so the tile-debug
 // overlay shows nothing there, and the screen-space snow overlay (screen_space_snow.wgsl) skips
 // these pixels instead of painting over the avalanche.

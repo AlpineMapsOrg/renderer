@@ -31,7 +31,8 @@ namespace {
     constexpr uint32_t PARTICLE_STRIDE_U32 = 32;
     constexpr uint32_t QUAD_VERTICES = 4; // a triangle strip
     constexpr uint32_t ACCUM_STRIDE_U32 = 3; // avalanche_surface_common.wgsl
-    constexpr uint32_t FIELD_STRIDE_F32 = 4;
+    constexpr uint32_t FIELD_STRIDE_F32 = 5;
+    constexpr uint32_t COLUMN_STATS_STRIDE_U32 = 6; // struct ColumnStats in mpm_common.wgsl
     constexpr uint32_t SPLAT_WORKGROUP_SIZE = 256;
 
     // The G-buffer of TileMeshRenderer: the avalanche is drawn into the same pass.
@@ -72,6 +73,8 @@ void AvalancheRenderer::init(webgpu::Context& ctx)
     m_ctx = &ctx;
     m_config = std::make_unique<webgpu::Buffer<GpuConfig>>(ctx.device(), WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform);
     m_surface_config = std::make_unique<webgpu::Buffer<SurfaceConfig>>(ctx.device(), WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform);
+    m_no_column_stats = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
+        ctx.device(), WGPUBufferUsage_Storage, COLUMN_STATS_STRIDE_U32, "avalanche surface no column stats"); // zeroed: no cover
 
     auto& reg = ctx.resource_registry();
     reg.register_shader("render_avalanche", "webgpu_engine::render_avalanche");
@@ -109,6 +112,7 @@ void AvalancheRenderer::init(webgpu::Context& ctx)
                 height_texture_entry(2, WGPUShaderStage_Compute),
                 buffer_entry(3, WGPUShaderStage_Compute, WGPUBufferBindingType_Uniform), // surface config
                 buffer_entry(4, WGPUShaderStage_Compute, WGPUBufferBindingType_Storage), // peak depth
+                buffer_entry(5, WGPUShaderStage_Compute, WGPUBufferBindingType_ReadOnlyStorage), // the solver's column stats
             },
             "avalanche surface field bind group layout");
     });
@@ -194,6 +198,7 @@ void AvalancheRenderer::init(webgpu::Context& ctx)
         m_bound_height = nullptr;
         m_splat_bound_particles = nullptr;
         m_splat_bound_previous = nullptr;
+        m_field_bound_columns = nullptr;
     });
 }
 
@@ -276,7 +281,12 @@ void AvalancheRenderer::prepare(WGPUCommandEncoder encoder, const nucleus::camer
     s.radius = radius;
     s.track = settings.track ? 1u : 0u;
     s.interpolation = interpolation;
+    const bool cover = settings.entrainment_cover && frame.column_stats != nullptr
+        && frame.column_stats->size() >= size_t(frame.columns.x) * frame.columns.y * COLUMN_STATS_STRIDE_U32;
+    s.cover = cover ? 1u : 0u;
+    s.columns = frame.columns;
     m_surface_config->update_gpu_data(m_ctx->queue());
+    const webgpu::raii::RawBuffer<uint32_t>& column_stats = cover ? *frame.column_stats : *m_no_column_stats;
 
     const size_t node_count = size_t(s.nodes.x) * s.nodes.y;
     if (m_accum == nullptr || m_accum->size() != node_count * ACCUM_STRIDE_U32) {
@@ -311,7 +321,7 @@ void AvalancheRenderer::prepare(WGPUCommandEncoder encoder, const nucleus::camer
         m_splat_bound_particles = frame.particles->handle();
         m_splat_bound_previous = previous.handle();
     }
-    if (m_field_bind_group == nullptr) {
+    if (m_field_bind_group == nullptr || column_stats.handle() != m_field_bound_columns) {
         m_field_bind_group = std::make_unique<webgpu::raii::BindGroup>(m_ctx->device(),
             m_ctx->resource_registry().bind_group_layout("avalanche_surface_field"),
             std::vector<WGPUBindGroupEntry> {
@@ -320,8 +330,10 @@ void AvalancheRenderer::prepare(WGPUCommandEncoder encoder, const nucleus::camer
                 frame.height_texture->texture_view().create_bind_group_entry(2),
                 m_surface_config->raw_buffer().create_bind_group_entry(3),
                 m_peak->create_bind_group_entry(4),
+                column_stats.create_bind_group_entry(5),
             },
             "avalanche surface field bind group");
+        m_field_bound_columns = column_stats.handle();
     }
     if (m_surface_bind_group == nullptr) {
         m_surface_bind_group = std::make_unique<webgpu::raii::BindGroup>(m_ctx->device(),

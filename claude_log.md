@@ -58,6 +58,28 @@ com1DFA-Coulomb; `compare_aimec.py` now skips a failing figure. Report with the 
 P2G, subgroups, G2P2G, quantized particles, softer E, depth-averaged MPM):
 https://claude.ai/artifact/9fKVw5UDVUFMkSQxvdWaxh
 
+### 3. Entrainment on the map: drawing the cover
+
+Asked by Manuel: why no snow that will be picked up is visible. Cause: the solver keeps the
+cover as one number per grid column, not as particles, and fills pool particles at rest under
+the flow, so there was nothing to draw before pickup and nothing to tell apart after. Asked to
+do (1) draw the cover as a layer the flow erodes and (3) fix the interpolation of newly filled
+pool slots.
+
+**Built:** `MpmParticleView::column_stats` → `Frame::column_stats` → field pass binding 5
+(cover / dx², bilinear between columns; the surface takes the higher of flow and cover);
+drawn as `COVER_ALBEDO` where no flow or track is, setting `entrainment_cover` ("Entrainable
+snow", on). Shaders that interpolate draw a slot that was empty in the previous chunk at its
+current position (it was at the domain origin, altitude 0). The surface's terrain lookup is now
+Catmull-Rom: on bilinear terrain the wide, thin cover was lit in blocks of the height texture's
+texels.
+
+**Verified:** WGSL validator; release build; on the map, Madlein (avaMal), paused at 25 s, the
+cover is drawn on AvaFrame's entrainment area and ends at the track (shots with the cover on,
+off and in speed colours); Catmull-Rom removed the blocks. **Not verified:** the interpolation
+fix is not visible in accuracy playback (no interpolation); checked by reading only. GPU cost
+not measured.
+
 ## 2026-10-25
 
 ### 1. Rendering doc: from plan to description

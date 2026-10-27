@@ -51,6 +51,11 @@ generic map's 4 km domain is 16 million particle masses at Medium detail.
 All particles keep the same mass, so every existing count and sum stays a plain count:
 averages run over release and entrained particles alike.
 
+**On the map** (3D view): the cover still on the ground is drawn as a layer of fresh, slightly
+blue snow ("Entrainable snow"), read from `column_stats` by the flow surface; it ends where
+the flow has eroded it. Entrained particles are drawn like release particles. See
+[12-rendering.md](12-rendering.md).
+
 ## Files
 
 | File | Role |
@@ -64,6 +69,7 @@ averages run over release and entrained particles alike.
 | `webgpu/compute/shaders/mpm_grid_update.wgsl` | `entrain_column()`: erosion or plowing, particles from the pool. |
 | `webgpu/compute/shaders/mpm_g2p.wgsl` | Turns a new particle's negative mass positive, at rest. |
 | `webgpu/compute/shaders/mpm_seed.wgsl` | Leaves the pool slots inactive. |
+| `webgpu/engine/shaders/avalanche_surface_field.wgsl`, `render_avalanche_surface.wgsl` | Draw the remaining cover on the map (`MpmParticleView::column_stats`). |
 | `apps/webgpu_app/avalanche/AvalanchePanel.cpp` | Entrainment controls and readout (`draw_entrainment()`), the mode per context (`sync_entrainment()`), the export block `"entrainment"` in `params.json`. |
 | `mpm-mls-doc/avaframe/run_com1dfa.py` | com1DFA 2.1 on a dataset in three modes (null, erosion, plowing), as the reference. |
 | `mpm-mls-doc/avaframe/compare_aimec.py` | `--reference null|erosion|plowing|auto` rates an MPM run against those runs. |

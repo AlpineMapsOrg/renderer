@@ -19,6 +19,7 @@ By default, all lit like the terrain:
 |---|---|---|
 | **Flow surface** | A snow blanket over the dense flow, from a B-spline mass splat on a render grid 3× finer than the solver's. | on |
 | **Track** | A thin, duller layer wherever the flow has been since the release. | on |
+| **Entrainable snow** | With entrainment: the cover the flow can still pick up, a layer of fresh, slightly blue snow that ends where the flow has eroded it. | on |
 | **Snow cover** | Lit snow on the terrain around the avalanche, thinning to sparse patches below a snow line fitted to the terrain. | on |
 | **Particles** | Powder: soft, cloudy, transparent blobs over the surface. Spheres and strain-rate ellipsoids are selectable instead. | Powder |
 
@@ -29,17 +30,17 @@ particles" is on and comes back when it is off.
 
 | File | Role |
 |---|---|
-| `webgpu/compute/nodes/MpmSolverNode.h` | `MpmParticleView`, the solver's output socket "particle view": particle buffer, count, previous particles and interpolation, metres → world affine, particle spacing, grid columns, height texture, region size, `reset_count`. |
+| `webgpu/compute/nodes/MpmSolverNode.h` | `MpmParticleView`, the solver's output socket "particle view": particle buffer, count, previous particles and interpolation, metres → world affine, particle spacing, grid columns and their `column_stats` (entrainment cover), height texture, region size, `reset_count`. |
 | `apps/webgpu_app/compute/ParticleRenderNode.h/.cpp` | Terminal node "Particles 3D", registered in `RenderingContext.cpp`. Hands the particle view to the renderer, serialises the renderer settings, owns the "Avalanche snow cover" overlay (`sync_snow_cover()`). |
 | `webgpu/engine/avalanche/AvalancheRenderer.h/.cpp` | The renderer, owned by the engine `Context`. `Settings`, `Frame`, `prepare()` (compute), `draw()` (G-buffer), `draw_transparent()` (powder). |
 | `webgpu/engine/Window.cpp` (`Window::paint`) | Calls `prepare()` before the G-buffer pass, `draw()` inside it after the tiles, and `draw_transparent()` after compose. |
 | `webgpu/engine/shaders/render_avalanche.wgsl` | Solid particles: sphere and ellipsoid impostors, detail particles. |
 | `webgpu/engine/shaders/render_avalanche_powder.wgsl` | Powder blobs, blended after compose. |
 | `webgpu/engine/shaders/avalanche_surface_splat.wgsl` | Flow surface, pass 1: particles → render grid accumulators. |
-| `webgpu/engine/shaders/avalanche_surface_field.wgsl` | Flow surface, pass 2: accumulators → depth, height, speed, peak depth (track). |
-| `webgpu/engine/shaders/render_avalanche_surface.wgsl` | Flow surface, pass 3: the blanket and track, one quad per render cell. |
+| `webgpu/engine/shaders/avalanche_surface_field.wgsl` | Flow surface, pass 2: accumulators → depth, height, speed, peak depth (track); the entrainment cover from the solver's column stats. |
+| `webgpu/engine/shaders/render_avalanche_surface.wgsl` | Flow surface, pass 3: the blanket, track and entrainable snow, one quad per render cell. |
 | `webgpu/engine/shaders/avalanche_surface_common.wgsl` | Shared layouts (`SurfaceConfig`) and `AVALANCHE_MARKER`. |
-| `webgpu/engine/shaders/avalanche_surface_terrain.wgsl` | Terrain sampling, the same as the solver's. |
+| `webgpu/engine/shaders/avalanche_surface_terrain.wgsl` | The solver's terrain texture, sampled Catmull-Rom. |
 | `webgpu/engine/overlay/ScreenSpaceSnowOverlay.h/.cpp`, `shaders/overlays/screen_space_snow.wgsl` | The snow overlay; skips avalanche pixels; `patches` setting. |
 | `webgpu/engine/overlay/Overlay.h`, `OverlayRenderer.cpp` | The `enabled` flag that hides the 2D overlay. |
 | `apps/webgpu_app/avalanche/AvalanchePanel.cpp` | The 3D view controls, "Look at the flow", hiding the 2D overlay, calling `sync_snow_cover()` every frame. |
@@ -83,6 +84,9 @@ own after compose.
   last chunk (`previous_particles`) plus a blend factor (`interpolation`). Every shader that
   reads particles (solid, powder, splat) draws `mix(previous.xyz, current.xyz, interpolation)`.
   Without previous particles the current buffer is bound in their place and the factor is 1.
+  A slot with mass 0 in the previous particles is drawn at its current position. This is due to
+  entrainment: a pool slot that was filled during the last chunk was empty before, at the
+  domain origin and altitude 0, and would otherwise travel in from there under the terrain.
   See [13-simulation-driver.md](13-simulation-driver.md).
 
 ## Solid particles (`render_avalanche.wgsl`)
@@ -155,9 +159,18 @@ Three passes, the same structure Stomakhin 2013 uses to rasterise for its render
    - **Edge taper:** the height fades back to the volume depth between 1× and 4× min_depth,
      so the edge meets the ground.
    - **Peak depth** per node (`m_peak`), for the track.
+   - **Cover depth:** the entrainment cover still on the ground, `column_stats.cover / dx²`,
+     bilinear between the solver's columns. The surface lies on the higher of flow and cover,
+     not their sum, because the solver's particles move on the bare terrain.
 3. **Draw** (G-buffer). One quad per render cell, rejected in the vertex shader when no corner
-   reaches min_depth (the bilinear interpolant cannot exceed its corners). Normals by central
-   differences on the render grid.
+   reaches min_depth and no corner has 2 cm of cover (the bilinear interpolant cannot exceed
+   its corners). Normals by central differences on the render grid.
+
+The terrain under all of this is the solver's height texture sampled Catmull-Rom: it passes
+through the same texel heights as the solver's bilinear lookup, but its slope is continuous.
+This is due to the cover layer: a thin, wide layer on bilinear terrain is lit in blocks of the
+texture's texels (zoom-15 height tiles, roughly 13 m on the map), which the flow's own
+relief had hidden.
 
 Every step is continuous in the particle positions, so there is no frame-to-frame popping and
 no temporal smoothing (which would add lag).
@@ -167,10 +180,11 @@ particle crossing a column border jumps the top altitude), aliased at 8 m and de
 count threshold. An earlier variant of it placed edge vertices at the lowest neighbouring
 particle and cut into slopes.
 
-## Track and snow cover
+## Track, entrainable snow and snow cover
 
-Two layers keep the path and the surroundings readable where the flow surface has holes. This
-is because behind bumps the flow itself splits into streaks and leaves gaps with no particle
+The track and the snow cover keep the path and the surroundings readable where the flow
+surface has holes; the entrainable snow shows what the flow will pick up. The first two are
+needed because behind bumps the flow itself splits into streaks and leaves gaps with no particle
 within the kernel's reach (12 m): on a paused frame with the airborne cut-off off and a
 1-particle threshold, the holes stay, so tuning the surface cannot fix them.
 
@@ -179,6 +193,15 @@ within the kernel's reach (12 m): on a paused frame with the airborne cut-off of
   `reset_count` changes. Where peak ≥ min_depth, a 0.3 m layer stays (tapered to half towards
   its edge), drawn with `TRACK_ALBEDO` (0.80 / 0.82 / 0.86, scoured and compacted). The
   blanket's rim blends into that colour from 1× to 3× min_depth, which also outlines it.
+- **Entrainable snow** (`Settings::entrainment_cover`). The cover depth of the field pass,
+  drawn where it is at least 2 cm (`COVER_MIN_DEPTH`) with `COVER_ALBEDO` (0.85 / 0.91 / 1.0,
+  a little blue to stand apart from the white snow overlay), in speed colours a pale blue.
+  Order: flow over track over cover, so the cover ends where the flow has been. The solver
+  keeps the cover as one number per grid column (15-entrainment.md), not as particles, and
+  fills pool particles at rest under the flow when it erodes it. Without this layer nothing
+  marks what the flow will pick up, and the picked-up snow is indistinguishable from the rest.
+  The renderer reads `column_stats` straight from the solver (`Frame::column_stats`); with
+  entrainment off the cover is 0 and nothing is drawn.
 - **Snow cover** (`Settings::snow_cover`). `ParticleRenderNode::sync_snow_cover()`, called by
   the panel every frame, adds an "Avalanche snow cover" `ScreenSpaceSnowOverlay` on first use
   and removes it when the node is destroyed.
@@ -210,6 +233,7 @@ overlays stay where they are in the Overlays panel.
 | Flow surface | `surface` | on |
 | Look at the flow | camera 400 m from the centre of mass, steeply from the south | — |
 | Track | `track` | on |
+| Entrainable snow | `entrainment_cover` | on |
 | Snow cover | `snow_cover` | on |
 | Surface detail (1–4× the grid) | `surface_refine` | 3 |
 | Particle shape (Spheres / Strain-rate ellipsoids / Powder) | `shape` | Powder |
@@ -229,6 +253,10 @@ The settings live in `AvalancheRenderer::Settings` and are serialised by `Partic
 - **Checked on Hintertux only** for detail particles, the mass-splat surface, track, snow cover
   and powder. The checks are listed in [06-verification.md](06-verification.md).
 - The track is one flat colour, with no streaks along the flow.
+- The entrainable snow is drawn on the solver's terrain (roughly 13 m texels on the map), so it
+  smooths away the finer relief of the map tiles under it, and its edge follows the solver's
+  columns (8.8 m), not the outline of the entrainment area. It was checked on Madlein (avaMal,
+  AvaFrame's entrainment area) only; a generic map scenario covers everything up to 50°.
 - In sparse spray, clusters of 8 detail particles are still visible as groups.
 
 ## Not chosen

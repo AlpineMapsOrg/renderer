@@ -324,8 +324,8 @@ implemented and where: [12-rendering.md](12-rendering.md).
 | Shader | Stage | What it does |
 |---|---|---|
 | `avalanche_surface_splat` | compute, 256×1×1 over particles | Quadratic B-spline (the solver's, at its dx) splat of each particle's volume (spacing³) onto a render grid 1–4× finer than the solver's; per node Σw, Σw·speed, Σw·height above terrain as fixed-point atomics. Particles more than 2 dx up are faded out. |
-| `avalanche_surface_field` | compute, 16×16×1 over render nodes | Depth = Σw·V/dx², blanket height = 2·mean height + radius (tapered at the edge), mean speed, persistent peak depth (track, cleared on reset). |
-| `render_avalanche_surface` | render, G-buffer | One quad per render cell, rejected unless a corner reaches min_depth; discard below the contour; track albedo at the rim and where only the peak depth remains. |
+| `avalanche_surface_field` | compute, 16×16×1 over render nodes | Depth = Σw·V/dx², blanket height = 2·mean height + radius (tapered at the edge), mean speed, persistent peak depth (track, cleared on reset), entrainment cover depth from the solver's `column_stats` (binding 5, read-only; a zeroed stand-in without it). Terrain sampled Catmull-Rom. |
+| `render_avalanche_surface` | render, G-buffer | One quad per render cell, rejected unless a corner reaches min_depth or 2 cm of cover; discard below the contour; track albedo at the rim and where only the peak depth remains; cover albedo where only the entrainment cover remains. |
 | `render_avalanche` | render, G-buffer | Sphere / strain-rate-ellipsoid impostors (vertex pulling, ray–ellipsoid, `frag_depth`), optional detail particles. |
 | `render_avalanche_powder` | render, after compose | Soft transparent blobs with per-particle noise, premultiplied "over", faded by the share of the ray path in front of the G-buffer depth. |
 

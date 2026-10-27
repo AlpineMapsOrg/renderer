@@ -129,7 +129,8 @@ fn view_depth(pos_cws: vec3f) -> f32 {
 fn vertexMain(@builtin(vertex_index) vertex_index: u32, @builtin(instance_index) instance: u32) -> VertexOut {
     let base = instance * PARTICLE_STRIDE_VEC4;
     let current = particles[base];
-    let p0 = vec4f(mix(previous[base].xyz, current.xyz, avalanche.interpolation), current.w);
+    let before = previous[base]; // an empty slot before (entrained since): no blend, as in render_avalanche.wgsl
+    let p0 = vec4f(mix(select(current.xyz, before.xyz, before.w > 0.0), current.xyz, avalanche.interpolation), current.w);
     if p0.w <= 0.0 || instance >= avalanche.particle_count {
         return hidden(); // inactive
     }

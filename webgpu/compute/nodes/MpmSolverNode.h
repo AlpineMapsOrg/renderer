@@ -87,6 +87,9 @@ struct MpmParticleView {
     glm::vec2 domain_origin = glm::vec2(0.0f);
     float dx = 1.0f;
     glm::uvec2 columns = glm::uvec2(0u);
+    /* struct ColumnStats of mpm_common.wgsl per column (y * columns.x + x), six words; words 4 and 5
+     * are the entrainment cover still on the column's cell and the eroded rest [m^3 of cover]. */
+    const webgpu::raii::RawBuffer<uint32_t>* column_stats = nullptr;
     /* The terrain the solver runs on (R32Float, altitudes in metres, uv = metres / region_size
      * with v pointing south), so a renderer can drape things over the same ground. */
     const webgpu::raii::TextureWithSampler* height_texture = nullptr;
