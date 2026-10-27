@@ -17,7 +17,7 @@ Source of the four-stage loop.
 
 **[3]** Yuanming Hu, Yu Fang, Ziheng Ge, Ziyin Qu, Yixin Zhu, Andre Pradhana, and Chenfanfu
 Jiang. 2018. *A moving least squares material point method with displacement discontinuity
-and two-way rigid body coupling.* ACM Trans. Graph. 37, 4, Article 150 (Aug. 2018), 14 pages.
+and two-way rigid body coupling.* ACM Trans. Graph. 37, 4, Article 146 (Aug. 2018), 14 pages.
 → **The formulation implemented.** MLS replaces the B-spline gradient; force and APIC affine
 momentum collapse into one matrix applied to the node offset. Used in `mpm_p2g` / `mpm_g2p`
 (the `4/dx²` and `4/dx` factors come from here). Also the source for the claim that grid
@@ -110,8 +110,8 @@ material point methods for dynamic fracture animation.* ACM Trans. Graph. 38(4),
 tip / fixed-p shear projection, Eq. 14, plus the shear hardening of §6.2.3) used in
 `mpm_material_ccc.wgsl` for the Gaume [11] yield surface — the same group's implementation
 of it. Gaume describes an associative rule; this is the non-associated variant, and the
-docs say so. Note Wolper's `q = (6−d)/2·‖s‖`; the code keeps Gaume's `√(3/2)‖s‖`, for
-which Li's M values are given.
+docs say so. Wolper's `q = √((6−d)/2)·‖s‖` (§6.1) equals Gaume's `√(3/2)‖s‖` in 3D, so
+Li's M values apply unchanged.
 
 **Klár, G., Gast, T., Pradhana, A., Fu, C., Schroeder, C., Jiang, C., Teran, J.** 2016.
 *Drucker-Prager elastoplasticity for sand animation.* ACM Trans. Graph. 35(4), Article 103.

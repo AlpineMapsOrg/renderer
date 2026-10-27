@@ -28,6 +28,9 @@
 // for unchanged settings a no-op (the state is already admissible), otherwise the same
 // projection the next G2P would apply - and stores the matching stress. Dispatched by the
 // node only in the first chunk of a run whose stress-affecting settings changed.
+//
+// References: none. The pass exists only because of the cached tau (mpm_material.wgsl);
+// the return mappings it reruns cite their papers in their own files.
 
 @compute @workgroup_size(256, 1, 1)
 fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {

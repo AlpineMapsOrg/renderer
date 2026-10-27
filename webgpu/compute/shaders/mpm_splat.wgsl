@@ -21,6 +21,11 @@
 // Accumulates the particle cloud into a top-down density raster covering the simulation
 // domain. This is the 2D projection used for the map overlay and for export; the raster
 // is also what a future 3D particle renderer would replace.
+//
+// References (sections, equations and pages as in the PDFs; full list in mpm-mls-doc/refs.md):
+//   Tonnel 2023     M. Tonnel et al., "AvaFrame com1DFA (v1.3): a thickness-integrated
+//                   computational avalanche module - theory, numerics, and testing",
+//                   Geosci. Model Dev. 16, 7013-7035, 2023.
 
 @compute @workgroup_size(256, 1, 1)
 fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
@@ -34,7 +39,9 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
         return;
     }
 
-    // Centre of mass and mean kinetic energy, see SimState in mpm_common. 64-bit sums as
+    // Centre of mass and mean kinetic energy for the energy line: z + |v|^2 / (2 g), mass-averaged
+    // (Tonnel 2023 sec. 5.2, p. 14; App. A eq. A4-A5, p. 19-20). The mean of |v|^2, not the
+    // squared mean speed. See SimState in mpm_common. 64-bit sums as
     // lo/hi u32 pairs: the carry is detected from the value atomicAdd hands back.
     let sx = u32(max(p.position.x, 0.0) * SUM_POSITION_SCALE);
     if atomicAdd(&state.sum_x_lo, sx) > 0xFFFFFFFFu - sx { atomicAdd(&state.sum_x_hi, 1u); }
@@ -45,7 +52,8 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     let sv = u32(min(dot(p.velocity, p.velocity) * SUM_SPEED_SQ_SCALE, 4.0e9));
     if atomicAdd(&state.sum_speed_sq_lo, sv) > 0xFFFFFFFFu - sv { atomicAdd(&state.sum_speed_sq_hi, 1u); }
 
-    // Domain-local position in [0,1]^2, with v flipped to match the texture convention.
+    // Visualisation from here on, no paper. Domain-local position in [0,1]^2, with v flipped to
+    // match the texture convention.
     let local = (p.position.xy - settings.domain_origin) / settings.domain_size_xy;
     if any(local < vec2f(0.0)) || any(local >= vec2f(1.0)) {
         return;

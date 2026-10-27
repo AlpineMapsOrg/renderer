@@ -19,10 +19,16 @@
 ///use mpm_common
 
 // Stage 1 of the MPM step: scatter particle mass and momentum onto the background grid.
-// Uses the MLS-MPM formulation of Hu et al. [3], where the internal force and the APIC
+// Uses the MLS-MPM formulation of Hu 2018, where the internal force and the APIC
 // affine momentum are folded into a single affine matrix applied to the node offset -
 // this is what removes the explicit gradient term and makes the transfer cheap enough
 // to run every substep on the GPU.
+//
+// References (sections, equations and pages as in the PDFs; full list in mpm-mls-doc/refs.md):
+//   Hu 2018         Y. Hu et al., "A moving least squares material point method with displacement
+//                   discontinuity and two-way rigid body coupling", ACM TOG 37(4), Art. 146, 2018.
+//   Jiang 2015      C. Jiang et al., "The affine particle-in-cell method", ACM TOG 34(4), Art. 51,
+//                   2015.
 
 @compute @workgroup_size(256, 1, 1)
 fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
@@ -45,7 +51,10 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     let k = compute_kernel(grid_pos);
     mark_tiles(k.base.xy);
 
-    // MLS-MPM force term: -dt * V0 * (4 / dx^2) * (P F^T). P F^T was computed by the previous
+    // MLS-MPM force term: -dt * V0 * (4 / dx^2) * (P F^T), Hu 2018 sec. 3.4, eq. 15-18 (p. 7):
+    // eq. 15 gives M_p^-1 = 4 / dx^2 for the quadratic kernel, eq. 18 the force with
+    // dPsi/dF F^T. Plus the APIC momentum m C (Jiang 2015 sec. 5.3, eq. 8, p. 6); folding both
+    // into one affine matrix is Hu 2018 sec. 4, step (1), p. 8. P F^T was computed by the previous
     // G2P from the SVD of its return mapping (see mpm_material.wgsl), so no SVD here.
     let inv_dx = 1.0 / settings.dx;
     let stress_term = -settings.dt * settings.particle_volume * (4.0 * inv_dx * inv_dx) * particle_kirchhoff(p);
@@ -63,6 +72,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
 
                 let weight = kernel_weight(k, offset);
                 let dpos = (vec3f(offset) - k.fx) * settings.dx;
+                // dpos = x_i - x_p in metres, as the 4 / dx^2 above needs.
                 let momentum = weight * (p.mass * p.velocity + affine * dpos);
 
                 add_node_mass(cell, weight * p.mass);

@@ -33,6 +33,17 @@
 //   * A velocity-dependent basal drag (the Voellmy turbulent term). Depends on |v_t|^2, not
 //     on vn, so applying it at both levels would double-count it per substep. It is applied
 //     at the grid level only, gated by the `apply_basal_drag` flag.
+//
+// References (sections, equations and pages as in the PDFs; full list in mpm-mls-doc/refs.md):
+//   Stomakhin 2013  A. Stomakhin et al., "A material point method for snow simulation",
+//                   ACM TOG 32(4), Art. 102, 2013.
+//   Li 2021         X. Li et al., "Three-dimensional and real-scale modeling of flow regimes in
+//                   dense snow avalanches", Landslides 18, 2021.
+//   Tonnel 2023     M. Tonnel et al., "AvaFrame com1DFA (v1.3): a thickness-integrated
+//                   computational avalanche module - theory, numerics, and testing",
+//                   Geosci. Model Dev. 16, 7013-7035, 2023.
+//   Voellmy 1955    A. Voellmy, "Ueber die Zerstoerungskraft von Lawinen", Schweiz. Bauzeitung 73,
+//                   1955. Not in the paper folder; the formula follows the AvaFrame documentation.
 
 const FRICTION_COULOMB: u32 = 0u;
 const FRICTION_VOELLMY: u32 = 1u;
@@ -40,7 +51,10 @@ const FRICTION_VOELLMY: u32 = 1u;
 const MIN_VOELLMY_DEPTH: f32 = 0.1; // [m]
 
 // Coulomb: the tangential velocity loses mu times the normal impact speed per contact;
-// if that would reverse it, the material sticks.
+// if that would reverse it, the material sticks. Stomakhin 2013 sec. 8 (p. 6),
+// v' = v_t + mu v_n v_t / |v_t|, with a static collider (v_co = 0). mu = 0.47 is Li 2021
+// Table 1 (p. 5). An impulse law: in steady sliding it equals the stress form
+// tau_b = tan(delta) sigma_b of Tonnel 2023 eq. 15 (p. 4), in impacts it does not.
 fn coulomb_friction(velocity: vec3f, normal: vec3f, vn: f32) -> vec3f {
     let vt = velocity - normal * vn;
     let vt_len = length(vt);
@@ -58,7 +72,8 @@ fn coulomb_friction(velocity: vec3f, normal: vec3f, vn: f32) -> vec3f {
 // as in a depth-averaged model. AvaFrame's com1DFA offers Voellmy as an option with
 // mu = 0.155 and xi = 4000 m/s^2; its default friction model is samosAT, and Tonnel et al.
 // 2023 give no Voellmy formula - so the values are com1DFA's Voellmy parameters, not its
-// default. The drag carries part of the resistance, hence the lower mu.
+// default. The drag carries part of the resistance, hence the lower mu. No PDF in the paper
+// folder states the Voellmy law; the com1DFA paper does not mention it.
 fn voellmy_friction(velocity: vec3f, normal: vec3f, vn: f32, apply_basal_drag: bool, flow_depth: f32) -> vec3f {
     var vt = coulomb_friction(velocity, normal, vn);
     if !apply_basal_drag {

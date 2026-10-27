@@ -23,8 +23,7 @@
 // stored band of layers - see grid_slot() in mpm_common. state.min/max_altitude_cm are
 // pre-seeded from the CPU with extreme values so the atomics converge correctly.
 //
-// With entrainment, also the snow cover of each column's cell (the dx x dx square around the
-// node), 4 x 4 samples of cover_depth_at(): what the flow can pick up there (column_stats.cover).
+// References: none, project design (mpm-mls-doc/04-data-layout.md).
 
 @compute @workgroup_size(16, 16, 1)
 fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
@@ -40,6 +39,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     atomicMin(&state.min_altitude_cm, altitude_cm);
     atomicMax(&state.max_altitude_cm, altitude_cm);
 
+    // Two layers of margin below the surface hold the 1.5-cell stencil of a particle on it.
     column_floor[column_index(vec2i(id.xy))] = i32(floor(altitude / settings.dx)) - COLUMN_FLOOR_MARGIN;
 
     if settings.entrainment_mode == ENTRAINMENT_OFF || settings.cover_mode == COVER_NONE {

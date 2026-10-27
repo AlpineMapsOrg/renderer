@@ -30,6 +30,17 @@
 // layers. Tiles that no particle's stencil reached this substep (P2G flags them, see
 // mark_tiles() in mpm_common) return straight away: their accumulators are still zero and no
 // particle will read their velocities.
+//
+// References (sections, equations and pages as in the PDFs; full list in mpm-mls-doc/refs.md):
+//   Hu 2018         Y. Hu et al., "A moving least squares material point method with displacement
+//                   discontinuity and two-way rigid body coupling", ACM TOG 37(4), Art. 146, 2018.
+//   Stomakhin 2013  A. Stomakhin et al., "A material point method for snow simulation",
+//                   ACM TOG 32(4), Art. 102, 2013.
+//   Tonnel 2023     M. Tonnel et al., "AvaFrame com1DFA (v1.3): a thickness-integrated
+//                   computational avalanche module - theory, numerics, and testing",
+//                   Geosci. Model Dev. 16, 7013-7035, 2023.
+//   Voellmy 1955    A. Voellmy, "Ueber die Zerstoerungskraft von Lawinen", Schweiz. Bauzeitung 73,
+//                   1955. Not in the paper folder; the formula follows the AvaFrame documentation.
 
 var<workgroup> tile_active: u32;
 
@@ -55,11 +66,15 @@ fn update_node(node_xy: vec2i, layer: i32, cell: u32, flow_depth: f32) -> vec2f 
         return vec2f(0.0);
     }
 
+    // Explicit symplectic Euler on the grid: Hu 2018 sec. 4, step (2) (p. 8); Stomakhin 2013
+    // sec. 4.1, step 4, eq. 10 (p. 4). The stress force is already in the momentum (P2G).
     let momentum = vec3f(momentum_fixed) / MOMENTUM_SCALE;
     var velocity = momentum / mass;
     velocity.z -= settings.gravity * settings.dt; // z is altitude
 
-    // Terrain boundary: nodes below the surface push the material back out.
+    // Terrain boundary: nodes below the surface push the material back out. Grid-based body
+    // collision after the forces, before the transfer back: Stomakhin 2013 sec. 4.1, step 5
+    // (p. 4) and sec. 8 (p. 6).
     let world = column_node_world(node_xy, layer);
     let surface = terrain_height(world.xy);
     if world.z < surface {
@@ -67,7 +82,8 @@ fn update_node(node_xy: vec2i, layer: i32, cell: u32, flow_depth: f32) -> vec2f 
     }
 
     // Domain walls: no outflow through the sides of the box or the top of the band. The
-    // bottom of the band lies inside the terrain, which the condition above handles.
+    // bottom of the band lies inside the terrain, which the condition above handles. Artificial,
+    // no paper: SimState counts the contacts so a run can show it never relied on them.
     let res = vec3i(settings.grid_res);
     if node_xy.x < 2 && velocity.x < 0.0 { velocity.x = 0.0; }
     if node_xy.x >= res.x - 3 && velocity.x > 0.0 { velocity.x = 0.0; }
@@ -165,10 +181,10 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>, @builtin(workgroup_
     let column = column_index(node_xy);
     let layer_stride = settings.grid_res.x * settings.grid_res.y;
 
-    // Local flow depth for the Voellmy drag: the snow volume above this column per unit
-    // area. The column's node masses sum the particles' B-spline weights over x and y only
-    // (the z weights add up to 1), so this is a smoothed areal mass, turned into a depth with
-    // the real volume per particle. Only Voellmy needs it, and the branch is uniform.
+    // Local flow depth h for the Voellmy drag (Voellmy 1955 needs it): the snow volume above this
+    // column per unit area. The column's node masses sum the particles' B-spline weights over x
+    // and y only (the z weights add up to 1), so this is a smoothed areal mass, turned into a
+    // depth with the real volume per particle. Only Voellmy needs it, and the branch is uniform.
     var flow_depth = 0.0;
     if settings.basal_friction_model == FRICTION_VOELLMY {
         var column_mass = 0.0;
@@ -190,9 +206,10 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>, @builtin(workgroup_
         entrain_column(node_xy, column, depth, column_momentum / column_mass);
     }
 
-    // Peaks of the column (see ColumnStats). Depth from the column's mass as for Voellmy above.
-    // Speed from the particles, not the grid: in MLS-MPM a node's momentum holds the stress
-    // impulse too, which at the edge of the flow, on nodes with almost no mass, gives grid
+    // Peaks of the column (see ColumnStats): com1DFA's peak flow thickness and velocity rasters
+    // (Tonnel 2023, the outputs compared in sec. 5). Depth from the column's mass as for Voellmy
+    // above. Speed from the particles, not the grid: in MLS-MPM a node's momentum holds the
+    // stress impulse too, which at the edge of the flow, on nodes with almost no mass, gives grid
     // speeds of hundreds of m/s that no particle has.
     let stats = &column_stats[column];
     if column_mass > 0.0 {

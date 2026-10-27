@@ -48,6 +48,15 @@
 //
 // Adding a model: one new mpm_material_<name>.wgsl, a ///use above, a case in each of the
 // two switches, an enum value in MpmSolverNode.h and a combo entry in the UI.
+//
+// References (sections, equations and pages as in the PDFs; full list in mpm-mls-doc/refs.md):
+//   Hu 2018         Y. Hu et al., "A moving least squares material point method with displacement
+//                   discontinuity and two-way rigid body coupling", ACM TOG 37(4), Art. 146, 2018.
+//   Li 2021         X. Li et al., "Three-dimensional and real-scale modeling of flow regimes in
+//                   dense snow avalanches", Landslides 18, 2021.
+//   The solver/material split follows Li 2021, Fig. 1 (p. 2: the MPM algorithm of
+//   Stomakhin 2013 and Gaume 2018) and its constitutive model section (p. 3). The stress
+//   the models return is the dPsi/dF F^T of Hu 2018 sec. 3.4, eq. 18 (p. 7).
 
 const MATERIAL_STOMAKHIN: u32 = 0u;
 const MATERIAL_DRUCKER_PRAGER: u32 = 1u;

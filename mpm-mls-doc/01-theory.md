@@ -77,7 +77,7 @@ for each of the 27 nodes i:
 ```
 
 The `4/dx²` is the inverse of the quadratic B-spline's second moment — it is what makes the
-MLS estimate consistent. This is the form in Hu et al. [3, §4] and matches the reference
+MLS estimate consistent. This is the form in Hu et al. [3, §3.4 Eq. 15–18, §4] and matches the reference
 `mls-mpm88` implementation.
 
 ### Grid update
@@ -273,8 +273,9 @@ hardens — without it, shear would never change `p₀` and a slab could not wea
 Until 2026-10-03 this step was missing (audit H1, [report-implementation-audit-final-2026-10-03.md](report-implementation-audit-final-2026-10-03.md)).
 Explicit — the projection uses the old `p₀`, then hardening updates it.
 
-`q` follows Gaume and Li, `√(3/2)‖s‖`; Wolper's framework writes `q = (6−d)/2·‖s‖ = 1.5‖s‖`
-in 3D. The difference only rescales M, and Li's M values are for Gaume's definition.
+`q = √(3/2)‖s‖`, the von Mises equivalent stress of Gaume (after Eq. 2) and Li. Wolper §6.1
+writes the same quantity as `q = √((6−d)/2)·‖s‖`, which is `√(3/2)‖s‖` in 3D, so Li's M values
+apply unchanged.
 
 A consequence worth understanding: above `p₀`, Cam-Clay *loses* shear strength (Case 1
 drops the deviatoric strain), whereas Drucker–Prager's cone *gains* it with pressure. So a

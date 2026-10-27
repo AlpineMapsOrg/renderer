@@ -25,6 +25,12 @@
 // A pass of its own rather than two more atomics in P2G: those are invisible to the physics,
 // yet they changed how the compiler arranged P2G's float arithmetic, and the trace drifted by
 // millimetres. Kept separate, the diagnostics cannot touch the solver.
+//
+// References (sections, equations and pages as in the PDFs; full list in mpm-mls-doc/refs.md):
+//   Tonnel 2023     M. Tonnel et al., "AvaFrame com1DFA (v1.3): a thickness-integrated
+//                   computational avalanche module - theory, numerics, and testing",
+//                   Geosci. Model Dev. 16, 7013-7035, 2023.
+//   The peak velocity raster is com1DFA's, one of the outputs compared in Tonnel sec. 5.
 
 @compute @workgroup_size(256, 1, 1)
 fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {

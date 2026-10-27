@@ -28,6 +28,23 @@
 // particles yielded, the path travelled, and contacts with the box's artificial walls. They
 // are reduced in workgroup memory first, so each workgroup touches the global counters once
 // instead of every particle hammering the same few addresses.
+//
+// References (sections, equations and pages as in the PDFs; full list in mpm-mls-doc/refs.md):
+//   Hu 2018         Y. Hu et al., "A moving least squares material point method with displacement
+//                   discontinuity and two-way rigid body coupling", ACM TOG 37(4), Art. 146, 2018.
+//   Jiang 2015      C. Jiang et al., "The affine particle-in-cell method", ACM TOG 34(4), Art. 51,
+//                   2015.
+//   Stomakhin 2013  A. Stomakhin et al., "A material point method for snow simulation",
+//                   ACM TOG 32(4), Art. 102, 2013.
+//   Klar 2016       G. Klar et al., "Drucker-Prager elastoplasticity for sand animation",
+//                   ACM TOG 35(4), Art. 103, 2016.
+//   Wolper 2019     J. Wolper et al., "CD-MPM: Continuum damage material point methods for
+//                   dynamic fracture animation", ACM TOG 38(4), Art. 119, 2019.
+//   Li 2021         X. Li et al., "Three-dimensional and real-scale modeling of flow regimes in
+//                   dense snow avalanches", Landslides 18, 2021.
+//   Tonnel 2023     M. Tonnel et al., "AvaFrame com1DFA (v1.3): a thickness-integrated
+//                   computational avalanche module - theory, numerics, and testing",
+//                   Geosci. Model Dev. 16, 7013-7035, 2023.
 
 var<workgroup> wg_max_speed_mm: atomic<u32>;
 var<workgroup> wg_yielded: atomic<u32>;
@@ -91,6 +108,9 @@ fn update_particle(index: u32) {
     let centre_column = column_index(clamp(k.base.xy + vec2i(1), vec2i(0), res.xy - vec2i(1)));
     let ceiling_contact = k.base.z + 2 - column_floor[centre_column] >= res.z - 3;
 
+    // v_p = sum w v_i and C_p = (4 / dx^2) sum w v_i (x_i - x_p)^T: APIC, Jiang 2015 sec. 5.3,
+    // eq. 8-9 (p. 6); Hu 2018 sec. 4, step (3) (p. 8). dpos is in grid units here, so the factor
+    // is 4 / dx (4 / dx * (x_i - x_p) / dx).
     var new_velocity = vec3f(0.0);
     var new_c = mat3x3f(vec3f(0.0), vec3f(0.0), vec3f(0.0));
 
@@ -118,7 +138,10 @@ fn update_particle(index: u32) {
     p.velocity = new_velocity;
     store_c(&p, new_c);
 
-    // Elastic predictor, then return the deformation gradient to the admissible set. The
+    // Elastic predictor F = (I + dt C) F: Hu 2018 sec. 3.4, eq. 17 (p. 7) and sec. 4, steps (4)-(5)
+    // (p. 8); same order as Stomakhin 2013 sec. 4.1, step 7 and sec. 7 (p. 4, 6). The return
+    // mappings: Stomakhin sec. 7 eq. 11-12, Klar 2016 sec. 7.1 eq. 27-28, Wolper 2019 sec. 6.2.2.
+    // They return the deformation gradient to the admissible set. The
     // return mapping also yields the stress of the new state, which the next P2G consumes.
     let f_trial = (identity3() + settings.dt * new_c) * particle_f(p);
     let plastic = material_plasticity(f_trial, p.plastic_state);
@@ -126,14 +149,16 @@ fn update_particle(index: u32) {
     p.plastic_state = plastic.plastic_state;
     store_kirchhoff(&p, plastic.kirchhoff);
     if plastic.yielded {
-        atomicAdd(&wg_yielded, 1u);
+        atomicAdd(&wg_yielded, 1u); // Li 2021's plastic particles (Fig. 5, p. 6)
     }
 
     // Advection.
     p.position += settings.dt * p.velocity;
 
     // Particle level terrain collision - keeps snow from creeping through the surface
-    // between grid nodes, which the node level condition alone cannot prevent.
+    // between grid nodes, which the node level condition alone cannot prevent. Stomakhin 2013
+    // sec. 4.1, step 9 and sec. 8 (p. 4, 6) collide v_p before step 10 moves the particle; here
+    // it is after advection and also projects the position onto the surface, on purpose.
     let surface = terrain_height(p.position.xy);
     if p.position.z < surface {
         p.position.z = surface;
@@ -168,8 +193,9 @@ fn update_particle(index: u32) {
     particles[index] = p;
 
     atomicMax(&wg_max_speed_mm, u32(clamp(length(p.velocity) * 1000.0, 0.0, 4.0e9)));
-    // Rounded, not truncated, so the sum carries no systematic bias; below 0.005 mm per
-    // substep (well under 1 mm/s) a particle counts as resting. Capped at 100 m per substep,
-    // which only a diverging particle reaches, so 256 of them still fit the u32.
+    // Path for the energy line, mass-averaged (all particles weigh the same): Tonnel 2023 App. A,
+    // eq. A4-A5 (p. 19-20). Rounded, not truncated, so the sum carries no systematic bias; below
+    // 0.005 mm per substep (well under 1 mm/s) a particle counts as resting. Capped at 100 m per
+    // substep, which only a diverging particle reaches, so 256 of them still fit the u32.
     atomicAdd(&wg_path, u32(round(min(length(p.position.xy - old_xy), 100.0) * SUM_PATH_SCALE)));
 }

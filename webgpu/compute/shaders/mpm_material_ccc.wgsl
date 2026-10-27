@@ -20,8 +20,8 @@
 
 // Constitutive model: Cohesive Cam Clay - Gaume et al. 2018, "Dynamic anticrack propagation
 // in snow" (yield surface, hardening law, parameters), with the non-associated return
-// mapping of Wolper et al. 2019, section 6.2 (NACC: three cases plus its shear hardening).
-// Parameter values per flow regime come from Li et al. 2021, Table 1.
+// mapping of Wolper 2019, section 6.2 (NACC: three cases plus its shear hardening).
+// Parameter values per flow regime come from Li 2021, Table 1 (p. 5).
 //
 // Critical-state soil mechanics for a porous cohesive material. Hencky elasticity as in the
 // Drucker-Prager model, but the yield surface is an ellipse in (p, q) space:
@@ -56,19 +56,31 @@
 //
 // Per-particle plastic state: alpha, initialised so that p0(alpha) = ccc_p0_initial.
 // Parameters: settings.mu_0, lambda_0 (shared), ccc_m, ccc_beta, ccc_xi, ccc_p0_initial.
+//
+// References (sections, equations and pages as in the PDFs; full list in mpm-mls-doc/refs.md):
+//   Gaume 2018      J. Gaume et al., "Dynamic anticrack propagation in snow", Nat. Commun. 9,
+//                   3047, 2018.
+//   Wolper 2019     J. Wolper et al., "CD-MPM: Continuum damage material point methods for
+//                   dynamic fracture animation", ACM TOG 38(4), Art. 119, 2019.
+//   Li 2021         X. Li et al., "Three-dimensional and real-scale modeling of flow regimes in
+//                   dense snow avalanches", Landslides 18, 2021.
+//   Klar 2016       G. Klar et al., "Drucker-Prager elastoplasticity for sand animation",
+//                   ACM TOG 35(4), Art. 103, 2016.
 
 fn ccc_bulk_modulus() -> f32 { return settings.lambda_0 + 2.0 * settings.mu_0 / 3.0; }
 
 fn ccc_asinh(x: f32) -> f32 { return log(x + sqrt(x * x + 1.0)); }
 
-// Consolidation pressure from the plastic volumetric strain. The sinh argument is clamped
+// Consolidation pressure from the plastic volumetric strain: Gaume 2018 eq. 4 (p. 2), the same
+// in Wolper sec. 6.2.1 (p. 11). The sinh argument is clamped
 // so a runaway compaction cannot overflow the stress.
 fn ccc_p0(alpha: f32) -> f32 {
     let arg = clamp(settings.ccc_xi * max(-alpha, 0.0), 0.0, 20.0);
     return ccc_bulk_modulus() * sinh(arg);
 }
 
-// alpha such that p0(alpha) equals the configured initial consolidation pressure.
+// alpha such that p0(alpha) equals the configured initial consolidation pressure (Gaume eq. 4
+// inverted; Li 2021 Table 1 gives p0 per case).
 fn ccc_initial_state() -> f32 {
     let k = ccc_bulk_modulus();
     return -ccc_asinh(settings.ccc_p0_initial / k) / max(settings.ccc_xi, 1e-6);
@@ -76,7 +88,8 @@ fn ccc_initial_state() -> f32 {
 
 fn ccc_hencky_strain(sigma: vec3f) -> vec3f { return log(clamp(sigma, vec3f(1e-3), vec3f(1e3))); }
 
-// P F^T for Hencky elasticity - identical to the Drucker-Prager stress; only the yield
+// P F^T for Hencky elasticity (Gaume Methods eq. 6-7, p. 7, "as in Klar": Klar 2016 sec. 6.3,
+// eq. 25-26) - identical to the Drucker-Prager stress; only the yield
 // surface differs between the two models. Takes the principal Hencky strain.
 fn ccc_kirchhoff(u: mat3x3f, eps: vec3f) -> mat3x3f {
     let trace = eps.x + eps.y + eps.z;
@@ -96,6 +109,8 @@ fn ccc_plasticity(f_trial: mat3x3f, alpha: f32) -> PlasticReturn {
     let beta = settings.ccc_beta;
     let p0 = ccc_p0(alpha);
 
+    // Gaume eq. 1-2 and q = (3/2 s:s)^(1/2) right after them (p. 2). Wolper sec. 6.1 (p. 10)
+    // writes q = sqrt((6 - d) / 2) |s|, the same in 3D.
     let p = -k * trace;
     let q = sqrt(1.5) * 2.0 * mu * dev_norm;
 
@@ -103,6 +118,7 @@ fn ccc_plasticity(f_trial: mat3x3f, alpha: f32) -> PlasticReturn {
     var new_alpha = alpha;
     var yielded = true;
 
+    // Cases 1-3: Wolper sec. 6.2.2 (p. 11); alpha at the tips as in sec. 6.2.3, first paragraph.
     if p > p0 {
         // Case 1: beyond the compressive cap. Return to (p0, 0): a purely volumetric strain
         // with tr = -p0/k, deviatoric part dropped. The removed volume is plastic compaction.
@@ -114,15 +130,18 @@ fn ccc_plasticity(f_trial: mat3x3f, alpha: f32) -> PlasticReturn {
         new_eps = vec3f(beta * p0 / (3.0 * k));
         new_alpha = alpha + (trace - beta * p0 / k);
     } else {
+        // CCC yield surface: Gaume eq. 3 (p. 2), Wolper sec. 6.2.1 (p. 11).
         let y = (1.0 + 2.0 * beta) * q * q + m * m * (p + beta * p0) * (p - p0);
         if y > 0.0 {
             // Case 3: shear failure. With p inside [-beta p0, p0] the ellipse term is <= 0,
             // so y > 0 implies q > 0 - the division is safe. Project q onto the ellipse at
-            // fixed p; the flow rule produces no volumetric plastic strain.
+            // fixed p; the flow rule produces no volumetric plastic strain. Wolper eq. 14 (p. 11)
+            // solved for q. Gaume and Li use the associative return instead (Gaume Methods,
+            // eq. 10-17, p. 7).
             let q_new = m * sqrt(max((p + beta * p0) * (p0 - p) / (1.0 + 2.0 * beta), 0.0));
             new_eps = vec3f(trace / 3.0) + dev * (q_new / max(q, 1e-12));
 
-            // Hardening (Wolper 6.2.3). With the centre at p_c = p0 (1 - beta) / 2 the
+            // Hardening (Wolper sec. 6.2.3, p. 11). With the centre at p_c = p0 (1 - beta) / 2 the
             // ellipse is (1 + 2 beta) q^2 + M^2 ((p - p_c)^2 - r^2) = 0, r = p0 (1 + beta) / 2,
             // so the point (p_c, 0) + t (p - p_c, q) lies on it for
             // t = M r / sqrt((1 + 2 beta) q^2 + M^2 (p - p_c)^2), 0 < t < 1 outside. Hencky:

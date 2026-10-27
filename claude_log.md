@@ -15,70 +15,40 @@ capture of the terminal.
 
 ## 2026-10-27
 
-### 1. Entrainment (branch `entrainment`)
+### 1. Paper references checked against the PDFs
 
-Asked by Manuel: plan and implement entrainment, a document like 12-rendering, a Notion
-summary; then a comparison with com1DFA with entrainment and against the old null benchmark,
-and a report on claude.ai. Decisions (asked): everywhere (sandbox, AvaFrame map scenarios,
-generic map scenarios with a cover slider), both com1DFA laws (plowing, erosion), validation on
-all five avalanches. Notion ticket "Entrainment: dormant snow cover picked up by the flow".
+The MPM shader report (Notion) and its 15 sub-pages now cite section, equation, table and
+PDF page for every reference. Each one was checked against the text extracted from the PDFs
+in the iCloud folder `Tu/VisComp/avalacheSim/`. The report's Papers table lists every PDF in
+the folder, with its subfolder and use.
 
-**Built** (15-entrainment.md): AvaFrame's ENT shapefiles in the datasets (Python and C++,
-byte-identical); cover per grid column set in `mpm_prepare`; the grid update erodes it
-(plowing / erosion τ_b|u|/e_b) and turns eroded snow into pool particles at rest, written with
-negative mass so G2P only flips them and the next P2G adds them without momentum. Panel
-controls, mode per context (map erosion, sandbox off), export block.
+Corrections that change content, not just precision:
+- **Hu 2018:** the force with ∂Ψ/∂F Fᵀ is §3.4 Eq. 18 (p. 146:7), not §4. §4 is the step
+  list. The article number is 146, not 150 (fixed in `refs.md`).
+- **Wolper 2019 q:** §6.1 writes q = √((6−d)/2)‖ŝ‖, which is √(3/2)‖s‖ in 3D, the same as
+  Gaume. The audits had dropped the square root and claimed a √1.5 rescaling of M. Fixed in
+  `01-theory.md` and `refs.md`; a dated correction note was added to both audit reports.
+- **Stomakhin collisions:** Stomakhin collides particle velocities *before* the position
+  update (§4.1 step 9). Our G2P resolves contact after advection and projects the position.
+  The shader page now names this as a deliberate deviation.
+- **Voellmy:** no PDF in the folder states the law. The com1DFA paper does not mention it.
+- **Li 2021 Fig. 5:** shows the elastic/plastic particle distributions. The plastic ratios
+  are compared in the text on p. 7.
+- **Stale ⚠️ notes removed:** doc items 1, 2, 4, 5 and 11 are already fixed in the code and docs.
 
-**Design change on the way:** the plan from the 12 Oct research was dormant cover particles
-woken in G2P (with tile stamps against stale grid velocities). Implemented and working in the
-sandbox, but the generic map cover needed 16 M particles, and it seeded nothing on the map
-because the preset's `seed_anywhere` made every sample count as release. Replaced by the
-per-column cover, as com1DFA does it; memory now scales with what is entrained.
+Verified: every number is from the extracted PDF text (pypdf). Not verified: the
+screenshots, which are still the user's step.
 
-**Mistake on the way:** re-running `prepare_dataset.py --real` deletes each dataset folder,
-including the `mpm/` and `com4FlowPy/` run results. A backup taken just before restored them
-(and the full `index.json`). Now noted in avaframe/README.md.
+### 2. Paper references in the WGSL shaders
 
-**Verified:** see 06 §4n and 15-entrainment.md. Off reproduces the 11 Oct AIMEC runouts
-exactly; erosion entrains 80–83 % of com1DFA 2.1's volume (Madlein 55 %); com1DFA's plowing
-over-entrains (its own TODO); mean runout error to com1DFA 149 m off, 119 m erosion. Map:
-Hintertux and Breite Ries entrain; web build compiles; unit tests pass. Report:
-https://claude.ai/artifact/3j7VDeZNRUf3mF3sE9TpNc
-
-### 2. Accuracy and performance: findings and ideas
-
-Asked by Manuel: ways to improve accuracy and performance (finer grid, many more particles,
-grid only where the avalanche goes, numerical precision, graphics tricks); a report.
-Experiment: com1DFA with the MPM's Coulomb μ 0.47 (`run_com1dfa.py --modes coulomb`). It flows
-at 48–57 m/s, the MPM at 97–130 m/s (1.9–2.6×), while the MPM's energy line gives μ_eff
-0.54–0.58: the bulk is braked, the excess is likely in the thin fringe that barely touches the
-friction nodes (hypothesis, test proposed). AIMEC's runout-statistics figure raised on Madlein vs
-com1DFA-Coulomb; `compare_aimec.py` now skips a failing figure. Report with the ranked ideas
-(corridor/dynamic sparse grid, anisotropic cells, particle-level friction, sorted/shared-memory
-P2G, subgroups, G2P2G, quantized particles, softer E, depth-averaged MPM):
-https://claude.ai/artifact/9fKVw5UDVUFMkSQxvdWaxh
-
-### 3. Entrainment on the map: drawing the cover
-
-Asked by Manuel: why no snow that will be picked up is visible. Cause: the solver keeps the
-cover as one number per grid column, not as particles, and fills pool particles at rest under
-the flow, so there was nothing to draw before pickup and nothing to tell apart after. Asked to
-do (1) draw the cover as a layer the flow erodes and (3) fix the interpolation of newly filled
-pool slots.
-
-**Built:** `MpmParticleView::column_stats` → `Frame::column_stats` → field pass binding 5
-(cover / dx², bilinear between columns; the surface takes the higher of flow and cover);
-drawn as `COVER_ALBEDO` where no flow or track is, setting `entrainment_cover` ("Entrainable
-snow", on). Shaders that interpolate draw a slot that was empty in the previous chunk at its
-current position (it was at the domain origin, altitude 0). The surface's terrain lookup is now
-Catmull-Rom: on bilinear terrain the wide, thin cover was lit in blocks of the height texture's
-texels.
-
-**Verified:** WGSL validator; release build; on the map, Madlein (avaMal), paused at 25 s, the
-cover is drawn on AvaFrame's entrainment area and ends at the track (shots with the cover on,
-off and in speed colours); Catmull-Rom removed the blocks. **Not verified:** the interpolation
-fix is not visible in accuracy playback (no interpolation); checked by reading only. GPU cost
-not measured.
+Each MPM shader now lists its papers in the header comment, and the code cites section,
+equation and PDF page at the line that implements them, using the numbers checked in
+request 1. Comments only: the shaders minus comments are identical, and tint validates all
+of them. Committed on `main`, because the docs and comments are needed there before
+entrainment can merge. `main` was then merged into `entrainment`. The script that inserts the
+comments also covers the entrainment-only code (`entrain_column()`, the cover in
+`mpm_prepare`, the particle pool), so the conflicts were resolved with its output on the
+entrainment shaders.
 
 ## 2026-10-25
 

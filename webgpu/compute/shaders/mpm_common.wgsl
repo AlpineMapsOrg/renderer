@@ -19,6 +19,21 @@
 // Shared declarations for the MLS-MPM snow solver (Hu et al. 2018, Stomakhin et al. 2013).
 // Every MPM kernel includes this file, so all of them declare the identical binding set
 // and can therefore share a single bind group layout / bind group.
+//
+// References (sections, equations and pages as in the PDFs; full list in mpm-mls-doc/refs.md):
+//   Hu 2018         Y. Hu et al., "A moving least squares material point method with displacement
+//                   discontinuity and two-way rigid body coupling", ACM TOG 37(4), Art. 146, 2018.
+//   Jiang 2015      C. Jiang et al., "The affine particle-in-cell method", ACM TOG 34(4), Art. 51,
+//                   2015.
+//   Stomakhin 2013  A. Stomakhin et al., "A material point method for snow simulation",
+//                   ACM TOG 32(4), Art. 102, 2013.
+//   Klar 2016       G. Klar et al., "Drucker-Prager elastoplasticity for sand animation",
+//                   ACM TOG 35(4), Art. 103, 2016.
+//   Li 2021         X. Li et al., "Three-dimensional and real-scale modeling of flow regimes in
+//                   dense snow avalanches", Landslides 18, 2021.
+//   Tonnel 2023     M. Tonnel et al., "AvaFrame com1DFA (v1.3): a thickness-integrated
+//                   computational avalanche module - theory, numerics, and testing",
+//                   Geosci. Model Dev. 16, 7013-7035, 2023.
 
 // ---------------------------------------------------------------------------------------
 // Coordinate conventions
@@ -120,10 +135,11 @@ const COVER_TEXTURE: u32 = 1u;
 const COVER_UNIFORM: u32 = 2u;
 
 // The six scalars in the vec3 padding hold the Kirchhoff stress tau = P F^T of the particle's
-// current elastic state (symmetric for every model here, so six components). G2P computes it
-// from the SVD the return mapping has just done, and P2G of the next substep only reads it -
-// one SVD per particle and substep instead of two. The particle volume is not stored: it is
-// the same for every particle (settings.particle_volume, mass is normalised to 1).
+// current elastic state, the dPsi/dF F^T of Hu 2018 sec. 3.4, eq. 18, p. 7 (symmetric for every
+// model here, so six components). G2P computes it from the SVD the return mapping has just done,
+// and P2G of the next substep only reads it - one SVD per particle and substep instead of two.
+// The particle volume is not stored: it is the same for every particle (settings.particle_volume,
+// mass is normalised to 1).
 struct Particle {
     position: vec3f,
     mass: f32, // 0 marks an inactive particle
@@ -178,22 +194,22 @@ struct SimState {
     max_altitude_cm: atomic<i32>,
     active_particles: atomic<u32>,
     max_speed_mm: atomic<u32>,
-    // Particles whose return mapping yielded in the last substep - an instantaneous count,
-    // like the plastic ratio of Li et al. 2021, not "ever yielded". P2G zeroes it every
-    // substep, G2P counts.
+    // Particles whose return mapping yielded in the last substep - an instantaneous count, like
+    // the plastic ratio of Li 2021 (Fig. 5, p. 6; ratios compared on p. 7), not "ever yielded".
+    // P2G zeroes it every substep, G2P counts.
     plastic_particles: atomic<u32>,
     // Seeding threads whose first random sample landed on a release point: hits / threads
     // is the share of the release disc that got snow, i.e. the seeded area, from which
     // seeded_particle_volume() recovers the real snow volume per particle.
     seed_first_hits: atomic<u32>,
 
-    // Sums of position and |v|^2 over the active particles, for the centre of mass and the
-    // mean kinetic energy of the energy-line test (Tonnel et al. 2023, com1DFA section 5.2).
-    // WGSL has no 64-bit atomics, and a fixed-point sum over 10^5 particles overflows a u32
-    // at any useful precision - so each sum is a lo/hi pair: add to lo, and if the returned
-    // old value shows the add wrapped, carry into hi. All summands are non-negative
-    // (region-relative x/y, altitude, |v|^2), so unsigned is fine. See wide_add() in
-    // mpm_splat.wgsl and MpmSolverNode::read_back_state() for the two halves.
+    // Sums of position and |v|^2 over the active particles, for the centre of mass and the mean
+    // kinetic energy of the energy-line test (Tonnel 2023 sec. 5.2, p. 14; App. A eq. A4, p. 19).
+    // WGSL has no 64-bit atomics, and a fixed-point sum over 10^5 particles overflows a u32 at
+    // any useful precision - so each sum is a lo/hi pair: add to lo, and if the returned old
+    // value shows the add wrapped, carry into hi. All summands are non-negative (region-relative
+    // x/y, altitude, |v|^2), so unsigned is fine. See wide_add() in mpm_splat.wgsl and
+    // MpmSolverNode::read_back_state() for the two halves.
     sum_x_lo: atomic<u32>, // region-relative metres * SUM_POSITION_SCALE
     sum_x_hi: atomic<u32>,
     sum_y_lo: atomic<u32>,
@@ -203,9 +219,9 @@ struct SimState {
     sum_speed_sq_lo: atomic<u32>, // m^2/s^2 * SUM_SPEED_SQ_SCALE
     sum_speed_sq_hi: atomic<u32>,
 
-    // Horizontal distance travelled, summed over particles, since the reset - not per run,
-    // so a run whose readback is skipped loses nothing. Divided by the particle count it is
-    // the mass-averaged path s of the energy line (Tonnel et al. 2023, App. A), which is
+    // Horizontal distance travelled, summed over particles, since the reset - not per run, so a
+    // run whose readback is skipped loses nothing. Divided by the particle count it is the
+    // mass-averaged path s of the energy line (Tonnel 2023 App. A, eq. A4-A5, p. 19-20), which is
     // longer than the centre of mass's own path once the flow spreads. G2P adds it.
     sum_path_lo: atomic<u32>, // metres * SUM_PATH_SCALE
     sum_path_hi: atomic<u32>,
@@ -349,7 +365,8 @@ fn sample_height_uv(uv: vec2f) -> f32 {
 
 fn terrain_height(world_xy: vec2f) -> f32 { return sample_height_uv(world_to_uv(world_xy)); }
 
-// Upward facing terrain normal in world space, from central differences.
+// Upward facing terrain normal in world space, from central differences. This is the collider
+// normal n of Stomakhin 2013 sec. 8 (p. 6) for the terrain.
 fn terrain_normal(world_xy: vec2f) -> vec3f {
     let h = max(settings.dx, 1.0); // sample at grid scale, not at DEM scale
     let dhdx = (terrain_height(world_xy + vec2f(h, 0.0)) - terrain_height(world_xy - vec2f(h, 0.0))) / (2.0 * h);
@@ -468,6 +485,10 @@ fn column_node_world(node_xy: vec2i, layer: i32) -> vec3f {
 // ---------------------------------------------------------------------------------------
 // Quadratic B-spline weights (MLS-MPM)
 // ---------------------------------------------------------------------------------------
+// The quadratic kernel of Hu 2018 (sec. 3.4, eq. 15, p. 7: M_p = dx^2 / 4 I) and of APIC
+// (Jiang 2015 sec. 5.3, eq. 9 and the text below it, p. 6: D_p = dx^2 / 4 I for quadratic,
+// dx^2 / 3 I for cubic). Hence the 4 / dx^2 in P2G and G2P. Stomakhin 2013 (sec. 4, p. 3) uses
+// the cubic B-spline instead.
 
 struct Kernel {
     base: vec3i,
@@ -506,6 +527,7 @@ fn identity3() -> mat3x3f { return mat3x3f(vec3f(1, 0, 0), vec3f(0, 1, 0), vec3f
 // Result A with A[i][j] = a_i * b_j.
 fn outer_product(a: vec3f, b: vec3f) -> mat3x3f { return mat3x3f(a * b.x, a * b.y, a * b.z); }
 
+// C_p = B_p D_p^-1, the APIC affine velocity matrix (Jiang 2015 sec. 5.3, eq. 8, p. 6).
 fn particle_c(p: Particle) -> mat3x3f {
     // c0/c1/c2 are the rows of C; mat3x3f takes columns.
     return mat3x3f(vec3f(p.c0.x, p.c1.x, p.c2.x), vec3f(p.c0.y, p.c1.y, p.c2.y), vec3f(p.c0.z, p.c1.z, p.c2.z));
@@ -543,14 +565,18 @@ fn store_kirchhoff(p: ptr<function, Particle>, m: mat3x3f) {
 
 fn diag3(v: vec3f) -> mat3x3f { return mat3x3f(vec3f(v.x, 0, 0), vec3f(0, v.y, 0), vec3f(0, 0, v.z)); }
 
-// U diag(d) U^T - a principal-frame stress rotated back to world space.
+// U diag(d) U^T - a principal-frame stress rotated back to world space. For an isotropic model
+// P F^T = U diag(.) V^T V Sigma U^T, so V drops out (Klar 2016 sec. 6.3, eq. 26, p. 8 for Hencky;
+// Stomakhin 2013 sec. 5, eq. 1, p. 5 for fixed corotated).
 fn from_principal(u: mat3x3f, d: vec3f) -> mat3x3f { return u * diag3(d) * transpose(u); }
 
 // ---------------------------------------------------------------------------------------
 // 3x3 signed SVD
 // ---------------------------------------------------------------------------------------
 // F = U * diag(sigma) * V^T with det(U) = det(V) = 1; sigma.z carries the sign of det(F).
-// Obtained from a cyclic Jacobi eigendecomposition of the symmetric matrix F^T F.
+// Obtained from a cyclic Jacobi eigendecomposition of the symmetric matrix F^T F. No paper of
+// the project gives the algorithm (Jacobi: Golub and Van Loan, sec. 8.5); Stomakhin 2013 and
+// Klar 2016 only require a signed SVD.
 
 struct Svd {
     u: mat3x3f,

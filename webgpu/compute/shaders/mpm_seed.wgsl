@@ -24,8 +24,20 @@
 // domain, forming a snow slab on top of the terrain: settings.slab_thickness deep in a disc
 // on the map, the release depth of each cell in the sandbox (RELEASE_GRID).
 // Particles that fail to find a release point stay inactive (mass = 0) and are skipped
-// by every later stage. So do the slots after the release particles, the pool entrainment
-// draws from (see entrain_column() in mpm_grid_update).
+// by every later stage.
+//
+// References (sections, equations and pages as in the PDFs; full list in mpm-mls-doc/refs.md):
+//   Stomakhin 2013  A. Stomakhin et al., "A material point method for snow simulation",
+//                   ACM TOG 32(4), Art. 102, 2013.
+//   Klar 2016       G. Klar et al., "Drucker-Prager elastoplasticity for sand animation",
+//                   ACM TOG 35(4), Art. 103, 2016.
+//   Gaume 2018      J. Gaume et al., "Dynamic anticrack propagation in snow", Nat. Commun. 9,
+//                   3047, 2018.
+//   Li 2021         X. Li et al., "Three-dimensional and real-scale modeling of flow regimes in
+//                   dense snow avalanches", Landslides 18, 2021.
+//   Tonnel 2023     M. Tonnel et al., "AvaFrame com1DFA (v1.3): a thickness-integrated
+//                   computational avalanche module - theory, numerics, and testing",
+//                   Geosci. Model Dev. 16, 7013-7035, 2023.
 
 const MAX_SEED_ATTEMPTS: u32 = 32u;
 // The sandbox's release cells can fill only a small share of their bounding box (avaMal's
@@ -56,7 +68,10 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     p.position = vec3f(0.0);
     store_c(&p, mat3x3f(vec3f(0.0), vec3f(0.0), vec3f(0.0)));
     store_f(&p, identity3());
-    store_kirchhoff(&p, mat3x3f(vec3f(0.0), vec3f(0.0), vec3f(0.0))); // F = I is stress free in every model
+    // F = I is stress free in every model. The initial plastic states: Stomakhin 2013 sec. 7
+    // (F_P = I, so J_P = 1, p. 6), Klar 2016 sec. 7.3 eq. 29 (q = 0, p. 9), and Gaume 2018 eq. 4
+    // (p. 2) inverted for the alpha that gives the initial consolidation pressure.
+    store_kirchhoff(&p, mat3x3f(vec3f(0.0), vec3f(0.0), vec3f(0.0)));
 
     // Particles start in the release disc, not across the whole domain - the start zone is
     // small and the domain is large so the avalanche has somewhere to run out to.
@@ -72,6 +87,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
         return;
     }
     if settings.release_mode == RELEASE_GRID {
+        // AvaFrame release thickness per cell (as com1DFA reads it, Tonnel 2023).
         // Rejection sampling over the bounds of the release cells: a sample is kept with
         // probability depth / max depth, so particles per area follow the release depth and
         // every particle stands for the same volume (seeded_particle_volume()).
@@ -114,7 +130,9 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     }
 
     if found {
-        // Stack particles through the slab so the release volume has real thickness.
+        // Stack particles through the slab so the release volume has real thickness. Like Li 2021
+        // (simulation setup, p. 4: a 1.05 m slab in the release zone only), snow starts in the
+        // release area alone.
         let depth = rand() * slab_depth;
         p.position = vec3f(world_xy, terrain_height(world_xy) + depth);
         p.mass = settings.particle_mass;

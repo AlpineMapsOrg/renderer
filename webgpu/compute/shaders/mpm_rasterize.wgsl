@@ -21,6 +21,8 @@
 // Converts the accumulated density raster into the node's RGBA output texture.
 // Density is the count relative to density_reference, clamped to 1; the colour follows its
 // square root, so thin cover between the flowing front and the deposited body stays visible.
+//
+// References: none (visualisation).
 
 @compute @workgroup_size(16, 16, 1)
 fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {

@@ -335,6 +335,8 @@ written. The main text above is left as it was.*
   Li, and needs a local Newton solve per particle (Wolper §6.1).
 - **q convention.** Wolper's framework uses q = (6−d)/2·‖s‖ = 1.5‖s‖. The code uses Gaume and Li's
   √(3/2)‖s‖, which is right for Li's M values.
+  *Correction (2026-10-27, checked against the PDF): Wolper §6.1 writes q = √((6−d)/2)·‖ŝ‖, which is
+  √(3/2)‖s‖ in 3D. Both definitions agree; no rescaling is needed.*
 - **Elasticity.** Wolper pairs NACC with a split Neo-Hookean energy (Eq. 8–10). The code uses Gaume's
   Hencky elasticity. That's consistent, since the tip returns use tr ε = −p/K.
 
