@@ -1,6 +1,7 @@
 /*****************************************************************************
  * weBIGeo
  * Copyright (C) 2026 Gerald Kimmersdorfer
+ * Copyright (C) 2026 Matthias Huerbe
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,12 +21,9 @@
 
 #include "Overlay.h"
 #include <QObject>
-#include <array>
 #include <memory>
 #include <vector>
 #include <webgpu/base/Context.h>
-#include <webgpu/base/raii/TextureView.h>
-#include <webgpu/base/raii/TextureWithSampler.h>
 #include <webgpu/webgpu.h>
 
 namespace webgpu_engine {
@@ -50,33 +48,22 @@ public:
     void ready(webgpu::Context& ctx);
     void resize(int w, int h);
 
-    void draw(const WGPUCommandEncoder& command_encoder,
-        const webgpu::raii::TextureView& position_view,
-        const webgpu::raii::TextureView& normal_view,
-        const webgpu::raii::TextureView& overlay_view,
+    struct GraphResult {
+        webgpu::rg::TextureHandle pre;
+        webgpu::rg::TextureHandle post;
+    };
+
+    [[nodiscard]] GraphResult draw(webgpu::rg::RenderGraph* render_graph,
+        webgpu::rg::TextureHandle position,
+        webgpu::rg::TextureHandle normal,
+        webgpu::rg::TextureHandle overlay,
         const WGPUBindGroup& shared_config_bg,
         const WGPUBindGroup& camera_bg);
 
-    [[nodiscard]] const webgpu::raii::TextureView* result_pre_view() const;
-    [[nodiscard]] const webgpu::raii::TextureView* result_post_view() const;
-
 private:
-    using TexturePair = std::array<std::unique_ptr<webgpu::raii::TextureWithSampler>, 2>;
-
-    std::unique_ptr<webgpu::raii::TextureWithSampler> create_output_texture(int w, int h, const char* label) const;
     // Refill m_pre_overlays / m_post_overlays from m_overlays (z_index < 0 -> pre otherwise post),
     // preserving order.
     void rebucket();
-
-    void draw_bucket(const WGPUCommandEncoder& command_encoder,
-        const std::vector<Overlay*>& bucket,
-        TexturePair& tex,
-        const webgpu::raii::TextureView& position_view,
-        const webgpu::raii::TextureView& normal_view,
-        const webgpu::raii::TextureView& overlay_view,
-        const WGPUBindGroup& shared_config_bg,
-        const WGPUBindGroup& camera_bg,
-        glm::uvec2 output_size);
 
     Context* m_ctx = nullptr;
     bool m_is_ready = false;
@@ -84,9 +71,6 @@ private:
     // Per-bucket, non-owning views into m_overlays (non-canonical, rebuilt by rebucket()), iterated directly by draw().
     std::vector<Overlay*> m_pre_overlays; // z_index < 0
     std::vector<Overlay*> m_post_overlays; // z_index >= 0
-    // Ping-pong textures per bucket. Index 0 is the persistent result
-    TexturePair m_pre;
-    TexturePair m_post;
 };
 
 } // namespace webgpu_engine

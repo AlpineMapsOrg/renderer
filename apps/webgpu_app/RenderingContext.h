@@ -4,6 +4,7 @@
  * Copyright (C) 2025 Patrick Komon
  * Copyright (C) 2025 Gerald Kimmersdorfer
  * Copyright (C) 2026 Wendelin Muth
+ * Copyright (C) 2026 Matthias Huerbe
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +33,10 @@
 
 namespace webgpu {
 class Context;
+}
+namespace webgpu::rg {
+struct GraphAllocator;
+struct RenderGraph;
 }
 
 namespace webgpu_engine {
@@ -75,6 +80,8 @@ public:
     nucleus::tile::TileLoadService* cloud_tile_load_service();
     clouds::Manager* clouds_manager();
     SearchService* search_service();
+    webgpu::rg::GraphAllocator* graph_allocator {};
+    webgpu::rg::RenderGraph* current_render_graph {};
 
 signals:
     void initialised();

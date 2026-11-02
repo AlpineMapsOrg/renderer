@@ -1,6 +1,7 @@
 /*****************************************************************************
  * weBIGeo
  * Copyright (C) 2026 Gerald Kimmersdorfer
+ * Copyright (C) 2026 Matthias Huerbe
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,10 +24,16 @@
 
 struct ImFont;
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <glm/glm.hpp>
 #include <webgpu/webgpu.h>
+
+#include <webgpu/base/raii/BindGroupLayout.h>
+#include <webgpu/base/raii/Pipeline.h>
+#include <webgpu/base/raii/RawBuffer.h>
 
 #include "ui/ImGuiPanel.h"
 
@@ -41,7 +48,8 @@ public:
 
     void init(SDL_Window* window, WGPUDevice device, WGPUTextureFormat swapchainFormat, WGPUTextureFormat depthTextureFormat);
     void ready();
-    void render(WGPURenderPassEncoder renderPass);
+    void render(WGPUCommandEncoder encoder, WGPUTextureView target_view, WGPUBindGroupEntry blit_texture);
+    void set_viewport_size(glm::vec2 resolution);
     void shutdown();
 
     bool want_capture_keyboard();
@@ -97,6 +105,16 @@ private:
     bool m_gui_visible = true;
 
     std::vector<std::unique_ptr<ImGuiPanel>> m_panels;
+
+    struct GuiPipelineUBO {
+        glm::vec2 resolution;
+    };
+
+    WGPUQueue m_queue = {};
+    std::unique_ptr<webgpu::raii::BindGroupLayout> m_blit_bind_group_layout;
+    std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_blit_pipeline;
+    std::unique_ptr<webgpu::raii::RawBuffer<GuiPipelineUBO>> m_blit_ubo;
+    void create_blit_pipeline(WGPUTextureFormat target_format);
 
     void draw();
     void install_fonts();
