@@ -2,6 +2,7 @@
  * weBIGeo
  * Copyright (C) 2024 Patrick Komon
  * Copyright (C) 2024 Gerald Kimmersdorfer
+ * Copyright (C) 2026 Matthias Huerbe
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,10 +48,6 @@ class App : public QObject {
 public:
     App();
     ~App() = default;
-
-    struct GuiPipelineUBO {
-        glm::vec2 resolution;
-    };
 
     void init_window();
     void start();
@@ -99,16 +96,13 @@ private:
 
     glm::uvec2 m_viewport_size = glm::uvec2(1280u, 1024u);
     bool m_initialized = false;
-    GuiPipelineUBO m_gui_ubo_data = { glm::vec2(1280.0, 1024.0) };
 
-    std::unique_ptr<webgpu::Framebuffer> m_framebuffer;
-    void create_framebuffer(uint32_t width, uint32_t height);
     void configure_surface(uint32_t width, uint32_t height);
+    void create_scene_target();
 
-    std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_gui_pipeline;
-    std::unique_ptr<webgpu::raii::BindGroupLayout> m_gui_bind_group_layout;
-    std::unique_ptr<webgpu::raii::BindGroup> m_gui_bind_group;
-    std::unique_ptr<webgpu::raii::RawBuffer<GuiPipelineUBO>> m_gui_ubo;
+    // scene texture for rendering 
+    std::unique_ptr<webgpu::raii::Texture> m_scene_texture;
+    std::unique_ptr<webgpu::raii::TextureView> m_scene_texture_view;
 
     WGPUQuerySetDescriptor m_timestamp_query_desc;
     WGPUQuerySet m_timestamp_queries;

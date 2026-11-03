@@ -50,6 +50,8 @@ set(SOURCES
     RenderResourceRegistry.h RenderResourceRegistry.cpp
     gpu_utils.h gpu_utils.cpp
     wgpu_string.h
+    RenderGraph.h RenderGraph.cpp RenderGraph_internal.h
+
     webgpu_interface.hpp webgpu_interface.cpp
 )
 
