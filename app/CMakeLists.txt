@@ -42,6 +42,7 @@ qt_add_qml_module(alpineapp
         icons/mascot.jpg
         icons/menu.png
         icons/search.png
+        icons/steepness_legend.png
         icons/icon.png
         icons/eaws/eaws_menu.png
         icons/eaws/eaws_report.png
@@ -63,6 +64,7 @@ qt_add_qml_module(alpineapp
         icons/material/chevron_left.png
         icons/material/visibility_off.png
         icons/material/filter_alt.png
+        icons/material/steepness.png
         icons/presets/basic.png
         icons/presets/shaded.png
         icons/presets/snow.png
