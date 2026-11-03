@@ -779,8 +779,13 @@ usage flags from how the passes declare the buffer. You never set `WGPUBufferUsa
 | `b.vertex_buffer(h)` | Vertex | vertex fetch |
 | `b.index_buffer(h)` | Index | index fetch |
 | `b.indirect_buffer(h)` | Indirect | draw/dispatch indirect args |
-| `b.host_write(h)` | CopyDst | filled via `wgpuQueueWriteBuffer` in the body |
+| `b.host_write(h)` | CopyDst | filled via `wgpuQueueWriteBuffer` in the body, see below |
 | `b.copy_buffer(src,dst,…)` | CopySrc / CopyDst | see copies |
+
+A queue write runs on the queue timeline, before the whole command buffer the graph records, not at
+the `host_write` pass's slot inside it. So a `host_write` pass must be the buffer's first use in the
+frame, and only one pass may host-write a buffer per frame. `compile()` rejects both. For a second
+update in the same frame, `copy_buffer` from a staging buffer instead.
 
 `ctx.buffer(h)` gives the `WGPUBuffer`, and `ctx.buffer_size(h)` its realized size.
 `ctx.bind(binding, h)` makes a whole-buffer binding at offset 0 with the realized size, unless the
@@ -903,8 +908,9 @@ as its color; depth and stencil cannot be resolved through a render pass.
 
 ### Stencil
 
-Use a depth+stencil format (`Depth24PlusStencil8`, `Depth32FloatStencil8`) and pass the stencil load,
-store, and clear to `depth_stencil()`. The graph only carries the attachment's load, store, and clear.
+Use a format with a stencil aspect (`Depth24PlusStencil8`, `Depth32FloatStencil8`, or stencil-only
+`Stencil8`) and pass the stencil load, store, and clear to `depth_stencil()`. `compile()` rejects a
+stencil format without them. The graph only carries the attachment's load, store, and clear.
 The actual stencil compare and write live in the pipeline's `WGPUDepthStencilState`. The stencil
 params default to `Undefined`, so depth-only formats are unaffected. Leave them out.
 

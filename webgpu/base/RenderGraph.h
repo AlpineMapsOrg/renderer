@@ -211,14 +211,15 @@ struct ColorAttachment {
     Subresource sub {}; // which mip and layer to render into
 };
 
-// left Undefined, the graph fills them in from the format.
+// stencil ops are required for a format with a stencil aspect and must stay Undefined without one.
+// compile() reports both mistakes.
 struct DepthStencilAttachment {
     WGPULoadOp load = WGPULoadOp_Clear; // depth plane. Load keeps last frame's depth
     WGPUStoreOp store = WGPUStoreOp_Store; // Discard when no later pass samples the depth
     float clearDepth = 1.0f; // used only with WGPULoadOp_Clear. 1.0 is the far plane
     Subresource sub {}; // which mip and layer to render into
-    WGPULoadOp stencilLoad = WGPULoadOp_Undefined; // Undefined derives from the format, set only to override
-    WGPUStoreOp stencilStore = WGPUStoreOp_Undefined; // Undefined derives from the format, set only to override
+    WGPULoadOp stencilLoad = WGPULoadOp_Undefined; // set for a stencil format, leave Undefined otherwise
+    WGPUStoreOp stencilStore = WGPUStoreOp_Undefined; // set for a stencil format, leave Undefined otherwise
     uint32_t stencilClear = 0; // used only with a stencil clear
 };
 
@@ -240,6 +241,8 @@ struct PassBuilder {
     void storage_write(BufferHandle handle, BufferRange range = {});
     void storage_read_write(BufferHandle handle, BufferRange range = {});
     void uniform(BufferHandle handle, BufferRange range = {});
+    // the body fills it with wgpuQueueWriteBuffer, which lands before the whole command buffer runs. so
+    // this must be the buffer's first use in the frame and its only host write. compile() enforces both.
     void host_write(BufferHandle handle);
     void copy_texture(TextureHandle src, TextureHandle dst, Subresource srcSub = {}, Subresource dstSub = {});
 

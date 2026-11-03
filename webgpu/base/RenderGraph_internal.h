@@ -129,6 +129,8 @@ struct ResourceAccess {
     // buffer CopyDst only: provably overwrites the whole buffer. a copy_texture_to_buffer dst stays
     // false, its coverage is only known at encode time.
     bool bufFullDefine {};
+    // buffer CopyDst from host_write(): filled by a queue write, which runs before the command buffer
+    bool hostWrite {};
     uint8_t baseMip {};
     uint8_t mipCount { 1 };
 };

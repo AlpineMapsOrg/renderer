@@ -3858,6 +3858,82 @@ TEST_CASE("compile - a stencil format with stencil ops is valid", "[RenderGraph]
     REQUIRE(g.rg->compile() == nullptr);
 }
 
+// Stencil8 binds to the depth-stencil slot although it has no depth aspect
+TEST_CASE("compile - a Stencil8 depth-stencil attachment is valid", "[RenderGraph]")
+{
+    TestGraph g;
+    auto st = g.rg->create_transient_texture("st", tex2d_fmt(WGPUTextureFormat_Stencil8));
+    g.rg->add_pass(
+        "draw", PassKind::Graphics,
+        [&](PassBuilder& b) {
+            b.depth_stencil(st, { .stencilLoad = WGPULoadOp_Clear, .stencilStore = WGPUStoreOp_Store });
+            b.force_keep();
+        },
+        [](PassContext&) {});
+
+    REQUIRE(g.rg->compile() == nullptr);
+}
+
+// the bake clears through depth_stencil(), so a stencil format has to get the stencil ops from it
+TEST_CASE("create_initialized_texture - stencil formats compile", "[RenderGraph]")
+{
+    for (WGPUTextureFormat fmt : { WGPUTextureFormat_Depth24PlusStencil8, WGPUTextureFormat_Stencil8 }) {
+        TestGraph g;
+        auto ds = g.rg->create_initialized_texture("ds", tex2d_fmt(fmt), { 1.0, 0.0, 0.0, 0.0 });
+        g.rg->add_pass(
+            "test", PassKind::Graphics,
+            [&](PassBuilder& b) {
+                b.depth_stencil_read_only(ds);
+                b.force_keep();
+            },
+            [](PassContext&) {});
+
+        REQUIRE(g.rg->compile() == nullptr);
+    }
+}
+
+// a queue write lands before the command buffer, so a pass scheduled earlier would see the new data
+TEST_CASE("compile - a host_write after another use of the buffer is rejected", "[RenderGraph]")
+{
+    TestGraph g;
+    auto ubo = g.rg->create_persistent_buffer("ubo", { .size = 256 });
+    g.rg->add_pass(
+        "read", PassKind::Compute,
+        [&](PassBuilder& b) {
+            b.uniform(ubo);
+            b.force_keep();
+        },
+        [](PassContext&) {});
+    g.rg->add_pass(
+        "upload", PassKind::Transfer,
+        [&](PassBuilder& b) {
+            b.host_write(ubo);
+            b.force_keep();
+        },
+        [](PassContext&) {});
+
+    REQUIRE(g.rg->compile() != nullptr);
+    REQUIRE(error_mentions(g.rg, "after pass \"read\" already used it"));
+}
+
+// both queue writes land before the command buffer, so the first one is lost
+TEST_CASE("compile - two host_writes of one buffer in a frame are rejected", "[RenderGraph]")
+{
+    TestGraph g;
+    auto ubo = g.rg->create_persistent_buffer("ubo", { .size = 256 });
+    for (const char* name : { "upload.a", "upload.b" })
+        g.rg->add_pass(
+            name, PassKind::Transfer,
+            [&](PassBuilder& b) {
+                b.host_write(ubo);
+                b.force_keep();
+            },
+            [](PassContext&) {});
+
+    REQUIRE(g.rg->compile() != nullptr);
+    REQUIRE(error_mentions(g.rg, "already host-wrote"));
+}
+
 // depthOrLayers applies under both SizeKinds, so a 3D volume can size itself off another texture. only
 // width and height scale, there is no scaleZ, so the depth survives the resolve untouched.
 TEST_CASE("compile - a 3D texture can be relatively sized and keeps its depth", "[RenderGraph]")
@@ -5221,4 +5297,113 @@ TEST_CASE("compile - doc example: TAA, history plus a camera-cut hash", "[Render
         [](PassContext&) {});
 
     REQUIRE(g.rg->compile() == nullptr); // writing taa.curr is a sink, so no force_keep needed
+}
+
+// runs one frame inside a validation error scope. the device's uncaptured-error callback only logs, so a
+// test that needs WebGPU itself to accept the recorded commands checks the scope. empty when clean.
+template <class Record>
+static std::string frame_validation_errors(ExecGraph& g, Record&& record)
+{
+    wgpuDevicePushErrorScope(g.gpu.device, WGPUErrorFilter_Validation);
+    g.frame(std::forward<Record>(record));
+
+    struct ScopeResult {
+        bool failed = false;
+        std::string message;
+    } res;
+    WGPUPopErrorScopeCallbackInfo ci {
+        .nextInChain = nullptr,
+        .mode = WGPUCallbackMode_AllowProcessEvents,
+        .callback = [](WGPUPopErrorScopeStatus, WGPUErrorType type, WGPUStringView msg, void* d, void*) {
+            ScopeResult* r = reinterpret_cast<ScopeResult*>(d);
+            r->failed = (type != WGPUErrorType_NoError);
+            if (msg.data)
+                r->message.assign(msg.data, msg.length);
+        },
+        .userdata1 = &res,
+        .userdata2 = nullptr,
+    };
+    WGPUFuture f = wgpuDevicePopErrorScope(g.gpu.device, ci);
+    WGPUFutureWaitInfo wi { .future = f, .completed = false };
+    REQUIRE(wgpuInstanceWaitAny(g.gpu.instance, 1, &wi, 1000ull * 1000 * 1000) == WGPUWaitStatus_Success);
+    if (!res.failed)
+        return {};
+    return res.message.empty() ? std::string("validation error") : res.message;
+}
+
+// the bake clears through the depth-stencil slot, so Dawn has to accept the stencil ops a combined format
+// needs and the absent depth ops a stencil-only one needs, on the bake frame and on the skipped one
+TEST_CASE("RenderGraph exec - initialized stencil textures pass WebGPU validation", "[RenderGraph][gpu]")
+{
+    for (WGPUTextureFormat fmt : { WGPUTextureFormat_Depth24PlusStencil8, WGPUTextureFormat_Stencil8 }) {
+        INFO("format " << int(fmt));
+        ExecGraph g;
+        for (int frame = 0; frame < 2; ++frame) { // frame 0 bakes, frame 1 skips the bake
+            const std::string err = frame_validation_errors(g, [fmt](RenderGraph* rg) {
+                auto ds = rg->create_initialized_texture("init.ds", texture_2d(fmt, 16, 16), { 1.0, 0.0, 0.0, 0.0 });
+                rg->add_pass(
+                    "init.test", PassKind::Graphics,
+                    [&](PassBuilder& b) {
+                        b.depth_stencil_read_only(ds);
+                        b.force_keep();
+                    },
+                    [](PassContext&) {});
+            });
+            INFO("frame " << frame << ": " << err);
+            REQUIRE(err.empty());
+        }
+    }
+}
+
+// a stencil clear really lands: write 7, test against it read-only, copy the stencil aspect out. covers the
+// combined format and stencil-only Stencil8, whose depth ops execute() drops.
+TEST_CASE("RenderGraph exec - a stencil clear round-trips through the GPU", "[RenderGraph][gpu]")
+{
+    constexpr uint32_t W = 16, H = 16;
+    const uint32_t alignedRow = webgpu::aligned_bytes_per_row(W, 1); // the stencil aspect copies 1 byte per texel
+
+    for (WGPUTextureFormat fmt : { WGPUTextureFormat_Depth24PlusStencil8, WGPUTextureFormat_Stencil8 }) {
+        INFO("format " << int(fmt));
+        ExecGraph g;
+        webgpu::raii::RawBuffer<uint8_t> readback(g.gpu.device, WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead, alignedRow * H, "stencil readback");
+
+        const std::string err = frame_validation_errors(g, [&](RenderGraph* rg) {
+            auto st = rg->create_transient_texture("stencil.tex", texture_2d(fmt, W, H));
+            auto buf = rg->import_buffer("stencil.readback", readback.handle());
+            rg->add_pass(
+                "stencil.write", PassKind::Graphics,
+                [&](PassBuilder& b) {
+                    b.depth_stencil(st, { .stencilLoad = WGPULoadOp_Clear, .stencilStore = WGPUStoreOp_Store, .stencilClear = 7 });
+                },
+                [](PassContext&) {});
+            rg->add_pass(
+                "stencil.test", PassKind::Graphics,
+                [&](PassBuilder& b) {
+                    b.depth_stencil_read_only(st);
+                    b.force_keep();
+                },
+                [](PassContext&) {});
+            rg->add_pass(
+                "stencil.readback", PassKind::Transfer,
+                [&](PassBuilder& b) {
+                    b.copy_texture_to_buffer(st, buf);
+                    b.force_keep();
+                },
+                [=](PassContext& ctx) {
+                    WGPUTexelCopyBufferLayout layout { .offset = 0, .bytesPerRow = alignedRow, .rowsPerImage = H };
+                    auto s = ctx.copy_src_info(st, {}, WGPUTextureAspect_StencilOnly);
+                    auto d = ctx.copy_dst_buffer(buf, layout);
+                    auto sz = ctx.copy_extent_src(st);
+                    wgpuCommandEncoderCopyTextureToBuffer(ctx.encoder, &s, &d, &sz);
+                });
+        });
+        INFO(err);
+        REQUIRE(err.empty());
+
+        std::vector<uint8_t> bytes;
+        REQUIRE(readback.read_back_sync(g.gpu.instance, g.gpu.device, bytes) == WGPUMapAsyncStatus_Success);
+        REQUIRE(bytes.size() == alignedRow * H);
+        REQUIRE(bytes[0] == 7);
+        REQUIRE(bytes[(H - 1) * alignedRow + (W - 1)] == 7);
+    }
 }

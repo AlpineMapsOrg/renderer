@@ -1190,6 +1190,11 @@ static inline bool format_has_stencil(WGPUTextureFormat f)
     }
 }
 
+static inline bool is_depth_stencil_format(WGPUTextureFormat f)
+{
+    return is_depth_format(f) || f == WGPUTextureFormat_Stencil8; // Note: Stencil8 is not a depth texture, skip it.
+}
+
 TextureHandle RenderGraph::create_initialized_texture(std::string_view id, const TextureDesc& desc, WGPUColor fill)
 {
     // the fill is a clear on a render target, and the graph cannot render into a 3D texture
@@ -1197,7 +1202,8 @@ TextureHandle RenderGraph::create_initialized_texture(std::string_view id, const
         "3D textures cannot be cleared this way, the graph cannot use them as render targets");
     TextureHandle h = create_persistent_texture(id, desc);
     uint32_t layers = desc.depthOrLayers ? desc.depthOrLayers : 1;
-    bool depth = is_depth_format(desc.format);
+    const bool depth = is_depth_stencil_format(desc.format);
+    const bool stencil = format_has_stencil(desc.format); 
     Arena& scratch = storage(this)->m_allocator->scratch;
 
     for (uint32_t layer = 0; layer < layers; ++layer)
@@ -1213,9 +1219,13 @@ TextureHandle RenderGraph::create_initialized_texture(std::string_view id, const
         add_pass(
             passId,
             PassKind::Graphics,
-            [h, depth, fill, layer](PassBuilder& b) {
+            [h, depth, stencil, fill, layer](PassBuilder& b) {
                 if (depth)
-                    b.depth_stencil(h, { .clearDepth = (float)fill.r, .sub = { .layer = layer } });
+                    b.depth_stencil(h,
+                        { .clearDepth = (float)fill.r,
+                            .sub = { .layer = layer },
+                            .stencilLoad = stencil ? WGPULoadOp_Clear : WGPULoadOp_Undefined,
+                            .stencilStore = stencil ? WGPUStoreOp_Store : WGPUStoreOp_Undefined });
                 else
                     b.color(h, 0, { .clear = fill, .sub = { .layer = layer } });
                 b.initialize(h);
@@ -1705,7 +1715,7 @@ static void compile_impl(RenderGraph* graph, bool enableAlias)
                 }
                 if (id == 0 || external[id] || produced[id])
                     continue;
-                ResourceNode* r = s.byId[id]; // non-null: the handle backstop range-checked every access id
+                ResourceNode* r = s.byId[id];
 
                 // a write to id in THIS pass makes the read an in-place read_write, which needs its own
                 // diagnosis below.
@@ -1730,6 +1740,39 @@ static void compile_impl(RenderGraph* graph, bool enableAlias)
                 hadError = true;
             }
         if (hadError)
+            return;
+    }
+
+    // a host_write body fills the buffer with wgpuQueueWriteBuffer
+    {
+        ScopedScratch ss(s.m_allocator->scratch);
+        PassNode** firstUser = ss.alloc<PassNode*>(s.next_resource_id); // earliest scheduled pass so far
+        bool* hostWritten = ss.alloc<bool>(s.next_resource_id);
+        for (PassNode* p = s.m_passes; p; p = p->next) {
+            for (uint32_t i = 0; i < p->accessCount; ++i) {
+                const ResourceAccess& a = p->accesses[i];
+                if (!a.hostWrite)
+                    continue;
+                const uint32_t id = a.handle.id;
+                ResourceNode* r = s.byId[id]; // non-null: the handle backstop range-checked every access id
+                if (hostWritten[id])
+                    push_error(s,
+                        "pass \"%.*s\" host-writes buffer \"%.*s\", which another pass already host-wrote this "
+                        "frame; queue writes land before the command buffer runs, so only the last one is seen.",
+                        RG_NAME(p->id), RG_NAME(r->id));
+                else if (firstUser[id])
+                    push_error(s,
+                        "pass \"%.*s\" host-writes buffer \"%.*s\" after pass \"%.*s\" already used it this "
+                        "frame; the queue write lands before the command buffer runs, so that pass would see the "
+                        "new data. Host-write in the buffer's first pass.",
+                        RG_NAME(p->id), RG_NAME(r->id), RG_NAME(firstUser[id]->id));
+                hostWritten[id] = true;
+            }
+            for (uint32_t i = 0; i < p->accessCount; ++i)
+                if (!firstUser[p->accesses[i].handle.id])
+                    firstUser[p->accesses[i].handle.id] = p;
+        }
+        if (s.m_state == RenderGraphState::Failed)
             return;
     }
 
@@ -2020,7 +2063,7 @@ static void validate_render_passes(RenderGraphStorage& s)
 
         if (hasDepth) {
             const ResourceAccess& a = *depth.a;
-            if (!is_depth_format(depth.r->format))
+            if (!is_depth_stencil_format(depth.r->format))
                 push_error(s,
                     "pass \"%.*s\": resource \"%.*s\" is bound as the depth-stencil attachment but its "
                     "format is not a depth format.",
@@ -2747,10 +2790,12 @@ void RenderGraph::execute(WGPUDevice device, WGPUQueue queue, WGPUCommandEncoder
                     // resolve() stamped the color slot it targets onto colorIndex, so patch that slot.
                     color[a.colorIndex].resolveTarget = attach_view(r, a);
                 } else if (a.type == AccessType::DepthStencilAttachment || a.type == AccessType::DepthStencilReadOnly) {
+                    // WebGPU rejects depth ops on a format without a depth aspect (Stencil8)
+                    const bool depthAspect = is_depth_format(r->format);
                     depth = WGPURenderPassDepthStencilAttachment {
                         .view = attach_view(r, a),
-                        .depthLoadOp = a.loadOp,
-                        .depthStoreOp = a.storeOp,
+                        .depthLoadOp = depthAspect ? a.loadOp : WGPULoadOp_Undefined,
+                        .depthStoreOp = depthAspect ? a.storeOp : WGPUStoreOp_Undefined,
                         .depthClearValue = a.clearDepth,
                         .depthReadOnly = a.type == AccessType::DepthStencilReadOnly,
                         .stencilLoadOp = a.stencilLoadOp,
@@ -3118,6 +3163,7 @@ void PassBuilder::host_write(BufferHandle handle)
 {
     Q_ASSERT(handle.id != 0);
     use(m_pass, m_graph, handle, AccessType::CopyDst);
+    m_pass->accesses[m_pass->accessCount - 1].hostWrite = true;
 }
 
 void PassBuilder::copy_texture(TextureHandle src, TextureHandle dst, Subresource srcSub, Subresource dstSub)
