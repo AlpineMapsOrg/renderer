@@ -23,6 +23,8 @@
 #include <QDateTime>
 #include <QString>
 #include <QXmlStreamReader>
+#include <QXmlStreamWriter>
+#include <algorithm>
 #include <glm/glm.hpp>
 #include <memory>
 #include <string>
@@ -47,6 +49,10 @@ using BoundingBox = radix::geometry::Aabb<3, double>;
 
 struct Gpx {
     Type track;
+    QString name;
+    QString description;
+    QDateTime creationDateTime;
+
     void add_new_segment() { track.push_back(Segment()); }
     void add_new_point(const Point& point)
     {
@@ -56,6 +62,82 @@ struct Gpx {
 
         track.back().push_back(point);
     }
+
+    void delete_point(unsigned index)
+    {
+        if (track.empty() || index >= track.back().size()) {
+            return;
+        }
+        track.back().erase(track.back().begin() + index);
+    }
+
+    void delete_last_point()
+    {
+        if (track.empty() || track.back().empty()) {
+            return;
+        }
+        track.back().pop_back();
+    }
+
+    void insert_point(unsigned index, const Point& point)
+    {
+        if (track.empty()) {
+            add_new_segment();
+        }
+        track.back().insert(track.back().begin() + std::min<size_t>(index, track.back().size()), point);
+    }
+
+    // moves a point within the last segment, returns the index it ended up at
+    unsigned move_point(unsigned from, int steps)
+    {
+        if (track.empty()) {
+            return from;
+        }
+        Segment& segment = track.back();
+        const int target = static_cast<int>(from) + steps;
+        if (from >= segment.size() || target < 0 || target >= static_cast<int>(segment.size())) {
+            return from;
+        }
+        const Point point = segment[from];
+        segment.erase(segment.begin() + from);
+        segment.insert(segment.begin() + target, point);
+        return static_cast<unsigned>(target);
+    }
+
+    void reverse()
+    {
+        std::reverse(track.begin(), track.end());
+        for (Segment& segment : track) {
+            std::reverse(segment.begin(), segment.end());
+        }
+    }
+
+    void reset()
+    {
+        track.clear();
+        name.clear();
+        description.clear();
+    }
+
+    unsigned point_count() const
+    {
+        unsigned count = 0;
+        for (const Segment& segment : track) {
+            count += static_cast<unsigned>(segment.size());
+        }
+        return count;
+    }
+
+    double haversine_distance(const Point& a, const Point& b) const;
+
+    // distance in metres, ascent/descent in metres (from point elevations)
+    double distance = 0;
+    double ascent = 0;
+    double descent = 0;
+    void recompute_stats();
+
+    void save(const QString& file_path) const;
+    void save(QXmlStreamWriter& xml) const;
 
     Point& last_point()
     {

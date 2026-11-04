@@ -133,6 +133,12 @@ Item {
         }
 
         DrawerButton {
+            text: qsTr ("GPX Editor")
+            iconSource: _r + "icons/material/track.png"
+            onClicked: change_page("GpxEditor.qml", qsTr("GPX Editor"))
+        }
+
+        DrawerButton {
             text: qsTr ("Settings")
             iconSource: _r + "icons/material/settings.png"
             onClicked: change_page("Settings.qml", qsTr("Settings"))
@@ -182,6 +188,8 @@ Item {
         if (selectedPage !== "map" && selectedPage !== "settings"  && stats_window_loader.item !== null) {
             stats_window_loader.item.visible = false;
         }
+        // the gpx editor only accepts clicks on the map while its page is open
+        map.change_edit_mode(selectedPage === "gpxeditor");
         if (source === "map") {
             if (main_stack_view.depth >= 1) main_stack_view.pop()
             page_title.visible = false
@@ -193,6 +201,9 @@ Item {
             main_stack_view.push(source)
         else
             main_stack_view.replace(source)
+        // the gpx editor's close button returns to the map page
+        if (main_stack_view.currentItem.closeRequested !== undefined)
+            main_stack_view.currentItem.closeRequested.connect(function() { change_page("map", qsTr("Map")) })
         main_stack_view.selectedPage = selectedPage
         page_title.visible = true
         search.visible = false
@@ -234,6 +245,14 @@ Item {
             }
         }
         Behavior on field_of_view { NumberAnimation { duration: 500; easing.type: Easing.InOutExpo } }
+    }
+
+    // route points picked in the gpx editor (map clicks) land in the planner model
+    Connections {
+        target: map
+        function onPlanner_point_picked(latitude, longitude, altitude) {
+            _planner_model.add_point_at(latitude, longitude, altitude)
+        }
     }
 
     StackView {

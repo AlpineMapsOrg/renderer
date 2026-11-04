@@ -39,6 +39,8 @@ uniform highp float max_speed;
 uniform highp float max_vertical_speed;
 uniform highp float width;
 uniform int end_index;
+uniform bool use_color_override;
+uniform highp vec3 color_override;
 
 
 uniform highp vec2 resolution;
@@ -217,6 +219,10 @@ void main() {
 
                 } else {
                     color = vec3(0);
+                }
+
+                if (use_color_override) {
+                    color = color_override;
                 }
 
                 color = phong_lighting(color, normal, vec3(0, 0, 0), point);

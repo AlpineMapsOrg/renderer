@@ -41,6 +41,7 @@ struct PolyLine {
     std::unique_ptr<QOpenGLVertexArrayObject> vao = nullptr;
     std::unique_ptr<QOpenGLBuffer> vbo = nullptr;
     std::unique_ptr<QOpenGLTexture> texture = nullptr;
+    bool planned = false;
 };
 
 class TrackManager : public nucleus::track::Manager {
@@ -57,16 +58,24 @@ public slots:
     void change_display_width(float new_width) override;
     void change_shading_style(unsigned int new_style) override;
 
+    // the currently planned route of the gpx editor, rendered in a distinct
+    // colour. the line is densely interpolated on the dem, markers are short
+    // vertical segments at the planned points
+    void change_planned_track(const nucleus::track::Gpx& line, const nucleus::track::Gpx& markers);
+    void clear_planned_track();
+
 protected:
-    void add_track(const nucleus::track::Gpx& gpx);
+    void add_track(const nucleus::track::Gpx& gpx, bool planned = false);
 
 private:
     unsigned int m_shading_method = 0U;
     float m_display_width = 7.0f;
+    float m_planned_display_width = 4.0f;
     std::shared_ptr<ShaderProgram> m_shader;
     float m_max_speed = 0.0f;
     float m_max_vertical_speed = 0.0f;
     size_t m_total_point_count = 0;
     std::vector<PolyLine> m_tracks;
+    std::vector<PolyLine> m_planned_tracks;
 };
 } // namespace gl_engine

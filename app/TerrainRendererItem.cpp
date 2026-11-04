@@ -45,6 +45,7 @@
 #include <nucleus/map_label/Filter.h>
 #include <nucleus/map_label/Scheduler.h>
 #include <nucleus/picker/PickerManager.h>
+#include <nucleus/planner/PlannerManager.h>
 #include <nucleus/srs.h>
 #include <nucleus/tile/GeometryScheduler.h>
 #include <nucleus/tile/TextureScheduler.h>
@@ -134,6 +135,18 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::mouse_pressed, ctx->picker_manager().get(), &nucleus::picker::PickerManager::mouse_press_event);
     connect(this, &TerrainRendererItem::mouse_released, ctx->picker_manager().get(), &nucleus::picker::PickerManager::mouse_release_event);
     connect(this, &TerrainRendererItem::mouse_moved, ctx->picker_manager().get(), &nucleus::picker::PickerManager::mouse_move_event);
+
+    // gpx editor: detect clicks on the terrain and resolve them into geo coordinates
+    connect(this, &TerrainRendererItem::touch_made, ctx->planner_manager().get(), &nucleus::planner::PlannerManager::touch_event);
+    connect(this, &TerrainRendererItem::mouse_pressed, ctx->planner_manager().get(), &nucleus::planner::PlannerManager::mouse_press_event);
+    connect(this, &TerrainRendererItem::mouse_released, ctx->planner_manager().get(), &nucleus::planner::PlannerManager::mouse_release_event);
+    connect(this, &TerrainRendererItem::mouse_moved, ctx->planner_manager().get(), &nucleus::planner::PlannerManager::mouse_move_event);
+    connect(this, &TerrainRendererItem::edit_mode_changed, ctx->planner_manager().get(), &nucleus::planner::PlannerManager::set_edit_mode);
+    connect(ctx->planner_manager().get(), &nucleus::planner::PlannerManager::click_detected, r->controller(), &nucleus::camera::Controller::query_world_position);
+    connect(r->controller(), &nucleus::camera::Controller::world_position_queried, this,
+            [this](const glm::dvec3& lat_long_alt) {
+                emit planner_point_picked(lat_long_alt.x, lat_long_alt.y, lat_long_alt.z);
+            });
 
     // Connect definition change to aquire camera position for sun angle calculation
     connect(r->controller(), &nucleus::camera::Controller::definition_changed, this, &TerrainRendererItem::camera_definition_changed);
@@ -457,6 +470,11 @@ void TerrainRendererItem::set_world_space_cursor_position(const glm::dvec3& new_
         return;
     m_world_space_cursor_position = new_vec3d;
     emit world_space_cursor_position_changed(m_world_space_cursor_position);
+}
+
+void TerrainRendererItem::change_edit_mode(bool edit_mode)
+{
+    emit edit_mode_changed(edit_mode);
 }
 
 const nucleus::picker::Feature& TerrainRendererItem::picked_feature() const { return m_picked_feature; }

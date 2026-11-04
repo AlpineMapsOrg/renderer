@@ -106,6 +106,7 @@ qt_add_library(nucleus STATIC
     track/Manager.h track/Manager.cpp
     track/GPX.cpp
     track/GPX.h
+    planner/PlannerManager.h planner/PlannerManager.cpp
     utils/image_loader.h utils/image_loader.cpp
     utils/image_writer.h utils/image_writer.cpp
     utils/geopng_decoder.h utils/geopng_decoder.cpp

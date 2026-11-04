@@ -40,6 +40,7 @@
 #include <nucleus/map_label/Filter.h>
 #include <nucleus/map_label/setup.h>
 #include <nucleus/picker/PickerManager.h>
+#include <nucleus/planner/PlannerManager.h>
 #include <nucleus/tile/GeometryScheduler.h>
 #include <nucleus/tile/SchedulerDirector.h>
 #include <nucleus/tile/TextureScheduler.h>
@@ -67,6 +68,7 @@ struct RenderingContext::Data {
     std::unique_ptr<nucleus::camera::Controller> camera_controller;
     std::shared_ptr<nucleus::map_label::Filter> label_filter;
     std::shared_ptr<nucleus::picker::PickerManager> picker_manager;
+    std::shared_ptr<nucleus::planner::PlannerManager> planner_manager;
     std::shared_ptr<nucleus::tile::utils::AabbDecorator> aabb_decorator;
     std::unique_ptr<nucleus::tile::SchedulerDirector> scheduler_director;
     std::shared_ptr<nucleus::avalanche::ReportLoadService> eaws_report_load_service;
@@ -95,7 +97,7 @@ RenderingContext::RenderingContext(QObject* parent)
     m->aabb_decorator = nucleus::tile::setup::aabb_decorator();
     {
         // clang-format off
-        auto geometry_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TilePattern::ZXY, ".png");
+        auto geometry_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/at_dtm_alpinemaps/", TilePattern::ZXY, ".png");
         m->geometry = nucleus::tile::setup::geometry_scheduler(std::move(geometry_service), m->aabb_decorator, m->scheduler_thread.get());
         m->scheduler_director->check_in("geometry", m->geometry.scheduler);
         m->data_querier = std::make_shared<DataQuerier>(&m->geometry.scheduler->ram_cache());
@@ -125,6 +127,7 @@ RenderingContext::RenderingContext(QObject* parent)
     m->geometry.scheduler->set_dataquerier(m->data_querier);
     m->eaws_report_load_service = std::make_shared<nucleus::avalanche::ReportLoadService>(m->eaws_texture.scheduler->get_uint_id_manager());
     m->picker_manager = std::make_shared<PickerManager>();
+    m->planner_manager = std::make_shared<nucleus::planner::PlannerManager>();
     m->label_filter = std::make_shared<Filter>();
     if (m->scheduler_thread) {
         m->picker_manager->moveToThread(m->scheduler_thread.get());
@@ -228,6 +231,7 @@ void RenderingContext::destroy()
             m->camera_controller.reset();
             m->label_filter.reset();
             m->picker_manager.reset();
+            m->planner_manager.reset();
             m->map_label.scheduler.reset();
             m->ortho_texture.scheduler.reset();
             m->eaws_texture.scheduler.reset();
@@ -273,6 +277,12 @@ std::shared_ptr<nucleus::picker::PickerManager> RenderingContext::picker_manager
 {
     QMutexLocker locker(&m->shared_ptr_mutex);
     return m->picker_manager;
+}
+
+std::shared_ptr<nucleus::planner::PlannerManager> RenderingContext::planner_manager() const
+{
+    QMutexLocker locker(&m->shared_ptr_mutex);
+    return m->planner_manager;
 }
 
 std::shared_ptr<nucleus::map_label::Filter> RenderingContext::label_filter() const

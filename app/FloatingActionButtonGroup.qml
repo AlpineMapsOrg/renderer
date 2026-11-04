@@ -19,16 +19,23 @@
 
 import QtQuick
 import QtQuick.Controls.Material
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import "components"
 import app
-
-
 
 ColumnLayout {
     id: fab_group
     width: 64
     spacing: 0
+
+    FileDialog {
+        id: track_import_dialog
+        title: qsTr("Open GPX track")
+        nameFilters: ["GPX (*.gpx *.xml)"]
+        fileMode: FileDialog.OpenFile
+        onAccepted: _track_model.import_track(track_import_dialog.selectedFile)
+    }
 
     FloatingActionButton {
         rotation: map.camera_rotation_from_north
@@ -45,9 +52,50 @@ ColumnLayout {
     }
 
     FloatingActionButton {
-        image: _r + "icons/material/add.png"
+        id: fab_track
+        image: _r + "icons/material/" + (checked ? "chevron_left.png" : "track.png")
         size: parent.width
-        onClicked: _track_model.upload_track()
+        checkable: true
+        onClicked: fab_presets.checked = false
+
+        Rectangle {
+            visible: parent.checked
+            radius: parent.radius
+            height: 64
+            width: fabtracksubgroup.implicitWidth + parent.width
+
+            color: Qt.alpha(Material.backgroundColor, 0.3)
+            border { width: 2; color: Qt.alpha( "black", 0.5); }
+
+            RowLayout {
+                x: parent.parent.width
+                id: fabtracksubgroup
+                spacing: 0
+                height: parent.height
+
+                FloatingActionButton {
+                    image: _r + "icons/material/add.png"
+                    onClicked: {
+                        track_import_dialog.open()
+                        fab_track.checked = false
+                    }
+                    size: parent.height
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Load a GPX track from disk")
+                }
+
+                FloatingActionButton {
+                    image: _r + "icons/material/pin_drop.png"
+                    onClicked: {
+                        change_page("GpxEditor.qml", qsTr("GPX Editor"))
+                        fab_track.checked = false
+                    }
+                    size: parent.height
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Plan a new track")
+                }
+            }
+        }
     }
 
     Connections {

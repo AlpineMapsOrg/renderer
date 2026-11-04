@@ -112,6 +112,10 @@ signals:
 
     void world_space_cursor_position_changed(const QVector3D& world_space_cursor_position);
 
+    // emitted while the gpx editor is active, when the user clicked on the terrain
+    void planner_point_picked(double latitude, double longitude, double altitude) const;
+    void edit_mode_changed(bool edit_mode) const;
+
     void eaws_report_date_changed(QDate newDate) const; // This is emitted after user picked a date for eaws avalanche report in the gui
 
 protected:
@@ -133,6 +137,8 @@ public slots:
     void set_slope_angle_layer(bool value);
     void set_stop_or_go_layer(bool value);
     void updateEawsReportDate(int day, int month, int year);
+    // enables/disables click-to-place-route-point mode of the gpx editor
+    void change_edit_mode(bool edit_mode);
 private slots:
     void schedule_update();
     void init_after_creation_slot();

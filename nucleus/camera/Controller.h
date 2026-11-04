@@ -71,9 +71,14 @@ public slots:
     void touch(const event_parameter::Touch&);
     void advance_camera();
 
+    // does a synchronous depth readback at the given screen position and
+    // reports the terrain position in geo coordinates (lat/long/altitude)
+    void query_world_position(const QPointF& screen_pos);
+
 signals:
     void definition_changed(const Definition& new_definition) const;
     void global_cursor_position_changed(glm::dvec3 pos) const;
+    void world_position_queried(glm::dvec3 lat_long_alt) const;
 
 private:
     void set_interaction_style(std::unique_ptr<InteractionStyle> new_style);

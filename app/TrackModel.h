@@ -34,6 +34,9 @@ public:
     Q_INVOKABLE QPointF lat_long(unsigned index);
     Q_INVOKABLE unsigned n_tracks() const { return m_data.size(); }
 
+    // loads the given gpx file and adds it to the displayed tracks
+    Q_INVOKABLE void import_track(const QUrl& file_url);
+
     float display_width() const;
     void set_display_width(float new_display_width);
 

@@ -27,6 +27,9 @@ class Context;
 namespace nucleus {
 class DataQuerier;
 }
+namespace nucleus::planner {
+class PlannerManager;
+}
 namespace nucleus::map_label {
 class Filter;
 }
@@ -78,6 +81,7 @@ public:
     [[nodiscard]] std::shared_ptr<nucleus::DataQuerier> data_querier() const;
     [[nodiscard]] nucleus::tile::GeometryScheduler* geometry_scheduler() const;
     [[nodiscard]] std::shared_ptr<nucleus::picker::PickerManager> picker_manager() const;
+    [[nodiscard]] std::shared_ptr<nucleus::planner::PlannerManager> planner_manager() const;
     [[nodiscard]] std::shared_ptr<nucleus::map_label::Filter> label_filter() const;
     [[nodiscard]] nucleus::map_label::Scheduler* map_label_scheduler() const;
     [[nodiscard]] nucleus::tile::TextureScheduler* ortho_scheduler() const;

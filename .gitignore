@@ -19,3 +19,7 @@ __pycache__
 **/.qmlls.ini
 /docs/project_reports
 **/__pycache__/*.pyc
+
+# local helper script (not part of the project)
+/run-alpineapp.bat
+TODO.md

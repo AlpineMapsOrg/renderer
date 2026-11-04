@@ -26,6 +26,9 @@
 #include <QFileDialog>
 #endif
 
+#include <QFile>
+#include <QFileInfo>
+
 #include "RenderThreadNotifier.h"
 #include "RenderingContext.h"
 #include <gl_engine/Context.h>
@@ -139,6 +142,17 @@ void TrackModel::finish_wasm_upload()
     add_track(file_name, file_data);
 }
 #endif
+
+void TrackModel::import_track(const QUrl& file_url)
+{
+    const QString path = file_url.toLocalFile();
+    QFile file(path);
+    if (!file.open(QFile::ReadOnly)) {
+        qDebug() << "TrackModel::import_track: failed to open file!" << path;
+        return;
+    }
+    add_track(QFileInfo(path).fileName(), file.readAll());
+}
 
 void TrackModel::upload_track()
 {

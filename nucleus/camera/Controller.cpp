@@ -262,6 +262,12 @@ void Controller::report_global_cursor_position(const QPointF& screen_pos) {
     emit global_cursor_position_changed(coord);
 }
 
+void Controller::query_world_position(const QPointF& screen_pos)
+{
+    const glm::dvec3 pos = m_depth_tester->position(m_definition.to_ndc({ screen_pos.x(), screen_pos.y() }));
+    emit world_position_queried(srs::world_to_lat_long_alt(pos));
+}
+
 void Controller::set_pixel_error_threshold(float threshold)
 {
     if (m_definition.pixel_error_threshold() == threshold)

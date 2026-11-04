@@ -47,7 +47,7 @@ TrackManager::TrackManager(ShaderRegistry* shader_registry, QObject* parent)
 
 void TrackManager::draw(const nucleus::camera::Definition& camera) const
 {
-    if (m_tracks.empty()) {
+    if (m_tracks.empty() && m_planned_tracks.empty()) {
         return;
     }
 
@@ -66,36 +66,32 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
     m_shader->set_uniform("proj", proj);
     m_shader->set_uniform("view", view);
     m_shader->set_uniform("camera_position", glm::vec3(camera.position()));
-    m_shader->set_uniform("width", m_display_width);
     m_shader->set_uniform("texin_track", 8);
     m_shader->set_uniform("shading_method", static_cast<int>(m_shading_method));
     m_shader->set_uniform("max_speed", m_max_speed);
     m_shader->set_uniform("max_vertical_speed", m_max_vertical_speed);
-    m_shader->set_uniform("end_index", static_cast<int>(m_total_point_count));
 
-    for (const PolyLine& track : m_tracks) {
+    for (const std::vector<PolyLine>* track_list : { &m_tracks, &m_planned_tracks }) {
+        const bool planned = track_list == &m_planned_tracks;
+        m_shader->set_uniform("width", planned ? m_planned_display_width : m_display_width);
 
-        track.texture->bind(8);
+        for (const PolyLine& track : *track_list) {
 
-        track.vao->bind();
+            track.texture->bind(8);
 
-        GLsizei vertex_count = (track.point_count - 1) * 6;
+            track.vao->bind();
 
-        m_shader->set_uniform("enable_intersection", true);
-        f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
+            GLsizei vertex_count = (track.point_count - 1) * 6;
 
-#if ENABLE_BOUNDING_QUADS
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-        if (funcs) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-#endif
-
-        shader->set_uniform("enable_intersection", false);
-        f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
-
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-        if (funcs) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-#endif
-#endif
+            m_shader->set_uniform("enable_intersection", true);
+            // vertex ids restart at zero for each polyline; end_index must
+            // select the last segment of *this* polyline, so that the shader
+            // skips the end clipping plane there (x3 would fetch out of range)
+            m_shader->set_uniform("end_index", static_cast<int>(track.point_count) - 1);
+            m_shader->set_uniform("use_color_override", planned);
+            m_shader->set_uniform("color_override", glm::vec3(0.1f, 0.8f, 1.0f));
+            f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
+        }
     }
 
     m_shader->release();
@@ -103,33 +99,36 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
     f->glEnable(GL_CULL_FACE);
 }
 
-void TrackManager::add_track(const nucleus::track::Gpx& gpx)
+void TrackManager::add_track(const nucleus::track::Gpx& gpx, bool planned)
 {
     using namespace nucleus::track;
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
-    qDebug() << "Segment Count: " << gpx.track.size();
-
     for (const Segment& segment : gpx.track) {
 
-        qDebug() << "Point Count Per Segment: " << segment.size();
+        if (segment.size() < 2) {
+            continue;
+        }
 
         // transform from latitude and longitude into renderer world coordinates
         std::vector<glm::vec4> points = to_world_points(segment);
 
-        // data cleanup
-        apply_gaussian_filter(points, 1.0f);
+        // data cleanup (not for planned tracks, the points are already densely
+        // interpolated and smoothing would blur the point markers)
+        if (!planned) {
+            apply_gaussian_filter(points, 1.0f);
 
-        for (size_t i = 0; i < points.size() - 1; ++i) {
-            glm::vec4 a = points[i];
-            glm::vec4 b = points[i + 1];
-            float distance = glm::distance(glm::vec3(a), glm::vec3(b));
-            float time = b.w;
-            float speed = distance / time;
-            float vertical_speed = glm::abs(a.z - b.z) / time;
+            for (size_t i = 0; i < points.size() - 1; ++i) {
+                glm::vec4 a = points[i];
+                glm::vec4 b = points[i + 1];
+                float distance = glm::distance(glm::vec3(a), glm::vec3(b));
+                float time = b.w;
+                float speed = distance / time;
+                float vertical_speed = glm::abs(a.z - b.z) / time;
 
-            m_max_speed = glm::max(speed, m_max_speed);
-            m_max_vertical_speed = glm::max(vertical_speed, m_max_vertical_speed);
+                m_max_speed = glm::max(speed, m_max_speed);
+                m_max_vertical_speed = glm::max(vertical_speed, m_max_vertical_speed);
+            }
         }
 
         size_t point_count = points.size();
@@ -137,15 +136,13 @@ void TrackManager::add_track(const nucleus::track::Gpx& gpx)
         std::vector<glm::vec3> basic_ribbon = triangles_ribbon(points, 0.0f, 0);
 
         PolyLine polyline = {};
-
+        polyline.planned = planned;
 
 
         if (polyline.texture == nullptr) {
 
             int max_texture_size;
             f->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
-
-            qDebug() << "max texture size: " << max_texture_size;
 
             if (max_texture_size < int(point_count)) {
                 qDebug() << "Unable to add track with " << point_count << "points, maximum is " << max_texture_size;
@@ -201,10 +198,12 @@ void TrackManager::add_track(const nucleus::track::Gpx& gpx)
 
         polyline.vao->release();
 
-        m_tracks.push_back(std::move(polyline));
+        if (planned) {
+            m_planned_tracks.push_back(std::move(polyline));
+        } else {
+            m_tracks.push_back(std::move(polyline));
+        }
     }
-
-    qDebug() << "Total Point Count: " << m_total_point_count;
 }
 
 ShaderProgram* TrackManager::shader() const { return m_shader.get(); }
@@ -215,6 +214,18 @@ void TrackManager::change_tracks(const QVector<nucleus::track::Gpx>& tracks)
     for (const auto& t : tracks) {
         add_track(t);
     }
+}
+
+void TrackManager::change_planned_track(const nucleus::track::Gpx& line, const nucleus::track::Gpx& markers)
+{
+    m_planned_tracks.resize(0);
+    add_track(line, true);
+    add_track(markers, true);
+}
+
+void TrackManager::clear_planned_track()
+{
+    m_planned_tracks.resize(0);
 }
 
 void TrackManager::change_display_width(float new_width) { m_display_width = new_width; }

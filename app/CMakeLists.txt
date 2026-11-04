@@ -29,6 +29,7 @@ qt_add_executable(alpineapp
     TerrainRendererItem.h TerrainRendererItem.cpp
     GnssInformation.h GnssInformation.cpp
     TrackModel.h TrackModel.cpp
+    PlannerModel.h PlannerModel.cpp
     ModelBinding.h ModelBinding.cpp
     RenderingContext.h RenderingContext.cpp
 )
@@ -61,6 +62,7 @@ qt_add_qml_module(alpineapp
         icons/material/navigation.png
         icons/material/navigation_offset.png
         icons/material/add.png
+        icons/material/track.png
         icons/material/chevron_left.png
         icons/material/visibility_off.png
         icons/material/filter_alt.png
@@ -84,6 +86,7 @@ qt_add_qml_module(alpineapp
         SearchResults.qml
         Settings.qml
         Coordinates.qml
+        GpxEditor.qml
         GeneralSettings.qml
         GlSettings.qml
         FloatingActionButtonGroup.qml
