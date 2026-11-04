@@ -29,12 +29,16 @@
 namespace {
 // The dem tiles are 65x65 samples; at the zoom levels the scheduler keeps
 // cached when close to the terrain this resolves to roughly 20-40 m per
-// sample, so sampling the route line every 20 m captures the terrain detail.
-// Very long segments are coarsened automatically (see update_render_data).
-constexpr double k_sample_distance = 20.0;
+// sample. sampling at 5 m oversamples the dem (so the steepness colouring
+// changes gradually), a moving average over the sampled elevations removes
+// the dem cell staircase. very long segments are coarsened automatically
+// (see update_render_data).
+constexpr double k_sample_distance = 5.0;
 // upper bound of interpolation steps per segment, so that a segment across
 // whole austria does not produce tens of thousands of samples
 constexpr int k_max_steps_per_segment = 500;
+// elevation smoothing window of the sampled route line, in samples per side
+constexpr int k_elevation_smoothing_radius = 2;
 // length of the tiny marker segment at each route point, in metres. the
 // capsule shader renders the short segment as a round dot (the cap
 // hemispheres dominate). horizontal, so the ribbon quad stays valid when the
@@ -217,9 +221,15 @@ void PlannerModel::update_render_data()
 
     for (const auto& segment : m_plan.track) {
         restart_chain();
+
+        // collect the interpolated samples of this plan segment, then smooth
+        // their elevations, so that the rendered steepness changes gradually
+        // (the dem cells are much coarser than the sample distance)
+        std::vector<nucleus::track::Point> line_points;
+        line_points.reserve(segment.size() * 8);
         for (size_t i = 0; i < segment.size(); ++i) {
             const nucleus::track::Point& a = segment[i];
-            add_line_point(a);
+            line_points.push_back(a);
 
             // point marker: ~1 m segment that the capsule shader renders as a
             // round dot sitting on the route point
@@ -252,8 +262,23 @@ void PlannerModel::update_render_data()
                         alt = dem_altitude.value();
                     }
                 }
-                add_line_point({ lat, lon, alt });
+                line_points.push_back({ lat, lon, alt });
             }
+        }
+
+        // moving average over the sampled elevations (route points keep their
+        // exact elevation at the segment ends)
+        const int radius = k_elevation_smoothing_radius;
+        for (size_t i = radius; i + radius < line_points.size(); ++i) {
+            double sum = 0;
+            for (int k = -radius; k <= radius; ++k) {
+                sum += line_points[size_t(int(i) + k)].elevation;
+            }
+            line_points[i].elevation = sum / double(2 * radius + 1);
+        }
+
+        for (const nucleus::track::Point& point : line_points) {
+            add_line_point(point);
         }
     }
 

@@ -53,17 +53,22 @@ highp vec3 visualize_normal(highp vec3 normal) {
 
 // same steepness binning as the steepness terrain overlay, so that the route
 // line matches the legend and the overlay colouring
+// steepness colouring for the route line: piecewise-linear blend between the
+// steepness legend bin colours, so adjacent segments transition smoothly
+// instead of jumping between the discrete bins
 lowp vec3 route_steepness_color(highp float steepness_degrees) {
-    if (steepness_degrees > 60.0) return steepness_color_map[9].rgb;
-    if (steepness_degrees > 55.0) return steepness_color_map[8].rgb;
-    if (steepness_degrees > 50.0) return steepness_color_map[7].rgb;
-    if (steepness_degrees > 45.0) return steepness_color_map[6].rgb;
-    if (steepness_degrees > 40.0) return steepness_color_map[5].rgb;
-    if (steepness_degrees > 35.0) return steepness_color_map[4].rgb;
-    if (steepness_degrees > 30.0) return steepness_color_map[3].rgb;
-    if (steepness_degrees > 25.0) return steepness_color_map[2].rgb;
-    if (steepness_degrees > 15.0) return steepness_color_map[1].rgb;
-    return steepness_color_map[0].rgb;
+    // lower bound in degrees of each steepness bin; the last bin ends at 65
+    const highp float bin_edges[steepness_bins] = highp float[](0.0, 15.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0, 55.0, 60.0);
+    lowp vec3 colour = steepness_color_map[0].rgb;
+    for (int i = 0; i < steepness_bins; ++i) {
+        if (steepness_degrees >= bin_edges[i]) {
+            highp float upper = (i + 1 < steepness_bins) ? bin_edges[i + 1] : 65.0;
+            lowp vec3 next_colour = (i + 1 < steepness_bins) ? steepness_color_map[i + 1].rgb : steepness_color_map[i].rgb;
+            highp float t = clamp((steepness_degrees - bin_edges[i]) / (upper - bin_edges[i]), 0.0, 1.0);
+            colour = mix(steepness_color_map[i].rgb, next_colour, t);
+        }
+    }
+    return colour;
 }
 
 // https://sibaku.github.io/computer-graphics/2017/01/10/Camera-Ray-Generation.html
@@ -247,8 +252,27 @@ void main() {
                     } else {
                         // colour the route line by the steepness of each
                         // segment (angle between the segment direction and the
-                        // horizontal plane), with the steepness overlay colour map
-                        highp float slope_degrees = degrees(asin(clamp(abs(dot(normalize(x2 - x1), vec3(0.0, 0.0, 1.0))), 0.0, 1.0)));
+                        // horizontal plane), with the steepness overlay colour
+                        // map. the slope is averaged over this segment and its
+                        // two neighbours, so the colour changes gradually.
+                        // at the line ends x0/x3 fetch out of range; guard
+                        // against it by comparing against this segment's length
+                        highp float l12 = length(x2 - x1);
+                        highp float l01 = length(x1 - x0);
+                        highp float l23 = length(x3 - x2);
+                        highp float dz12 = abs(x2.z - x1.z);
+                        highp float dz01 = abs(x1.z - x0.z);
+                        highp float dz23 = abs(x3.z - x2.z);
+                        if (l01 > 4.0 * l12 || l01 <= 0.0) {
+                            l01 = l12;
+                            dz01 = dz12;
+                        }
+                        if (l23 > 4.0 * l12 || l23 <= 0.0) {
+                            l23 = l12;
+                            dz23 = dz12;
+                        }
+                        highp float slope = (dz01 + dz12 + dz23) / (l01 + l12 + l23);
+                        highp float slope_degrees = degrees(asin(clamp(slope, 0.0, 1.0)));
                         color = route_steepness_color(slope_degrees);
                     }
                 }
