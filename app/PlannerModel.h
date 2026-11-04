@@ -70,6 +70,10 @@ public slots:
     void export_gpx(const QUrl& file_url);
     // loads the given gpx file into the planner (replaces the current plan)
     void import_gpx(const QUrl& file_url);
+    // renders a position indicator at the user's current gnss position.
+    // the altitude is only a fallback, the dem altitude is preferred
+    void set_user_position(double latitude, double longitude, double altitude);
+    void clear_user_position();
 
 signals:
     void points_changed();
@@ -77,6 +81,8 @@ signals:
     // emitted after a gpx import, with the lat/long of the first route point,
     // so the ui can move the camera to the imported track
     void track_imported(const QPointF& position);
+    void user_position_changed(const nucleus::track::Gpx& marker);
+    void user_position_cleared();
 
 private:
     void update_render_data();

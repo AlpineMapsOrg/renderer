@@ -47,7 +47,7 @@ TrackManager::TrackManager(ShaderRegistry* shader_registry, QObject* parent)
 
 void TrackManager::draw(const nucleus::camera::Definition& camera) const
 {
-    if (m_tracks.empty() && m_planned_tracks.empty()) {
+    if (m_tracks.empty() && m_planned_tracks.empty() && m_user_position.empty()) {
         return;
     }
 
@@ -71,8 +71,8 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
     m_shader->set_uniform("max_speed", m_max_speed);
     m_shader->set_uniform("max_vertical_speed", m_max_vertical_speed);
 
-    for (const std::vector<PolyLine>* track_list : { &m_tracks, &m_planned_tracks }) {
-        const bool planned = track_list == &m_planned_tracks;
+    for (const std::vector<PolyLine>* track_list : { &m_tracks, &m_planned_tracks, &m_user_position }) {
+        const bool planned = track_list != &m_tracks;
 
         if (!planned) {
             m_shader->set_uniform("width", m_display_width);
@@ -104,8 +104,12 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
             // skips the end clipping plane there (x3 would fetch out of range)
             m_shader->set_uniform("end_index", static_cast<int>(track.point_count) - 1);
             m_shader->set_uniform("use_color_override", planned);
+            glm::vec3 colour = track.marker ? m_planned_marker_color : glm::vec3(0.1f, 0.8f, 1.0f);
+            if (track.user_position) {
+                colour = m_user_position_color;
+            }
             m_shader->set_uniform("color_is_marker", track.marker);
-            m_shader->set_uniform("color_override", track.marker ? m_planned_marker_color : glm::vec3(0.1f, 0.8f, 1.0f));
+            m_shader->set_uniform("color_override", colour);
 
             if (track.marker) {
                 // draw the dots slightly towards the viewer, so the line does
@@ -259,6 +263,20 @@ void TrackManager::change_planned_track(const nucleus::track::Gpx& line, const n
 void TrackManager::clear_planned_track()
 {
     m_planned_tracks.resize(0);
+}
+
+void TrackManager::change_user_position(const nucleus::track::Gpx& marker)
+{
+    m_user_position.resize(0);
+    add_track(marker, true, true);
+    for (PolyLine& polyline : m_user_position) {
+        polyline.user_position = true;
+    }
+}
+
+void TrackManager::clear_user_position()
+{
+    m_user_position.resize(0);
 }
 
 void TrackManager::change_display_width(float new_width) { m_display_width = new_width; }

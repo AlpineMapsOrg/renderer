@@ -44,6 +44,8 @@ struct PolyLine {
     bool planned = false;
     // route point markers (dots) get a slightly different colour than the line
     bool marker = false;
+    // the user position indicator
+    bool user_position = false;
     // average of the world-space track points, used to scale the width with
     // the camera distance
     glm::vec3 center = glm::vec3(0.f);
@@ -69,6 +71,10 @@ public slots:
     void change_planned_track(const nucleus::track::Gpx& line, const nucleus::track::Gpx& markers);
     void clear_planned_track();
 
+    // position indicator for the user's current gnss position (a single dot)
+    void change_user_position(const nucleus::track::Gpx& marker);
+    void clear_user_position();
+
 protected:
     void add_track(const nucleus::track::Gpx& gpx, bool planned = false, bool markers = false);
 
@@ -83,11 +89,13 @@ private:
     float m_planned_min_world_width = 2.0f;
     float m_planned_max_world_width = 150.0f;
     glm::vec3 m_planned_marker_color = glm::vec3(0.0f, 0.45f, 0.9f);
+    glm::vec3 m_user_position_color = glm::vec3(0.95f, 0.15f, 0.55f);
     std::shared_ptr<ShaderProgram> m_shader;
     float m_max_speed = 0.0f;
     float m_max_vertical_speed = 0.0f;
     size_t m_total_point_count = 0;
     std::vector<PolyLine> m_tracks;
     std::vector<PolyLine> m_planned_tracks;
+    std::vector<PolyLine> m_user_position;
 };
 } // namespace gl_engine

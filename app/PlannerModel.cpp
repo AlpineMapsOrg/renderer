@@ -45,6 +45,9 @@ constexpr int k_elevation_smoothing_radius = 2;
 // camera looks straight down (a vertical segment would degenerate there)
 constexpr double k_marker_length = 1.0;
 constexpr double k_metres_per_degree_latitude = 111320.0;
+// the user position dot floats this many metres above the dem, so that it is
+// not swallowed by the terrain
+constexpr double k_user_position_z_offset = 3.0;
 } // namespace
 
 PlannerModel::PlannerModel(QObject* parent)
@@ -55,6 +58,10 @@ PlannerModel::PlannerModel(QObject* parent)
         auto* track_manager = ctx->engine_context()->track_manager();
         connect(this, &PlannerModel::planned_track_changed, track_manager, &gl_engine::TrackManager::change_planned_track);
         connect(this, &PlannerModel::planned_track_changed, RenderThreadNotifier::instance(), &RenderThreadNotifier::redraw_requested);
+        connect(this, &PlannerModel::user_position_changed, track_manager, &gl_engine::TrackManager::change_user_position);
+        connect(this, &PlannerModel::user_position_changed, RenderThreadNotifier::instance(), &RenderThreadNotifier::redraw_requested);
+        connect(this, &PlannerModel::user_position_cleared, track_manager, &gl_engine::TrackManager::clear_user_position);
+        connect(this, &PlannerModel::user_position_cleared, RenderThreadNotifier::instance(), &RenderThreadNotifier::redraw_requested);
 
         m_data_querier = ctx->data_querier();
     });
@@ -143,12 +150,15 @@ void PlannerModel::export_gpx(const QUrl& file_url)
         return;
     }
     m_plan.creationDateTime = QDateTime::currentDateTime();
-    m_plan.save(file_url.toLocalFile());
+    // android file dialogs return content:// uris, which QFile can open but
+    // which have no local file path
+    const QString path = file_url.isLocalFile() ? file_url.toLocalFile() : file_url.toString();
+    m_plan.save(path);
 }
 
 void PlannerModel::import_gpx(const QUrl& file_url)
 {
-    const QString path = file_url.toLocalFile();
+    const QString path = file_url.isLocalFile() ? file_url.toLocalFile() : file_url.toString();
     if (path.isEmpty()) {
         qWarning() << "PlannerModel::import_gpx: not a local file" << file_url;
         return;
@@ -186,6 +196,37 @@ void PlannerModel::import_gpx(const QUrl& file_url)
         emit track_imported({ segment.front().latitude, segment.front().longitude });
         break;
     }
+}
+
+void PlannerModel::set_user_position(double latitude, double longitude, double altitude)
+{
+    if (latitude == 0.0 && longitude == 0.0) {
+        return;
+    }
+
+    // place the dot on the terrain: the dem altitude is more reliable than
+    // the gnss altitude; the gnss altitude is only the fallback
+    double dem_altitude = altitude;
+    if (m_data_querier) {
+        const std::expected<float, QString> queried = m_data_querier->get_altitude({ latitude, longitude });
+        if (queried.has_value()) {
+            dem_altitude = queried.value();
+        }
+    }
+
+    // same dot style as the route point markers (~1m segment rendered as a
+    // sphere by the capsule shader), horizontal so it survives top-down views,
+    // lifted above the terrain so it is not swallowed by the dem
+    const double lat_offset = k_marker_length / k_metres_per_degree_latitude;
+    nucleus::track::Gpx marker;
+    marker.add_new_point({ latitude - lat_offset / 2.0, longitude, dem_altitude + k_user_position_z_offset });
+    marker.add_new_point({ latitude + lat_offset / 2.0, longitude, dem_altitude + k_user_position_z_offset });
+    emit user_position_changed(marker);
+}
+
+void PlannerModel::clear_user_position()
+{
+    emit user_position_cleared();
 }
 
 void PlannerModel::update_render_data()

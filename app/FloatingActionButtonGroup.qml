@@ -502,6 +502,11 @@ ColumnLayout {
         enabled: fab_location.checked
         onInformation_updated: {
             map.set_position(gnss.latitude, gnss.longitude)
+            _planner_model.set_user_position(gnss.latitude, gnss.longitude, gnss.altitude)
+        }
+        onEnabled_changed: {
+            if (!gnss.enabled)
+                _planner_model.clear_user_position()
         }
     }
 
