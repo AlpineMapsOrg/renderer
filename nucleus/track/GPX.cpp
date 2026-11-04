@@ -181,8 +181,9 @@ void Gpx::save(QXmlStreamWriter& xml) const
     if (!description.isEmpty()) {
         xml.writeTextElement("desc", description);
     }
+    // xsd:dateTime requires a timezone
     const QDateTime creation = creationDateTime.isValid() ? creationDateTime : QDateTime::currentDateTime();
-    xml.writeTextElement("time", creation.toString(Qt::ISODate));
+    xml.writeTextElement("time", creation.toUTC().toString(Qt::ISODate));
     xml.writeEndElement(); // metadata
 
     xml.writeStartElement("trk");

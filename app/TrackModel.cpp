@@ -145,7 +145,9 @@ void TrackModel::finish_wasm_upload()
 
 void TrackModel::import_track(const QUrl& file_url)
 {
-    const QString path = file_url.toLocalFile();
+    // android file dialogs return content:// uris, which QFile can open but
+    // which have no local file path
+    const QString path = file_url.isLocalFile() ? file_url.toLocalFile() : file_url.toString();
     QFile file(path);
     if (!file.open(QFile::ReadOnly)) {
         qDebug() << "TrackModel::import_track: failed to open file!" << path;
