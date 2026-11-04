@@ -42,6 +42,10 @@ public:
     virtual std::optional<Definition> update(Definition camera, AbstractDepthTester* depth_tester);
     virtual std::optional<glm::vec2> operation_centre();
     virtual std::optional<float> operation_centre_distance(Definition camera);
+    // called when the window loses keyboard focus. keys pressed before the
+    // focus loss never see their release event (e.g. alt+tab), so interaction
+    // styles must drop their tracked modifier state here
+    virtual void clear_keyboard_state() { }
 };
 
 }

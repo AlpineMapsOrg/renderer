@@ -115,6 +115,8 @@ signals:
     // emitted while the gpx editor is active, when the user clicked on the terrain
     void planner_point_picked(double latitude, double longitude, double altitude) const;
     void edit_mode_changed(bool edit_mode) const;
+    // emitted when the item loses keyboard focus (e.g. alt+tab away from the app)
+    void keyboard_focus_lost() const;
 
     void eaws_report_date_changed(QDate newDate) const; // This is emitted after user picked a date for eaws avalanche report in the gui
 
@@ -126,6 +128,7 @@ protected:
     void wheelEvent(QWheelEvent*) override;
     void keyPressEvent(QKeyEvent*) override;
     void keyReleaseEvent(QKeyEvent*) override;
+    void focusOutEvent(QFocusEvent*) override;
 
 public slots:
     void set_position(double latitude, double longitude);

@@ -268,6 +268,11 @@ void Controller::query_world_position(const QPointF& screen_pos)
     emit world_position_queried(srs::world_to_lat_long_alt(pos));
 }
 
+void Controller::clear_keyboard_state()
+{
+    m_interaction_style->clear_keyboard_state();
+}
+
 void Controller::set_pixel_error_threshold(float threshold)
 {
     if (m_definition.pixel_error_threshold() == threshold)

@@ -75,6 +75,9 @@ public slots:
     // reports the terrain position in geo coordinates (lat/long/altitude)
     void query_world_position(const QPointF& screen_pos);
 
+    // drop the tracked modifier/keyboard state (see InteractionStyle::clear_keyboard_state)
+    void clear_keyboard_state();
+
 signals:
     void definition_changed(const Definition& new_definition) const;
     void global_cursor_position_changed(glm::dvec3 pos) const;

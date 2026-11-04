@@ -147,6 +147,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
             [this](const glm::dvec3& lat_long_alt) {
                 emit planner_point_picked(lat_long_alt.x, lat_long_alt.y, lat_long_alt.z);
             });
+    connect(this, &TerrainRendererItem::keyboard_focus_lost, r->controller(), &nucleus::camera::Controller::clear_keyboard_state);
 
     // Connect definition change to aquire camera position for sun angle calculation
     connect(r->controller(), &nucleus::camera::Controller::definition_changed, this, &TerrainRendererItem::camera_definition_changed);
@@ -230,6 +231,15 @@ void TerrainRendererItem::keyReleaseEvent(QKeyEvent* e)
     }
     emit key_released(e->keyCombination());
     RenderThreadNotifier::instance()->notify();
+}
+
+void TerrainRendererItem::focusOutEvent(QFocusEvent* event)
+{
+    QQuickItem::focusOutEvent(event);
+    // keys pressed before losing focus never see their release event (e.g.
+    // alt+tab), which leaves the camera interaction styles with stuck modifier
+    // state (zooming instead of panning)
+    emit keyboard_focus_lost();
 }
 
 void TerrainRendererItem::camera_definition_changed(const nucleus::camera::Definition& new_definition)

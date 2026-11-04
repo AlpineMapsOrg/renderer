@@ -148,6 +148,13 @@ std::optional<Definition> OrbitInteraction::key_release_event(const QKeyCombinat
 
 std::optional<glm::vec2> OrbitInteraction::operation_centre() { return -m_operation_centre_screen; }
 
+void OrbitInteraction::clear_keyboard_state()
+{
+    m_key_ctrl = false;
+    m_key_alt = false;
+    m_key_shift = false;
+}
+
 void OrbitInteraction::start(const glm::vec2& position, const Definition& camera, AbstractDepthTester* depth_tester)
 {
     m_operation_centre = depth_tester->position(camera.to_ndc(position));

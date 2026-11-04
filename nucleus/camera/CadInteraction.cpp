@@ -153,4 +153,10 @@ std::optional<glm::vec2> CadInteraction::operation_centre(){
 std::optional<float> CadInteraction::operation_centre_distance(Definition camera){
     return glm::distance(m_operation_centre, camera.position());
 }
+
+void CadInteraction::clear_keyboard_state()
+{
+    m_key_ctrl = false;
+    m_key_alt = false;
+}
 }
