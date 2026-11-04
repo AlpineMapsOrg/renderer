@@ -55,19 +55,20 @@ highp vec3 visualize_normal(highp vec3 normal) {
 // line matches the legend and the overlay colouring
 // steepness colouring for the route line: piecewise-linear blend between the
 // steepness legend bin colours, so adjacent segments transition smoothly
-// instead of jumping between the discrete bins
+// instead of jumping between the discrete bins. written as a progressive mix
+// chain with constant indices (dynamic indexing of const arrays and loops
+// over them are not reliably supported on gles 3.0 compilers)
 lowp vec3 route_steepness_color(highp float steepness_degrees) {
-    // lower bound in degrees of each steepness bin; the last bin ends at 65
-    const highp float bin_edges[steepness_bins] = highp float[](0.0, 15.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0, 55.0, 60.0);
     lowp vec3 colour = steepness_color_map[0].rgb;
-    for (int i = 0; i < steepness_bins; ++i) {
-        if (steepness_degrees >= bin_edges[i]) {
-            highp float upper = (i + 1 < steepness_bins) ? bin_edges[i + 1] : 65.0;
-            lowp vec3 next_colour = (i + 1 < steepness_bins) ? steepness_color_map[i + 1].rgb : steepness_color_map[i].rgb;
-            highp float t = clamp((steepness_degrees - bin_edges[i]) / (upper - bin_edges[i]), 0.0, 1.0);
-            colour = mix(steepness_color_map[i].rgb, next_colour, t);
-        }
-    }
+    colour = mix(colour, steepness_color_map[1].rgb, clamp((steepness_degrees - 15.0) / 10.0, 0.0, 1.0));
+    colour = mix(colour, steepness_color_map[2].rgb, clamp((steepness_degrees - 25.0) / 5.0, 0.0, 1.0));
+    colour = mix(colour, steepness_color_map[3].rgb, clamp((steepness_degrees - 30.0) / 5.0, 0.0, 1.0));
+    colour = mix(colour, steepness_color_map[4].rgb, clamp((steepness_degrees - 35.0) / 5.0, 0.0, 1.0));
+    colour = mix(colour, steepness_color_map[5].rgb, clamp((steepness_degrees - 40.0) / 5.0, 0.0, 1.0));
+    colour = mix(colour, steepness_color_map[6].rgb, clamp((steepness_degrees - 45.0) / 5.0, 0.0, 1.0));
+    colour = mix(colour, steepness_color_map[7].rgb, clamp((steepness_degrees - 50.0) / 5.0, 0.0, 1.0));
+    colour = mix(colour, steepness_color_map[8].rgb, clamp((steepness_degrees - 55.0) / 5.0, 0.0, 1.0));
+    colour = mix(colour, steepness_color_map[9].rgb, clamp((steepness_degrees - 60.0) / 5.0, 0.0, 1.0));
     return colour;
 }
 
