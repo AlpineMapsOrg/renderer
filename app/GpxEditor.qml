@@ -35,9 +35,16 @@ Rectangle {
     // emitted when the user closes the editor via the panel's x button
     signal closeRequested()
 
+    // collapsed to a small status bar, so the map stays visible (phones)
+    property bool minimized: false
+
     function format_distance(d) {
         return d < 1000 ? d.toFixed(0) + " m" : (d / 1000).toFixed(2) + " km";
     }
+
+    // start minimized on narrow screens (phone portrait), where the expanded
+    // panel would cover the whole map
+    Component.onCompleted: minimized = gpx_root.width < 500
 
     FileDialog {
         id: export_dialog
@@ -64,19 +71,21 @@ Rectangle {
         clip: true
         anchors {
             left: gpx_root.left
-            top: gpx_root.top
             bottom: gpx_root.bottom
             leftMargin: 10
-            topMargin: 10
             bottomMargin: 10
         }
         width: Math.min(400, gpx_root.width - 20)
+        height: minimized ? minimized_bar.implicitHeight + 16 : gpx_root.height - 20
+
+        Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
         ColumnLayout {
             id: content_column
             anchors.fill: parent
             anchors.margins: 10
             spacing: 8
+            visible: !gpx_root.minimized
 
             RowLayout {
                 Layout.fillWidth: true
@@ -88,7 +97,13 @@ Rectangle {
                     Layout.fillWidth: true
                 }
                 ToolButton {
-                    text: "✕"
+                    text: minimized ? "▲" : "▼"
+                    onClicked: gpx_root.minimized = !gpx_root.minimized
+                    ToolTip.visible: hovered
+                    ToolTip.text: minimized ? qsTr("Show route planner") : qsTr("Minimize to see the map")
+                }
+                ToolButton {
+                    text: "×"
                     onClicked: gpx_root.closeRequested()
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Close the route planner")
@@ -169,7 +184,7 @@ Rectangle {
                         ToolTip.text: qsTr("Move point down")
                     }
                     ToolButton {
-                        text: "✕"
+                        text: "×"
                         onClicked: _planner_model.delete_point(index)
                         ToolTip.visible: hovered
                         ToolTip.text: qsTr("Delete point")
@@ -213,6 +228,34 @@ Rectangle {
                     if (position.x !== 0 && position.y !== 0)
                         map.set_position(position.x, position.y)
                 }
+            }
+        }
+
+        // compact status bar shown while minimized: keeps the map visible and
+        // clickable (edit mode stays active, new points update the stats live)
+        RowLayout {
+            id: minimized_bar
+            visible: gpx_root.minimized
+            anchors.fill: parent
+            anchors.margins: 8
+
+            Label {
+                text: _planner_model.points.length + " pts | "
+                      + format_distance(_planner_model.distance)
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+            }
+            ToolButton {
+                text: "×"
+                onClicked: gpx_root.closeRequested()
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Close the route planner")
+            }
+            ToolButton {
+                text: "▲"
+                onClicked: gpx_root.minimized = false
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Show route planner")
             }
         }
     }
