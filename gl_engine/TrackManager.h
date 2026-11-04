@@ -42,6 +42,11 @@ struct PolyLine {
     std::unique_ptr<QOpenGLBuffer> vbo = nullptr;
     std::unique_ptr<QOpenGLTexture> texture = nullptr;
     bool planned = false;
+    // route point markers (dots) get a slightly different colour than the line
+    bool marker = false;
+    // average of the world-space track points, used to scale the width with
+    // the camera distance
+    glm::vec3 center = glm::vec3(0.f);
 };
 
 class TrackManager : public nucleus::track::Manager {
@@ -65,12 +70,19 @@ public slots:
     void clear_planned_track();
 
 protected:
-    void add_track(const nucleus::track::Gpx& gpx, bool planned = false);
+    void add_track(const nucleus::track::Gpx& gpx, bool planned = false, bool markers = false);
 
 private:
     unsigned int m_shading_method = 0U;
     float m_display_width = 7.0f;
-    float m_planned_display_width = 4.0f;
+    // the planned route line is rendered with a width that scales with the
+    // camera distance, so that it covers roughly this many pixels on screen
+    // (clamped to a min/max world width)
+    float m_planned_target_pixel_width = 5.0f;
+    float m_planned_marker_pixel_width = 7.0f;
+    float m_planned_min_world_width = 2.0f;
+    float m_planned_max_world_width = 150.0f;
+    glm::vec3 m_planned_marker_color = glm::vec3(0.0f, 0.45f, 0.9f);
     std::shared_ptr<ShaderProgram> m_shader;
     float m_max_speed = 0.0f;
     float m_max_vertical_speed = 0.0f;

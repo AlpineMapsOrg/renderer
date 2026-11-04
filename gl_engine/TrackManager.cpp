@@ -73,9 +73,24 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
 
     for (const std::vector<PolyLine>* track_list : { &m_tracks, &m_planned_tracks }) {
         const bool planned = track_list == &m_planned_tracks;
-        m_shader->set_uniform("width", planned ? m_planned_display_width : m_display_width);
+
+        if (!planned) {
+            m_shader->set_uniform("width", m_display_width);
+        }
 
         for (const PolyLine& track : *track_list) {
+
+            if (planned) {
+                // scale the width with the camera distance so that the line
+                // covers roughly m_planned_target_pixel_width pixels on screen
+                const float distance = glm::distance(glm::vec3(camera.position()), track.center);
+                const float pixel_to_world = 2.f * glm::tan(glm::radians(camera.field_of_view()) * 0.5f)
+                    / float(camera.viewport_size().y);
+                const float target_pixels = track.marker ? m_planned_marker_pixel_width : m_planned_target_pixel_width;
+                const float width = glm::clamp(distance * pixel_to_world * target_pixels,
+                    m_planned_min_world_width, m_planned_max_world_width);
+                m_shader->set_uniform("width", width);
+            }
 
             track.texture->bind(8);
 
@@ -89,8 +104,19 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
             // skips the end clipping plane there (x3 would fetch out of range)
             m_shader->set_uniform("end_index", static_cast<int>(track.point_count) - 1);
             m_shader->set_uniform("use_color_override", planned);
-            m_shader->set_uniform("color_override", glm::vec3(0.1f, 0.8f, 1.0f));
+            m_shader->set_uniform("color_is_marker", track.marker);
+            m_shader->set_uniform("color_override", track.marker ? m_planned_marker_color : glm::vec3(0.1f, 0.8f, 1.0f));
+
+            if (track.marker) {
+                // draw the dots slightly towards the viewer, so the line does
+                // not swallow them where the two overlap
+                f->glEnable(GL_POLYGON_OFFSET_FILL);
+                f->glPolygonOffset(1.0f, 4.0f);
+            }
             f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
+            if (track.marker) {
+                f->glDisable(GL_POLYGON_OFFSET_FILL);
+            }
         }
     }
 
@@ -99,7 +125,7 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
     f->glEnable(GL_CULL_FACE);
 }
 
-void TrackManager::add_track(const nucleus::track::Gpx& gpx, bool planned)
+void TrackManager::add_track(const nucleus::track::Gpx& gpx, bool planned, bool markers)
 {
     using namespace nucleus::track;
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
@@ -137,6 +163,13 @@ void TrackManager::add_track(const nucleus::track::Gpx& gpx, bool planned)
 
         PolyLine polyline = {};
         polyline.planned = planned;
+        polyline.marker = markers;
+        // average of the world-space points, for distance-based width scaling
+        glm::vec3 center_sum(0.f);
+        for (const glm::vec4& point : points) {
+            center_sum += glm::vec3(point);
+        }
+        polyline.center = center_sum / float(points.size());
 
 
         if (polyline.texture == nullptr) {
@@ -220,7 +253,7 @@ void TrackManager::change_planned_track(const nucleus::track::Gpx& line, const n
 {
     m_planned_tracks.resize(0);
     add_track(line, true);
-    add_track(markers, true);
+    add_track(markers, true, true);
 }
 
 void TrackManager::clear_planned_track()

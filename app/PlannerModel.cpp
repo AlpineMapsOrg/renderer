@@ -35,8 +35,11 @@ constexpr double k_sample_distance = 20.0;
 // upper bound of interpolation steps per segment, so that a segment across
 // whole austria does not produce tens of thousands of samples
 constexpr int k_max_steps_per_segment = 500;
-// length of the flat marker segment drawn at each route point, in metres
-constexpr double k_marker_length = 15.0;
+// length of the tiny marker segment at each route point, in metres. the
+// capsule shader renders the short segment as a round dot (the cap
+// hemispheres dominate). horizontal, so the ribbon quad stays valid when the
+// camera looks straight down (a vertical segment would degenerate there)
+constexpr double k_marker_length = 1.0;
 constexpr double k_metres_per_degree_latitude = 111320.0;
 } // namespace
 
@@ -218,7 +221,8 @@ void PlannerModel::update_render_data()
             const nucleus::track::Point& a = segment[i];
             add_line_point(a);
 
-            // point marker: short flat segment lying on the terrain at the route point
+            // point marker: ~1 m segment that the capsule shader renders as a
+            // round dot sitting on the route point
             const double lat_offset = k_marker_length / k_metres_per_degree_latitude;
             m_render_markers.add_new_segment();
             m_render_markers.add_new_point({ a.latitude - lat_offset / 2.0, a.longitude, a.elevation });

@@ -22,6 +22,7 @@
 #include "encoder.glsl"
 #include "shared_config.glsl"
 #include "turbo_colormap.glsl"
+#include "overlay_steepness.glsl"
 
 layout (location = 0) out lowp vec4 out_color;
 
@@ -40,6 +41,7 @@ uniform highp float max_vertical_speed;
 uniform highp float width;
 uniform int end_index;
 uniform bool use_color_override;
+uniform bool color_is_marker;
 uniform highp vec3 color_override;
 
 
@@ -47,6 +49,21 @@ uniform highp vec2 resolution;
 
 highp vec3 visualize_normal(highp vec3 normal) {
     return (normal + vec3(1.0)) / vec3(2.0);
+}
+
+// same steepness binning as the steepness terrain overlay, so that the route
+// line matches the legend and the overlay colouring
+lowp vec3 route_steepness_color(highp float steepness_degrees) {
+    if (steepness_degrees > 60.0) return steepness_color_map[9].rgb;
+    if (steepness_degrees > 55.0) return steepness_color_map[8].rgb;
+    if (steepness_degrees > 50.0) return steepness_color_map[7].rgb;
+    if (steepness_degrees > 45.0) return steepness_color_map[6].rgb;
+    if (steepness_degrees > 40.0) return steepness_color_map[5].rgb;
+    if (steepness_degrees > 35.0) return steepness_color_map[4].rgb;
+    if (steepness_degrees > 30.0) return steepness_color_map[3].rgb;
+    if (steepness_degrees > 25.0) return steepness_color_map[2].rgb;
+    if (steepness_degrees > 15.0) return steepness_color_map[1].rgb;
+    return steepness_color_map[0].rgb;
 }
 
 // https://sibaku.github.io/computer-graphics/2017/01/10/Camera-Ray-Generation.html
@@ -222,7 +239,18 @@ void main() {
                 }
 
                 if (use_color_override) {
-                    color = color_override;
+                    if (color_is_marker || conf.overlay_mode == 101u) {
+                        // markers and (while the steepness terrain overlay is
+                        // active, which would make steepness colouring
+                        // invisible) the line use the flat colour
+                        color = color_override;
+                    } else {
+                        // colour the route line by the steepness of each
+                        // segment (angle between the segment direction and the
+                        // horizontal plane), with the steepness overlay colour map
+                        highp float slope_degrees = degrees(asin(clamp(abs(dot(normalize(x2 - x1), vec3(0.0, 0.0, 1.0))), 0.0, 1.0)));
+                        color = route_steepness_color(slope_degrees);
+                    }
                 }
 
                 color = phong_lighting(color, normal, vec3(0, 0, 0), point);
