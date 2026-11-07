@@ -27,6 +27,7 @@ from the sources when writing the report. Full list in [refs.md](refs.md).
 | [report-implementation-audit-opus.md](report-implementation-audit-opus.md) | Issue #3 second, independent audit, checked against the paper texts. |
 | [08-domain-size-options.md](08-domain-size-options.md) | Why the domain was 1.6 km, the options for a whole avalanche path, measured GPU cost, and what was chosen (terrain-following grid). |
 | [09-performance-analysis.md](09-performance-analysis.md) | **Performance**: why the demo felt slow, where the GPU time goes, VRAM and device limits, leaks found and fixed, main-loop/threading options, the benchmark method, and the first round of optimisations with measurements. |
+| [scripts/](scripts/README.md) | **Python scripts**: every script in this folder, what it checks or produces, setup and how to run it — shader validation, the Python ports, the GPU golden tests, the AvaFrame comparison, the benchmark tables. |
 | [bench/](bench/README.md) | Standalone WebGPU benchmark of the real kernels, headless A/B against any git revision. |
 | [10-benchmark-results.md](10-benchmark-results.md) | Every checked-in benchmark result as a table: Apple M5 (Chrome/Metal) and SwiftShader, per material, per stage. Generated from `bench/results/*.json`. |
 | [report-fixed-point-energy-pump.md](report-fixed-point-energy-pump.md) | Standalone write-up of the fixed-point blow-up investigation. |
