@@ -168,6 +168,46 @@ void PlannerModel::invalidate_optimisation()
     }
 }
 
+void PlannerModel::invalidate_pairs_around(unsigned flattened_index)
+{
+    // erase the higher index first so the lower one is not shifted
+    erase_optimised_segment(flattened_index);
+    if (flattened_index > 0) {
+        erase_optimised_segment(flattened_index - 1);
+    }
+    drop_inflight_result();
+    clear_status();
+}
+
+unsigned PlannerModel::flattened_index_of_last_segment_point(unsigned index_in_last_segment) const
+{
+    unsigned flat = 0;
+    for (size_t i = 0; i + 1 < m_plan.track.size(); ++i) {
+        flat += unsigned(m_plan.track[i].size());
+    }
+    return flat + index_in_last_segment;
+}
+
+void PlannerModel::erase_optimised_segment(unsigned pair_index)
+{
+    if (pair_index < m_optimised_segments.size()) {
+        m_optimised_segments.erase(m_optimised_segments.begin() + long(pair_index));
+    }
+}
+
+void PlannerModel::drop_inflight_result()
+{
+    m_optimisation_generation += 1; // discards in-flight optimisation results
+}
+
+void PlannerModel::clear_status()
+{
+    if (!m_optimisation_status.isEmpty()) {
+        m_optimisation_status.clear();
+        emit optimisation_status_changed();
+    }
+}
+
 std::vector<glm::dvec2> PlannerModel::waypoint_sequence() const
 {
     std::vector<glm::dvec2> sequence;
@@ -183,7 +223,11 @@ void PlannerModel::add_point_at(double latitude, double longitude, double altitu
 {
     m_plan.add_new_point({ latitude, longitude, altitude });
     m_plan.recompute_stats();
-    invalidate_optimisation();
+    // appending a point adds one new waypoint pair; the optimised paths of
+    // all existing pairs stay valid and keep rendering. only the new pair
+    // falls back to the approximate straight line until the next optimise
+    drop_inflight_result();
+    clear_status();
     update_render_data();
     emit points_changed();
 }
@@ -192,7 +236,15 @@ void PlannerModel::delete_point(int index)
 {
     m_plan.delete_point(unsigned(index));
     m_plan.recompute_stats();
-    invalidate_optimisation();
+    // deleting waypoint w merges the pairs (w-1,w) and (w,w+1); the optimised
+    // segments of the unaffected pairs are kept (shifted accordingly)
+    const unsigned flat = flattened_index_of_last_segment_point(unsigned(index));
+    erase_optimised_segment(flat);
+    if (flat > 0) {
+        erase_optimised_segment(flat - 1);
+    }
+    drop_inflight_result();
+    clear_status();
     update_render_data();
     emit points_changed();
 }
@@ -200,7 +252,7 @@ void PlannerModel::delete_point(int index)
 void PlannerModel::move_point_up(int index)
 {
     m_plan.move_point(unsigned(index), -1);
-    invalidate_optimisation();
+    invalidate_pairs_around(flattened_index_of_last_segment_point(unsigned(index)));
     update_render_data();
     emit points_changed();
 }
@@ -208,7 +260,7 @@ void PlannerModel::move_point_up(int index)
 void PlannerModel::move_point_down(int index)
 {
     m_plan.move_point(unsigned(index), 1);
-    invalidate_optimisation();
+    invalidate_pairs_around(flattened_index_of_last_segment_point(unsigned(index)));
     update_render_data();
     emit points_changed();
 }
@@ -312,6 +364,24 @@ void PlannerModel::optimise_route()
                 optimisation_finished(result);
             });
     session->start();
+}
+
+void PlannerModel::undo_last_point()
+{
+    if (m_plan.point_count() == 0) {
+        return;
+    }
+    // removing the last waypoint only drops the final pair
+    const unsigned last = m_plan.point_count() - 1;
+    if (last > 0) {
+        erase_optimised_segment(last - 1);
+    }
+    m_plan.delete_last_point();
+    m_plan.recompute_stats();
+    drop_inflight_result();
+    clear_status();
+    update_render_data();
+    emit points_changed();
 }
 
 void PlannerModel::optimisation_finished(const nucleus::planner::OptimisationResult& result)

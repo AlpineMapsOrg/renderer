@@ -96,6 +96,8 @@ public slots:
     // fetches high-resolution dem tiles for the planning area and replaces the
     // route between the waypoints with the least-cost descent path
     void optimise_route();
+    // removes the last route point (undo for the minimised bar button)
+    void undo_last_point();
 
 signals:
     void points_changed();
@@ -115,6 +117,17 @@ private slots:
 private:
     void update_render_data();
     void invalidate_optimisation();
+    // clears the optimised path of the two waypoint pairs adjacent to the
+    // given flattened waypoint index (a moved point changed their geometry);
+    // the other optimised segments keep rendering
+    void invalidate_pairs_around(unsigned flattened_index);
+    // index of a point inside the last plan segment, counting all points of
+    // the preceding segments (the pair numbering in update_render_data)
+    unsigned flattened_index_of_last_segment_point(unsigned index_in_last_segment) const;
+    void erase_optimised_segment(unsigned pair_index);
+    // bump the generation so an in-flight optimisation result is discarded
+    void drop_inflight_result();
+    void clear_status();
     // flattened waypoint list (lat, lon) of the whole plan
     std::vector<glm::dvec2> waypoint_sequence() const;
 
