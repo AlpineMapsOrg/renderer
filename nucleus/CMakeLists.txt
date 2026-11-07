@@ -107,6 +107,7 @@ qt_add_library(nucleus STATIC
     track/GPX.cpp
     track/GPX.h
     planner/PlannerManager.h planner/PlannerManager.cpp
+    planner/RouteOptimizer.h planner/RouteOptimizer.cpp
     utils/image_loader.h utils/image_loader.cpp
     utils/image_writer.h utils/image_writer.cpp
     utils/geopng_decoder.h utils/geopng_decoder.cpp
@@ -178,7 +179,7 @@ endif()
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
 # Please keep Qt::Gui outside the nucleus. If you need it optional via a cmake based switch
-target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network zppbits nucleus_version stb_slim goofy_tc cdt KTX::ktx)
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network Qt::Concurrent zppbits nucleus_version stb_slim goofy_tc cdt KTX::ktx)
 
 qt_add_resources(nucleus "height_data"
     PREFIX "/map"
