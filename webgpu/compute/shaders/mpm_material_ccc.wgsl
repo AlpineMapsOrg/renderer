@@ -69,14 +69,32 @@
 
 fn ccc_bulk_modulus() -> f32 { return settings.lambda_0 + 2.0 * settings.mu_0 / 3.0; }
 
-fn ccc_asinh(x: f32) -> f32 { return log(x + sqrt(x * x + 1.0)); }
+// sinh and asinh near zero. Written with exp / log they cancel in f32 for a small argument,
+// relative error ~eps / x: Li 2021 case V at E = 3 MPa has p0 / K = 1.2e-3, and p0 came out
+// 8e-5 off (GPU golden tests, test_MpmGolden.cpp). Below 0.1 the Taylor series, cut where the
+// next term is below f32 precision (sinh: x^7 / 5040, asinh: 5 x^7 / 112).
+fn ccc_sinh(x: f32) -> f32 {
+    if abs(x) < 0.1 {
+        let x2 = x * x;
+        return x * (1.0 + x2 / 6.0 * (1.0 + x2 / 20.0));
+    }
+    return sinh(x);
+}
+
+fn ccc_asinh(x: f32) -> f32 {
+    if abs(x) < 0.1 {
+        let x2 = x * x;
+        return x * (1.0 - x2 / 6.0 * (1.0 - 0.45 * x2));
+    }
+    return log(x + sqrt(x * x + 1.0));
+}
 
 // Consolidation pressure from the plastic volumetric strain: Gaume 2018 eq. 4 (p. 2), the same
 // in Wolper sec. 6.2.1 (p. 11). The sinh argument is clamped
 // so a runaway compaction cannot overflow the stress.
 fn ccc_p0(alpha: f32) -> f32 {
     let arg = clamp(settings.ccc_xi * max(-alpha, 0.0), 0.0, 20.0);
-    return ccc_bulk_modulus() * sinh(arg);
+    return ccc_bulk_modulus() * ccc_sinh(arg);
 }
 
 // alpha such that p0(alpha) equals the configured initial consolidation pressure (Gaume eq. 4

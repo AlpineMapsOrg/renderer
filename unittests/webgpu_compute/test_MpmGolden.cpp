@@ -228,7 +228,8 @@ fn computeMain(@builtin(global_invocation_id) id: vec3u) {
     golden_out[o + 3u] = vec4f(tau[0], 0.0); // tau is symmetric: columns = rows
     golden_out[o + 4u] = vec4f(tau[1], 0.0);
     golden_out[o + 5u] = vec4f(tau[2], 0.0);
-    golden_out[o + 6u] = vec4f(r.plastic_state, select(0.0, 1.0, r.yielded), material_initial_state(), 0.0);
+    // w: the Cam Clay consolidation pressure of the input state (only compared for Cam Clay)
+    golden_out[o + 6u] = vec4f(r.plastic_state, select(0.0, 1.0, r.yielded), material_initial_state(), ccc_p0(golden_in[i + 3u].x));
 }
 )";
 
@@ -327,7 +328,7 @@ TEST_CASE("MPM shader functions on the GPU match the Python ports")
             constexpr float f_tolerance = 2e-5f;
             constexpr float tau_tolerance = 1e-4f; // times mu_0
             constexpr float state_tolerance = 2e-5f; // relative to max(1, |state|)
-            float f_error = 0.0f, tau_error = 0.0f, state_error = 0.0f;
+            float f_error = 0.0f, tau_error = 0.0f, state_error = 0.0f, p0_error = 0.0f;
             int yield_mismatches = 0;
             for (qsizetype n = 0; n < cases.size(); ++n) {
                 const auto c = cases[n].toObject();
@@ -336,27 +337,27 @@ TEST_CASE("MPM shader functions on the GPU match the Python ports")
                 tau_error = std::max(tau_error, max_diff({ glm::vec3(o[3]), glm::vec3(o[4]), glm::vec3(o[5]) }, rows_of(c["tau"])) / settings.mu_0);
                 const double state = c["plastic_state"].toDouble();
                 state_error = std::max(state_error, float(std::abs(o[6].x - state) / std::max(1.0, std::abs(state))));
+                if (c.contains("p0"))
+                    p0_error = std::max(p0_error, float(std::abs(o[6].w - c["p0"].toDouble()) / c["p0"].toDouble()));
                 if ((o[6].y > 0.5f) != c["yielded"].toBool()) {
                     ++yield_mismatches;
                     std::cout << "  case " << n << ": GPU yielded " << (o[6].y > 0.5f) << ", port " << c["yielded"].toBool() << ", port branch "
                               << c["case"].toInt() << ", GPU state " << o[6].x << ", port " << state << "\n";
                 }
             }
-            // The Cam Clay initial state -asinh(p0 / K) / xi: ccc_asinh is log(x + sqrt(x^2 + 1)),
-            // which cancels in f32 for small x (Li case V with E = 3 MPa: x = 1.2e-3, relative error
-            // ~eps / x). Measured 2.2e-5; a p0 that far off is irrelevant for the physics.
-            constexpr float initial_tolerance = 1e-4f;
             const float initial_error = std::abs(out[6].z - float(group["initial_state"].toDouble())) / std::max(1.0f, std::abs(float(group["initial_state"].toDouble())));
             std::cout << group["name"].toString().toStdString() << ", " << cases.size() << " cases\n";
             report("F_elastic", f_error, f_tolerance);
             report("tau / mu_0", tau_error, tau_tolerance);
             report("plastic state, relative", state_error, state_tolerance);
-            report("initial state, relative", initial_error, initial_tolerance);
+            report("initial state, relative", initial_error, state_tolerance);
+            report("Cam Clay p0(alpha), relative", p0_error, state_tolerance);
             std::cout << "  yielded flag mismatches: " << yield_mismatches << "\n";
             CHECK(f_error < f_tolerance);
             CHECK(tau_error < tau_tolerance);
             CHECK(state_error < state_tolerance);
-            CHECK(initial_error < initial_tolerance);
+            CHECK(initial_error < state_tolerance);
+            CHECK(p0_error < state_tolerance);
             CHECK(yield_mismatches == 0);
         }
     }

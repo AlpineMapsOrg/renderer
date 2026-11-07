@@ -385,7 +385,7 @@ the uniform against `struct MpmSettings` as well. F and τ go through `store_f` 
 | `svd3` (incl. repeated and negative σ) | 66 | U Σ Vᵀ − F 4e-7, σ 2e-7, det − 1 8e-7 | 2e-5 |
 | Stomakhin | 65 (38 yielding) | F 2e-7, τ 4e-6 μ₀, J_P 2e-7 | 2e-5, 1e-4 μ₀ |
 | Drucker–Prager, Cases I–III | 64 | F 4e-7, τ 7e-7 μ₀, q 1e-7 | as above |
-| Cam Clay, Li Case V (E 0.14 and 3 MPa), Case II; all four branches | 596 | F 5e-7, τ 1e-6 μ₀, α 3e-7 | as above |
+| Cam Clay, Li Case V (E 0.14 and 3 MPa), Case II; all four branches, sinh arguments up to 3 | 690 | F 5e-7, τ 2e-6 μ₀, α 3e-7, p₀(α) 5e-7 | as above |
 | Coulomb / Voellmy friction | 114 each | 8e-8 / 2e-7 of \|v\| | 1e-5 |
 | Quadratic B-spline weights | 23 | 1e-6; the 27 weights sum to 1 within 1e-7 | 1e-5 |
 
@@ -396,10 +396,14 @@ The branch taken (yielded or not) matches in every case.
   neither was a shader bug. One was a rotated identity, at the Drucker–Prager apex, where the
   port's own rounding chose Case III. The other was a velocity exactly tangent to the terrain:
   in float32, v·n came out −1e-8 instead of 0, so the GPU applied the Voellmy drag.
-- **One genuine float32 effect: the Cam Clay initial state.** For Li Case V at E = 3 MPa it is
-  2.2e-5 off relative. `ccc_asinh` computes log(x + √(x² + 1)), which cancels for
-  x = p₀/K = 1.2e-3. The tolerance for the initial state is 1e-4; the effect on p₀ is
-  physically irrelevant.
+- **Found and fixed: float32 cancellation in the Cam Clay sinh and asinh.** p₀ = K sinh(ξ|α|)
+  and the initial α₀ = −asinh(p₀ⁱⁿⁱ/K)/ξ were written with exp / log. Those cancel for a small
+  argument, with a relative error of about ε/x. For Li Case V at E = 3 MPa, x = p₀/K = 1.2e-3,
+  and p₀ came out 8.1e-5 off, α₀ 2.2e-5. `ccc_sinh` and `ccc_asinh` now use the Taylor series
+  below 0.1, cut where the next term is below float32 precision. After the fix: p₀ 1.7e-7,
+  α₀ 6e-8. The cases cover sinh arguments from 0.05 to 3, across the switch at 0.1. The
+  physical effect was small (p₀ to 1e-4), but it was a real shader error that only this test
+  could see.
 - **The tests catch a real bug.** With q = 1.5‖s‖ in `mpm_material_ccc.wgsl` (the old audit's
   reading of Wolper), all three Cam Clay groups fail: F is off by 1e-3, τ by 2e-3 μ₀, and
   2–3 cases take the wrong branch.

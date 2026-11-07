@@ -116,6 +116,10 @@ def ccc_cases(n_random):
         direction /= np.linalg.norm(direction)
         eps = rng.uniform(-1.6, 0.6) * p_scale / 3.0 + rng.uniform(0.0, 1.6) * q_scale * direction
         tries.append((np.exp(eps), alpha0 * rng.uniform(0.7, 1.3)))
+    # Compacted states: sinh arguments xi |alpha| from 0.05 to 3, across the switch from the series
+    # to sinh() at 0.1 in ccc_sinh. Mostly elastic, since the strain scale is the initial p0's.
+    for arg in np.concatenate([np.linspace(0.05, 0.15, 21), rng.uniform(0.15, 3.0, 10)]):
+        tries.append((np.exp(rng.normal(scale=0.3 * p_scale, size=3)), -arg / s.ccc_xi))
     for sigma, alpha in tries:
         p0 = ccc.ccc_p0(alpha)
         p, q, _, _ = ccc.invariants(np.log(sigma))
@@ -125,7 +129,8 @@ def ccc_cases(n_random):
         f = deformation(sigma)
         f_new, alpha_new, case, _ = ccc.ccc_plasticity(f, alpha)
         cases.append({"F": mat(f), "state": float(alpha), "F_elastic": mat(f_new), "plastic_state": float(alpha_new),
-                      "tau": mat(ccc.ccc_stress(f_new)), "yielded": case != 0, "case": case})
+                      "tau": mat(ccc.ccc_stress(f_new)), "yielded": case != 0, "case": case,
+                      "p0": ccc.ccc_p0(alpha)})
     return cases
 
 
