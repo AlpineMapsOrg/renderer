@@ -38,6 +38,9 @@ Rectangle {
     // collapsed to a small status bar, so the map stays visible (phones)
     property bool minimized: false
 
+    // optimisation weight sliders, collapsed behind the chevron by default
+    property bool weights_visible: false
+
     function format_distance(d) {
         return d < 1000 ? d.toFixed(0) + " m" : (d / 1000).toFixed(2) + " km";
     }
@@ -80,154 +83,278 @@ Rectangle {
 
         Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
-        ColumnLayout {
-            id: content_column
-            anchors.fill: parent
-            anchors.margins: 10
-            spacing: 8
+        // scrollable body: on small screens the content is taller than the
+        // panel, and the buttons at the bottom must stay reachable
+        Flickable {
+            id: panel_scroll
             visible: !gpx_root.minimized
+            anchors.fill: parent
+            contentHeight: content_column.implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
 
-            RowLayout {
-                Layout.fillWidth: true
+            ScrollBar.vertical: ScrollBar {
+                policy: panel_scroll.contentHeight > panel_scroll.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+            }
 
-                Label {
-                    text: qsTr("Route Planner")
-                    font.bold: true
-                    font.pointSize: 16
+            ColumnLayout {
+                id: content_column
+                width: panel_scroll.width
+                spacing: 8
+
+                RowLayout {
+                    id: header_row
                     Layout.fillWidth: true
-                }
-                ToolButton {
-                    text: minimized ? "▲" : "▼"
-                    onClicked: gpx_root.minimized = !gpx_root.minimized
-                    ToolTip.visible: hovered
-                    ToolTip.text: minimized ? qsTr("Show route planner") : qsTr("Minimize to see the map")
-                }
-                ToolButton {
-                    text: "×"
-                    onClicked: gpx_root.closeRequested()
-                    ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Close the route planner")
-                }
-            }
-
-            Label {
-                text: qsTr("Click on the map to add route points. Dragging still moves the camera.")
-                wrapMode: Label.Wrap
-                Layout.fillWidth: true
-            }
-
-            TextField {
-                id: name_input
-                placeholderText: qsTr("Name")
-                text: _planner_model.name
-                onTextEdited: _planner_model.name = text
-                Layout.fillWidth: true
-            }
-
-            TextArea {
-                id: description_input
-                placeholderText: qsTr("Description")
-                text: _planner_model.description
-                onTextEdited: _planner_model.description = text
-                Layout.fillWidth: true
-                Layout.preferredHeight: 60
-                wrapMode: TextArea.Wrap
-            }
-
-            Label {
-                text: _planner_model.points.length + " points | "
-                      + format_distance(_planner_model.distance) + " | ↑ "
-                      + _planner_model.ascent.toFixed(0) + " m | ↓ "
-                      + _planner_model.descent.toFixed(0) + " m"
-                Layout.fillWidth: true
-            }
-
-            Label {
-                text: qsTr("Steepness: avg ")
-                      + _planner_model.avg_steepness.toFixed(1) + "° / max "
-                      + _planner_model.max_steepness.toFixed(1) + "°"
-                Layout.fillWidth: true
-            }
-
-            ListView {
-                id: point_list
-                model: _planner_model.points
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.minimumHeight: 220
-                spacing: 2
-                clip: true
-
-                delegate: RowLayout {
-                    width: point_list.width
+                    Layout.topMargin: 10
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
 
                     Label {
-                        text: (index + 1) + ": "
-                              + modelData.latitude.toFixed(5) + ", "
-                              + modelData.longitude.toFixed(5) + " ("
-                              + modelData.elevation.toFixed(0) + " m)"
-                        elide: Text.ElideRight
+                        text: qsTr("Route Planner")
+                        font.bold: true
+                        font.pointSize: 16
                         Layout.fillWidth: true
                     }
                     ToolButton {
-                        text: "▲"
-                        enabled: index > 0
-                        onClicked: _planner_model.move_point_up(index)
+                        id: help_button
+                        text: "?"
+                        checkable: true
+                        checked: false
+                        font.bold: checked
                         ToolTip.visible: hovered
-                        ToolTip.text: qsTr("Move point up")
+                        ToolTip.text: qsTr("How to plan a route")
                     }
                     ToolButton {
-                        text: "▼"
-                        enabled: index < _planner_model.points.length - 1
-                        onClicked: _planner_model.move_point_down(index)
+                        text: minimized ? "▲" : "▼"
+                        onClicked: gpx_root.minimized = !gpx_root.minimized
                         ToolTip.visible: hovered
-                        ToolTip.text: qsTr("Move point down")
+                        ToolTip.text: minimized ? qsTr("Show route planner") : qsTr("Minimize to see the map")
                     }
                     ToolButton {
                         text: "×"
-                        onClicked: _planner_model.delete_point(index)
+                        onClicked: gpx_root.closeRequested()
                         ToolTip.visible: hovered
-                        ToolTip.text: qsTr("Delete point")
+                        ToolTip.text: qsTr("Close the route planner")
                     }
                 }
-            }
 
-            RowLayout {
-                Button {
-                    text: qsTr("Import GPX")
-                    onClicked: import_dialog.open()
+                Label {
+                    visible: help_button.checked
+                    text: qsTr("Click on the map to add route points. Dragging still moves the camera.")
+                    wrapMode: Label.Wrap
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
                 }
-                Button {
-                    text: qsTr("Reset")
-                    onClicked: _planner_model.reset()
+
+                Label {
+                    text: _planner_model.points.length + " points | "
+                          + format_distance(_planner_model.distance) + " | ↑ "
+                          + _planner_model.ascent.toFixed(0) + " m | ↓ "
+                          + _planner_model.descent.toFixed(0) + " m"
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
                 }
-                Button {
-                    text: qsTr("Export GPX")
-                    enabled: _planner_model.points.length > 0
-                    onClicked: {
-                        // suggest the route name (or "route") as file name
-                        const base = _planner_model.name.trim();
-                        export_dialog.currentFile = export_dialog.currentFolder + "/" + (base !== "" ? base : "route") + ".gpx";
-                        export_dialog.open()
+
+                Label {
+                    text: qsTr("Steepness: avg ")
+                          + _planner_model.avg_steepness.toFixed(1) + "° / max "
+                          + _planner_model.max_steepness.toFixed(1) + "°"
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
+
+                    Button {
+                        text: _planner_model.optimisation_running ? qsTr("Optimizing…") : qsTr("Optimize Route")
+                        enabled: _planner_model.points.length >= 2 && !_planner_model.optimisation_running
+                        onClicked: _planner_model.optimise_route()
+                        Layout.fillWidth: true
+                    }
+                    ToolButton {
+                        text: gpx_root.weights_visible ? "▼" : "▲"
+                        onClicked: gpx_root.weights_visible = !gpx_root.weights_visible
+                        ToolTip.visible: hovered
+                        ToolTip.text: gpx_root.weights_visible ? qsTr("Hide optimisation weights")
+                                                                : qsTr("Show optimisation weights")
                     }
                 }
-                Item { Layout.fillWidth: true }
-            }
 
-            // keep the editable fields in sync with an imported track
-            Connections {
-                target: _planner_model
-                function onPointsChanged() {
-                    if (!name_input.activeFocus)
-                        name_input.text = _planner_model.name;
-                    if (!description_input.activeFocus)
-                        description_input.text = _planner_model.description;
+                LabledSlider {
+                    visible: gpx_root.weights_visible
+                    from: 0
+                    to: 100
+                    stepSize: 1
+                    value: _planner_model.steepness_weight
+                    onMoved: _planner_model.steepness_weight = value
+                    formatCallback: function(value) { return qsTr("slope ") + value.toFixed(0) + "%"; }
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
                 }
-                // fly to the start of an imported track, like the upload button does
-                function onTrack_imported(position) {
-                    if (position.x !== 0 && position.y !== 0)
-                        map.set_position(position.x, position.y)
+
+                LabledSlider {
+                    visible: gpx_root.weights_visible
+                    from: 0
+                    to: 100
+                    stepSize: 1
+                    value: _planner_model.distance_weight
+                    onMoved: _planner_model.distance_weight = value
+                    formatCallback: function(value) { return qsTr("dist ") + value.toFixed(0) + "%"; }
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
                 }
+
+                LabledSlider {
+                    visible: gpx_root.weights_visible
+                    from: 0
+                    to: 100
+                    stepSize: 1
+                    value: _planner_model.cross_slope_weight
+                    onMoved: _planner_model.cross_slope_weight = value
+                    formatCallback: function(value) { return qsTr("cross ") + value.toFixed(0) + "%"; }
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
+                }
+
+                LabledSlider {
+                    visible: gpx_root.weights_visible
+                    from: 5
+                    to: 150
+                    stepSize: 5
+                    value: _planner_model.search_radius
+                    onMoved: _planner_model.search_radius = value
+                    formatCallback: function(value) { return qsTr("radius ") + value.toFixed(0) + "%"; }
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
+                }
+
+                Label {
+                    visible: _planner_model.optimisation_status !== ""
+                    text: _planner_model.optimisation_status
+                    wrapMode: Label.Wrap
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
+                }
+
+                ListView {
+                    id: point_list
+                    model: _planner_model.points
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Math.min(contentHeight, 220)
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
+                    spacing: 2
+                    clip: true
+
+                    delegate: RowLayout {
+                        width: point_list.width
+
+                        Label {
+                            text: (index + 1) + ": "
+                                  + modelData.latitude.toFixed(5) + ", "
+                                  + modelData.longitude.toFixed(5) + " ("
+                                  + modelData.elevation.toFixed(0) + " m)"
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
+                        }
+                        ToolButton {
+                            text: "▲"
+                            enabled: index > 0
+                            onClicked: _planner_model.move_point_up(index)
+                            ToolTip.visible: hovered
+                            ToolTip.text: qsTr("Move point up")
+                        }
+                        ToolButton {
+                            text: "▼"
+                            enabled: index < _planner_model.points.length - 1
+                            onClicked: _planner_model.move_point_down(index)
+                            ToolTip.visible: hovered
+                            ToolTip.text: qsTr("Move point down")
+                        }
+                        ToolButton {
+                            text: "×"
+                            onClicked: _planner_model.delete_point(index)
+                            ToolTip.visible: hovered
+                            ToolTip.text: qsTr("Delete point")
+                        }
+                    }
+                }
+
+                TextField {
+                    id: name_input
+                    placeholderText: qsTr("Name")
+                    text: _planner_model.name
+                    onTextEdited: _planner_model.name = text
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
+                }
+
+                TextArea {
+                    id: description_input
+                    placeholderText: qsTr("Description")
+                    text: _planner_model.description
+                    onTextEdited: _planner_model.description = text
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 60
+                    wrapMode: TextArea.Wrap
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
+                    Layout.bottomMargin: 10
+
+                    Button {
+                        text: qsTr("Import GPX")
+                        onClicked: import_dialog.open()
+                    }
+                    Button {
+                        text: qsTr("Reset")
+                        onClicked: _planner_model.reset()
+                    }
+                    Button {
+                        text: qsTr("Export GPX")
+                        enabled: _planner_model.points.length > 0
+                        onClicked: {
+                            // suggest the route name (or "route") as file name
+                            const base = _planner_model.name.trim();
+                            export_dialog.currentFile = export_dialog.currentFolder + "/" + (base !== "" ? base : "route") + ".gpx";
+                            export_dialog.open()
+                        }
+                    }
+                    Item { Layout.fillWidth: true }
+                }
+            }
+        }
+
+        // keep the editable fields in sync with an imported track
+        Connections {
+            target: _planner_model
+            function onPointsChanged() {
+                if (!name_input.activeFocus)
+                    name_input.text = _planner_model.name;
+                if (!description_input.activeFocus)
+                    description_input.text = _planner_model.description;
+            }
+            // fly to the start of an imported track, like the upload button does
+            function onTrack_imported(position) {
+                if (position.x !== 0 && position.y !== 0)
+                    map.set_position(position.x, position.y)
             }
         }
 

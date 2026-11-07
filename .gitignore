@@ -31,3 +31,4 @@ TODO.md
 /doc/
 /release.keystore
 /signingkeybase64
+/build-android/*
