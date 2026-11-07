@@ -367,10 +367,27 @@ Rectangle {
             anchors.margins: 8
 
             Label {
-                text: _planner_model.points.length + " pts | "
-                      + format_distance(_planner_model.distance)
+                // keep the bar narrow: only the bigger of gain/loss is shown
+                text: (_planner_model.distance / 1000).toFixed(1) + " km | "
+                      + (_planner_model.ascent >= _planner_model.descent
+                         ? "↑ " + _planner_model.ascent.toFixed(0)
+                         : "↓ " + _planner_model.descent.toFixed(0)) + " m"
                 elide: Text.ElideRight
                 Layout.fillWidth: true
+            }
+            ToolButton {
+                text: qsTr("Undo")
+                enabled: _planner_model.points.length > 0
+                onClicked: _planner_model.undo_last_point()
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Delete the last route point")
+            }
+            ToolButton {
+                text: _planner_model.optimisation_running ? qsTr("…") : qsTr("Optimize")
+                enabled: _planner_model.points.length >= 2 && !_planner_model.optimisation_running
+                onClicked: _planner_model.optimise_route()
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Optimize the route")
             }
             ToolButton {
                 text: "×"
