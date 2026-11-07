@@ -284,7 +284,7 @@ struct PlasticReturn {
 @group(0) @binding(7) var output_texture: texture_storage_2d<rgba8unorm, write>;
 @group(0) @binding(8) var<storage, read_write> column_floor: array<i32>; // per (x, y) column, see grid_slot()
 @group(0) @binding(9) var<storage, read_write> grid_velocity: array<vec4f>; // per node, written by the grid update, read by G2P
-@group(0) @binding(10) var<storage, read_write> tile_flags: array<atomic<u32>>; // per tile of columns, see mark_tiles()
+@group(0) @binding(10) var<storage, read_write> tile_flags: array<atomic<u32>>; // per tile of columns (mark_tiles()), then the sort data (sorted_index())
 // Per (x, y) column: the peaks since the last reset, which the AvaFrame comparison exports
 // (com1DFA's peak flow thickness and velocity), and the particle sums the speed comes from.
 // mpm_column_stats adds every particle to the column of its nearest node after G2P; the next
@@ -318,8 +318,11 @@ fn to_fixed(value: f32) -> i32 {
 
 fn from_fixed(value: i32) -> f32 { return f32(value) / MOMENTUM_SCALE; }
 
-fn add_node_mass(cell: u32, mass: f32) {
-    let units = u32(round(mass * MASS_SCALE));
+fn add_node_mass(cell: u32, mass: f32) { add_node_mass_units(cell, u32(round(mass * MASS_SCALE))); }
+
+// Mass already in MASS_SCALE units: P2G sums a tile's contributions in workgroup memory first.
+// Integer addition is associative, so the 64-bit total is the same either way.
+fn add_node_mass_units(cell: u32, units: u32) {
     if atomicAdd(&grid[cell].mass_lo, units) > 0xFFFFFFFFu - units {
         atomicAdd(&grid[cell].mass_hi, 1u);
     }
@@ -470,6 +473,47 @@ fn mark_tiles(base_xy: vec2i) {
     mark_tile(base_xy + vec2i(0, 2));
     mark_tile(base_xy + vec2i(2, 2));
 }
+
+// ---------------------------------------------------------------------------------------
+// Particle indices sorted by sort tile (mpm_sort_*.wgsl, read by mpm_p2g.wgsl)
+// ---------------------------------------------------------------------------------------
+// P2G sums the particles of one SORT_TILE x SORT_TILE tile of columns in workgroup memory and
+// writes each grid node once per workgroup, instead of once per particle. For that its
+// workgroups need the particles of a tile next to each other: a counting sort of the particle
+// indices, once per chunk, by the tile of each particle's stencil base. The particle buffer
+// keeps its order - the renderer pairs particles[i] with previous[i] and seeds the detail
+// particles from i.
+//
+// The sort data shares binding 10 with the tile flags, which keeps the solver at WebGPU's
+// default of eight storage buffers per stage:
+//   [tile flags | bucket counts | bucket cursors | sorted particle indices]
+// One bucket per sort tile, plus a last one for inactive particles (mass 0: not seeded, or a
+// pool slot entrainment has not filled yet). They stay in the list, so a pool particle that
+// entrainment activates during the chunk is still transferred.
+const SORT_TILE: i32 = 4;
+
+fn flag_tile_count() -> u32 { return tiles_x() * ((settings.grid_res.y + u32(TILE_SIZE) - 1u) / u32(TILE_SIZE)); }
+fn sort_tiles_x() -> u32 { return (settings.grid_res.x + u32(SORT_TILE) - 1u) / u32(SORT_TILE); }
+fn sort_bucket_count() -> u32 { return sort_tiles_x() * ((settings.grid_res.y + u32(SORT_TILE) - 1u) / u32(SORT_TILE)) + 1u; }
+fn sort_counts_offset() -> u32 { return flag_tile_count(); }
+fn sort_cursors_offset() -> u32 { return sort_counts_offset() + sort_bucket_count(); }
+fn sorted_indices_offset() -> u32 { return sort_cursors_offset() + sort_bucket_count(); }
+
+// First column of the sort tile that holds a stencil base. Bases outside the grid (a particle
+// at the edge) clamp to the border tile; their outside nodes are skipped anyway.
+fn sort_tile_origin(base_xy: vec2i) -> vec2i {
+    return (clamp(base_xy, vec2i(0), vec2i(settings.grid_res.xy) - vec2i(1)) / SORT_TILE) * SORT_TILE;
+}
+
+fn sort_bucket(p: Particle) -> u32 {
+    if p.mass <= 0.0 {
+        return sort_bucket_count() - 1u;
+    }
+    let tile = sort_tile_origin(compute_kernel(to_grid_space(p.position)).base.xy) / SORT_TILE;
+    return u32(tile.y) * sort_tiles_x() + u32(tile.x);
+}
+
+fn sorted_index(position: u32) -> u32 { return atomicLoad(&tile_flags[sorted_indices_offset() + position]); }
 
 // Particle world position -> continuous grid coordinates (z absolute, in cells).
 fn to_grid_space(position: vec3f) -> vec3f {

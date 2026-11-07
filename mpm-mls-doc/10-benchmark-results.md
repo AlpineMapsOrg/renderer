@@ -7,7 +7,7 @@ Each run is `substepsPerRun` = 24 MPM substeps of the real WGSL kernels on an an
 
 ## Real GPU
 
-Device: **Apple M5** (WebGPU adapter `apple metal-3`), Chrome 152, 2026-09-28/29.
+Device: **Apple M5** (WebGPU adapter `Apple M5, apple metal-3`); Chrome 152 (2026-09-28), Chrome 152 (2026-09-29), Chrome 158 (2026-11-07).
 
 | file | material | particles | grid | dt | GPU ms / run | GPU ms / substep | P2G / grid / G2P ms per run | GPU-bound ceiling | solver MiB |
 |---|---|---|---|---|---|---|---|---|---|
@@ -17,8 +17,18 @@ Device: **Apple M5** (WebGPU adapter `apple metal-3`), Chrome 152, 2026-09-28/29
 | `m5-chrome152-medium-dp.json` | Drucker–Prager | 65,536 | 320² × 12 | 0.01 | 15.93 | **0.664** | 10.71 / 1.28 / 3.71 (67 % P2G) | 15.2× | 58.6 |
 | `m5-chrome152-medium-pass.json` | Stomakhin | 65,536 | 320² × 12 | 0.01 | 13.92 | **0.580** | — (per-chunk timing) | 16.1× | 58.6 |
 | `m5-chrome152-medium.json` | Stomakhin | 65,536 | 320² × 12 | 0.01 | 14.02 | **0.584** | 10.34 / 0.51 / 3.05 (74 % P2G) | 15.5× | 58.6 |
+| `m5-chrome158-sorted-p2g-vs-main-ccc-131k.json` (v2+sort kernels, bac8fd99) | Cam Clay | 131,072 | 320² × 16 | 0.01 | 12.49 | **0.521** | 5.59 / 0.51 / 5.96 (45 % P2G) | 18.2× | 83.5 |
+| `m5-chrome158-sorted-p2g-vs-main-ccc-131k.json` (baseline, v2 kernels, bac8fd99) | Cam Clay | 131,072 | 320² × 16 | 0.01 | 25.51 | **1.063** | 17.94 / 0.55 / 6.84 (70 % P2G) | 9.12× | 83.0 |
+| `m5-chrome158-sorted-p2g-vs-main-ccc-1m.json` (v2+sort kernels, bac8fd99) | Cam Clay | 1,048,576 | 320² × 16 | 0.01 | 106.07 | **4.420** | 41.44 / 0.46 / 62.04 (39 % P2G) | 2.24× | 199.0 |
+| `m5-chrome158-sorted-p2g-vs-main-ccc-1m.json` (baseline, v2 kernels, bac8fd99) | Cam Clay | 1,048,576 | 320² × 16 | 0.01 | 187.96 | **7.832** | 124.67 / 0.44 / 62.04 (66 % P2G) | 1.27× | 195.0 |
+| `m5-chrome158-sorted-p2g-vs-main-ccc-65k.json` (v2+sort kernels, bac8fd99) | Cam Clay | 65,536 | 320² × 12 | 0.01 | 6.42 | **0.268** | 2.87 / 0.33 / 3.01 (45 % P2G) | 33.8× | 61.2 |
+| `m5-chrome158-sorted-p2g-vs-main-ccc-65k.json` (baseline, v2 kernels, bac8fd99) | Cam Clay | 65,536 | 320² × 12 | 0.01 | 12.08 | **0.504** | 8.56 / 0.36 / 3.06 (71 % P2G) | 18.6× | 60.9 |
+| `m5-chrome158-sorted-p2g-vs-main-dp-131k.json` (v2+sort kernels, bac8fd99) | Drucker–Prager | 131,072 | 320² × 16 | 0.01 | 12.06 | **0.502** | 5.40 / 0.47 / 5.79 (45 % P2G) | 18.8× | 83.5 |
+| `m5-chrome158-sorted-p2g-vs-main-dp-131k.json` (baseline, v2 kernels, bac8fd99) | Drucker–Prager | 131,072 | 320² × 16 | 0.01 | 25.39 | **1.058** | 18.44 / 0.47 / 6.31 (73 % P2G) | 9.16× | 83.0 |
+| `m5-chrome158-sorted-p2g-vs-main-stomakhin-131k.json` (v2+sort kernels, bac8fd99) | Stomakhin | 131,072 | 320² × 16 | 0.01 | 12.06 | **0.503** | 5.37 / 0.48 / 5.81 (45 % P2G) | 18.8× | 83.5 |
+| `m5-chrome158-sorted-p2g-vs-main-stomakhin-131k.json` (baseline, v2 kernels, bac8fd99) | Stomakhin | 131,072 | 320² × 16 | 0.01 | 23.18 | **0.966** | 16.20 / 0.45 / 6.35 (70 % P2G) | 10× | 83.0 |
 
-Reading it: P2G's fixed-point atomics are ~70 % of the GPU time whatever the material; Cam Clay (the benchmark default) costs ~9 % more per substep than Stomakhin. `medium-pass` times one query pair per chunk as the app does; it agrees with the per-stage total.
+Reading it: with P2G in buffer order (`v2` kernels), its fixed-point atomics are ~70 % of the GPU time whatever the material. With the particles sorted by tile and summed in workgroup memory (`v2+sort`, the `sorted-p2g` files), P2G is about 3× faster and ~45 % of the time; G2P is now the largest stage. Cam Clay (the benchmark default) costs ~9 % more per substep than Stomakhin. `medium-pass` times one query pair per chunk as the app does; it agrees with the per-stage total.
 
 ## SwiftShader (CPU Vulkan) — ratios only
 
@@ -45,6 +55,11 @@ Absolute times say nothing about a GPU; these files exist for the old-vs-new com
 
 | file | GPU speed-up | centre-of-mass travel | max trace difference |
 |---|---|---|---|
+| `m5-chrome158-sorted-p2g-vs-main-ccc-131k.json` | **2.042×** | 34.0 m | 0.0 mm |
+| `m5-chrome158-sorted-p2g-vs-main-ccc-1m.json` | **1.772×** | 34.0 m | 0.0 mm |
+| `m5-chrome158-sorted-p2g-vs-main-ccc-65k.json` | **1.882×** | 34.0 m | 0.0 mm |
+| `m5-chrome158-sorted-p2g-vs-main-dp-131k.json` | **2.105×** | 33.5 m | 0.0 mm |
+| `m5-chrome158-sorted-p2g-vs-main-stomakhin-131k.json` | **1.922×** | 33.1 m | 0.0 mm |
 | `swiftshader-v2-vs-v1-ccc-16k.json` | **2.377×** | 64.7 m | 1.4 mm |
 | `swiftshader-v2-vs-v1-dp-16k.json` | **2.611×** | 64.1 m | 1.4 mm |
 | `swiftshader-v2-vs-v1-preset.json` | **1.398×** | 107.3 m | 1.7 mm |

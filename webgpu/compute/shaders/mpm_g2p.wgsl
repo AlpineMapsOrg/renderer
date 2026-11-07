@@ -55,6 +55,9 @@ var<workgroup> wg_wall_contacts: atomic<u32>;
 @compute @workgroup_size(256, 1, 1)
 fn computeMain(@builtin(global_invocation_id) id: vec3<u32>, @builtin(local_invocation_index) local_index: u32) {
     // No early return: the workgroup barrier below has to be reached by every invocation.
+    // In buffer order, not the tile order P2G uses: G2P reads and writes the whole 128-byte
+    // particle, and scattered particle access costs more than the grid locality saves (measured
+    // on the M5: 6.1 vs 5.8 ms per run at 131k particles, 66 vs 62 ms at 1M).
     let index = id.x;
     if index < settings.num_particles {
         update_particle(index);

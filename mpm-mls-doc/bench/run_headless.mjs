@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Headless driver for the MLS-MPM kernel benchmark (index.html / mpm_bench.js).
 //
-//   node mpm-mls-doc/bench/run_headless.mjs [--baseline <git-rev>] [--gpu] [--out results.json] [key=value ...]
+//   node mpm-mls-doc/bench/run_headless.mjs [--baseline <git-rev>] [--gpu] [--chrome] [--out results.json] [key=value ...]
 //
 // Serves the repository root, opens the benchmark page in Chromium and prints the result.
 // --baseline runs the same configuration a second time on the shaders of <git-rev> (exported
@@ -9,7 +9,9 @@
 // alone - the fixed-point P2G makes identical kernels bit-for-bit reproducible.
 // --gpu uses the machine's GPU; the default is SwiftShader (CPU Vulkan), which works on any CI
 // box but whose absolute timings say nothing about a real GPU - use it for relative numbers
-// and for the physics check only.
+// and for the physics check only. Playwright's headless shell has no GPU on macOS and falls back
+// to SwiftShader even with --gpu; --chrome launches the installed Google Chrome instead (implies
+// --gpu). Check `adapter` in the result to see which device ran.
 //
 // key=value pairs override benchmark settings, e.g. particles=32768 runs=5.
 // Needs Playwright: `npm i -g playwright` (or a local install) plus a Chromium it can launch.
@@ -39,11 +41,12 @@ async function loadPlaywright() {
 }
 
 function parseArgs(argv) {
-    const args = { overrides: {}, baseline: null, gpu: false, out: null };
+    const args = { overrides: {}, baseline: null, gpu: false, chrome: false, out: null };
     for (let i = 0; i < argv.length; i++) {
         const a = argv[i];
         if (a === '--baseline') args.baseline = argv[++i];
         else if (a === '--gpu') args.gpu = true;
+        else if (a === '--chrome') args.chrome = args.gpu = true;
         else if (a === '--out') args.out = argv[++i];
         else if (a.includes('=')) { const [k, v] = a.split('='); args.overrides[k] = v; }
         else throw new Error(`unknown argument ${a}`);
@@ -91,7 +94,7 @@ async function runPage(browser, port, shaders, overrides) {
 
 function summary(r) {
     const stages = Object.entries(r.perRun.stagesMs).map(([k, v]) => `${k} ${v.toFixed(2)}`).join(', ');
-    return `${r.schedule}: GPU ${r.perRun.gpuMs.toFixed(2)} ms/run (${stages}); wall ${r.perRun.wallMsMedian.toFixed(1)} ms; ` +
+    return `${r.adapter?.architecture ?? '?'} ${r.schedule}: GPU ${r.perRun.gpuMs.toFixed(2)} ms/run (${stages}); wall ${r.perRun.wallMsMedian.toFixed(1)} ms; ` +
         `${r.simSecondsPerWallSecond}x real time; solver ${(r.memory.solverBytes / 2 ** 20).toFixed(1)} MiB; COM ${r.physics.finalCom.join(', ')}`;
 }
 
@@ -116,7 +119,7 @@ const server = await serve(revDirs);
 const port = server.address().port;
 const flags = ['--enable-unsafe-webgpu', '--enable-webgpu-developer-features', '--enable-dawn-features=allow_unsafe_apis'];
 if (!args.gpu) flags.push('--use-webgpu-adapter=swiftshader', '--enable-features=Vulkan');
-const browser = await chromium.launch({ headless: true, args: flags });
+const browser = await chromium.launch({ headless: true, args: flags, ...(args.chrome ? { channel: 'chrome' } : {}) });
 
 const out = { date: new Date().toISOString(), commit: execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim(), dirty: execFileSync('git', ['status', '--porcelain', SHADER_DIR], { cwd: ROOT, encoding: 'utf8' }).trim() !== '', runs: {} };
 try {

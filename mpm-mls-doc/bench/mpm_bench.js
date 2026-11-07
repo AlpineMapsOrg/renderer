@@ -53,6 +53,7 @@ const GRID_NODE_BYTES = 20;
 // struct SimState; revisions before the audit fixes use the first 56, before entrainment 72.
 const SIM_STATE_BYTES = 84;
 const TILE = 8; // columns per tile edge, must match TILE_SIZE in mpm_common.wgsl (v2 kernels)
+const SORT_TILE = 4; // columns per sort tile edge, SORT_TILE in mpm_common.wgsl (kernels with mpm_sort_*)
 
 // --------------------------------------------------------------------------------------
 // Shader loading: resolves weBIGeo's `///use name` includes, include-once, like the app's
@@ -87,7 +88,7 @@ export async function loadKernelSources(shaderBase) {
         return out.join('\n');
     };
 
-    const names = ['mpm_prepare', 'mpm_seed', 'mpm_clear_grid', 'mpm_p2g', 'mpm_grid_update', 'mpm_g2p', 'mpm_refresh_stress', 'mpm_splat', 'mpm_rasterize'];
+    const names = ['mpm_prepare', 'mpm_seed', 'mpm_sort_count', 'mpm_sort_scan', 'mpm_sort_scatter', 'mpm_clear_grid', 'mpm_p2g', 'mpm_grid_update', 'mpm_g2p', 'mpm_refresh_stress', 'mpm_splat', 'mpm_rasterize'];
     const kernels = {};
     for (const name of names) {
         if ((await read(name)) === null) continue; // a revision may not have every kernel
@@ -163,6 +164,8 @@ export class MpmBench {
         // split the particles into the release and a pool (left empty here).
         this.entrainment = /release_particles\s*:/.test(sources.common);
         this.bindings = bindingTable(sources.common);
+        // Tile-sorted P2G (2026-11-07): three sort passes per chunk, the sort data after the tile flags.
+        this.sorted = 'mpm_sort_count' in this.kernels;
         this.hasTimestamps = device.features.has('timestamp-query');
         this.bytes = {};
     }
@@ -233,7 +236,9 @@ export class MpmBench {
         r.column_floor = this.buffer('column_floor', c.gridRes * c.gridRes * 4);
         if (this.schedule === 'v2') {
             r.grid_velocity = this.buffer('grid_velocity', this.nodes * 16);
-            r.tile_flags = this.buffer('tile_flags', this.tiles[0] * this.tiles[1] * 4);
+            const buckets = this.sorted ? Math.ceil(c.gridRes / SORT_TILE) ** 2 + 1 : 0;
+            const sortWords = this.sorted ? 2 * buckets + c.particles : 0;
+            r.tile_flags = this.buffer('tile_flags', (this.tiles[0] * this.tiles[1] + sortWords) * 4);
         }
         if (this.bindings.some((b) => b.name === 'column_stats'))
             r.column_stats = this.buffer('column_stats', c.gridRes * c.gridRes * (this.entrainment ? 24 : 16));
@@ -337,6 +342,7 @@ export class MpmBench {
             clear: [div(this.nodes, 256), 1, 1],
             prepare: [div(c.gridRes, 16), div(c.gridRes, 16), 1],
             raster: [div(c.rasterRes, 16), div(c.rasterRes, 16), 1],
+            single: [1, 1, 1],
         };
     }
 
@@ -374,6 +380,11 @@ export class MpmBench {
             if (first && reset) {
                 stages.push(['prepare', 'mpm_prepare', wg.prepare]);
                 stages.push(['seed', 'mpm_seed', wg.particle]);
+            }
+            if (this.sorted) { // once per chunk, as MpmSolverNode
+                stages.push(['sort', 'mpm_sort_count', wg.particle]);
+                stages.push(['sort', 'mpm_sort_scan', wg.single]);
+                stages.push(['sort', 'mpm_sort_scatter', wg.particle]);
             }
             for (let i = 0; i < count; i++) substep();
             if (left === 0) {
@@ -485,7 +496,7 @@ export class MpmBench {
         const last = runs[runs.length - 1]?.state;
         return {
             config: c,
-            schedule: this.schedule,
+            schedule: this.schedule + (this.sorted ? '+sort' : ''),
             pipelineCompileMs: +this.pipelineCompileMs.toFixed(1),
             perRun: {
                 wallMsMedian: +median(wall).toFixed(2),

@@ -1,4 +1,4 @@
-# The nine kernels
+# The twelve kernels
 
 All in `webgpu/compute/shaders/`. Every one starts with `///use mpm_common` (weBIGeo's
 shader preprocessor include directive), so they all declare the **identical binding set** —
@@ -13,6 +13,7 @@ One node execution, all inside a **single compute pass**:
 begin compute pass                                                  (one per chunk)
   if reset:  mpm_prepare  →  mpm_seed
   else if a stress parameter changed since the last run:  mpm_refresh_stress
+  if the chunk has substeps:  mpm_sort_count → mpm_sort_scan (1 workgroup) → mpm_sort_scatter
   repeat substeps_per_submit times:
       mpm_p2g → mpm_grid_update → mpm_g2p  [→ mpm_column_stats, sandbox only]
   last chunk: mpm_splat → mpm_rasterize
@@ -44,14 +45,16 @@ follows the snow instead of the domain. See [09-performance-analysis.md](09-perf
 7  storage    output_texture rgba8unorm            write
 8  storage    column_floor   array<i32>            read_write (written by prepare)
 9  storage    grid_velocity  array<vec4f>          read_write (grid update → G2P)
-10 storage    tile_flags     array<atomic<u32>>    read_write (P2G → grid update)
+10 storage    tile_flags     array<atomic<u32>>    read_write: tile flags (P2G → grid update), then the particle
+                                                  sort (bucket counts, cursors, sorted indices; sort → P2G)
 11 storage    column_stats   array<ColumnStats>    read_write (peaks; column_stats → grid update; entrainment cover)
 12 texture    entrainment_texture      R32Float snow cover depth (entrainment areas), unfilterable;
                                        a 1x1 placeholder without one
 ```
 
 Eight storage buffers is WebGPU's default `maxStorageBuffersPerShaderStage`, so the
-entrainment cover lives in `column_stats` rather than a buffer of its own.
+entrainment cover lives in `column_stats` and the particle sort in `tile_flags` rather than
+buffers of their own.
 
 Unused bindings in a given kernel are fine; the reverse (using something not in the layout)
 is not.
@@ -129,11 +132,39 @@ Uses `///use random` (PCG hash from the existing `random.wgsl`).
 Threads from `release_particles` on are the entrainment pool: they write an inactive particle
 and return. `seed_first_hits` / `release_particles` is then still the disc's share with snow.
 
-## `mpm_p2g` — 256×1×1, over particles
+## `mpm_sort_count`, `mpm_sort_scan`, `mpm_sort_scatter` — particle sort, once per chunk
+
+A counting sort of the particle **indices** by sort tile (4 × 4 columns, the tile of the
+particle's stencil base), so that P2G's workgroups get the particles of one tile together.
+The particle buffer keeps its order: the renderer pairs `particles[i]` with `previous[i]` and
+derives the detail particles from `i`.
+
+```
+count    (256×1×1, over particles)  counts[bucket(p)] += 1            # inactive (mass 0): the last bucket
+scan     (256×1×1, one workgroup)   cursors = exclusive prefix sum of counts; counts = 0
+scatter  (256×1×1, over particles)  sorted[cursors[bucket(p)]++] = index
+```
+
+Inactive and pool particles stay in the list (last bucket), so a pool particle entrainment
+activates during the chunk is still transferred. In a chunk's substeps a particle moves well
+under a tile (0.04 cells per substep at 50 m/s, Δx = 12.5 m, Δt = 0.01 s); a stale order only
+costs speed, never correctness. Cost: 0.2 ms per 24-substep run at 131 k particles on the M5.
+
+## `mpm_p2g` — 256×1×1, over the sorted particles
 
 Stage 1. Skips `mass <= 0`. Invocation 0 first zeroes `SimState.plastic_particles`: the
 yield count is per substep, and dispatches in one pass are ordered, so the store lands
 before this substep's G2P counts.
+
+Each workgroup takes 256 consecutive sorted indices. The sort tile of its first particle is
+its **home tile**: the stencils of that tile's particles reach a window of 6 × 6 columns ×
+16 band layers (576 nodes, 9 KiB for mass and momentum). Contributions to window nodes are
+summed in workgroup memory (`wg_mass`, `wg_momentum`, the same fixed-point units); all others
+(particles of the neighbouring buckets in the workgroup, layers above 16) go to the grid
+directly. After a barrier each window node that received anything is added to the grid once.
+Integer addition is associative, so the grid holds exactly the sums it held with one global
+atomic per particle and node: the benchmark's centre-of-mass trace is bit-identical to the
+unsorted kernel.
 
 ```
 gp     = to_grid_space(position)
@@ -159,8 +190,10 @@ for the blow-up that truncation caused.
 The single `affine · dpos` product is the MLS-MPM payoff — no separate weight-gradient force
 term (Hu et al. [3]).
 
-27 nodes × 4 atomics (+1 on a mass carry, rare) = **108 atomic adds per particle per substep**. This is the hot loop — and with
-hundreds of particles per cell, the atomics to the same node serialise ([09-performance-analysis.md](09-performance-analysis.md) §2.2).
+27 nodes × 4 atomics (+1 on a mass carry, rare) = 108 atomic adds per particle per substep, now to
+workgroup memory for the home tile's particles; the grid receives at most 4 per window node and
+workgroup. P2G went from ~70 % to ~45 % of the GPU time, about 3× faster
+([09-performance-analysis.md](09-performance-analysis.md) §8.6).
 
 ## `mpm_grid_update` — 8×8×1, one workgroup per tile of columns
 

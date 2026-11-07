@@ -544,6 +544,38 @@ report was ~15 s).
 
 ---
 
+### 8.6 Tile-sorted P2G with workgroup accumulation (Apple M5, Chrome 158, 2026-11-07)
+
+P2G reads the particles in the order of a per-chunk counting sort by 4 × 4-column tile and sums
+each tile's contributions in workgroup memory (03-shaders.md, `mpm_sort_*` and `mpm_p2g`).
+`run_headless.mjs --chrome --baseline HEAD`, 20 measured runs of 24 substeps, against `main`
+(bac8fd99). GPU ms per run:
+
+| Configuration | main | sorted | speed-up | P2G main → sorted | centre-of-mass difference |
+|---|---|---|---|---|---|
+| Cam Clay, 65 536 particles, 320² × 12 | 12.08 | 6.42 | 1.88× | 8.56 → 2.87 | 0 |
+| Cam Clay, 131 072, 320² × 16 (7 repeats) | 22.3–25.5 | 11.6–12.5 | 1.91–2.16× | ~17.9 → ~5.6 | 0 |
+| Stomakhin, 131 072 | 23.18 | 12.06 | 1.92× | 16.20 → 5.37 | 0 |
+| Drucker–Prager, 131 072 | 25.39 | 12.06 | 2.11× | 18.44 → 5.40 | 0 |
+| Cam Clay, 262 144 | 47.44 | 27.42 | 1.73× | 31.28 → 11.47 | 0 |
+| Cam Clay, 524 288 | 100.43 | 55.53 | 1.81× | 67.25 → 22.35 | 0 |
+| Cam Clay, 1 048 576 | 187.96 | 106.07 | 1.77× | 124.67 → 41.44 | 0 |
+
+- The sort costs 0.2 ms per run at 131 k particles, 1.4 ms at 1 M.
+- P2G is about 3× faster; G2P is now the largest stage (5.8 of 12.0 ms at 131 k, 62 of 106 ms at
+  1 M). With 1 M particles the GPU-bound ceiling rises from 1.3× to 2.2× real time.
+- G2P in the sorted order as well was measured and is slower at 131 k and 1 M (6.1 vs 5.8 ms,
+  66 vs 62 ms): G2P reads and writes the whole 128-byte particle, and scattered particle access
+  costs more than the better grid locality saves. G2P stays in buffer order.
+- In the app (AvaFrame batch, avaKot, no entrainment, 512² × 12 grid) the peak rasters of `main`
+  and the branch agree except where the branch, whose faster chunks reach the rest criterion
+  0.68 s later, has a larger running maximum (704 of 29 045 thickness cells, by ≤ 9 cm). With
+  erosion the runs are not reproducible on `main` either (pool slots are assigned by a global
+  atomic in GPU scheduling order: peak speed 117.0 and 104.5 m/s in two runs of the same
+  build; branch 109.2).
+
+The result files are `bench/results/m5-chrome158-sorted-p2g-vs-main-*.json`.
+
 ## 9. Changes in this branch
 
 ### 9.1 Kernels (v2 schedule)
@@ -654,7 +686,7 @@ for this note — check the numbers against the PDFs before quoting them in the 
 
 | # | Idea | Expected effect | Effort | Notes |
 |---|---|---|---|---|
-| 1 | **Subgroup (warp) pre-reduction in P2G** + keep particles roughly cell-sorted | P2G atomics down by the lanes-per-node factor in dense regions; this is the main remaining cost | M | WGSL `subgroups` feature (Chrome 134+, Dawn); needs a fallback path. Sorting: a counting sort by tile every N runs, or seed particles in Morton order (they stay near their neighbours in a flow) |
+| 1 | ~~Keep particles tile-sorted and pre-reduce P2G~~ | **Done (§8.6):** counting sort by 4 × 4-column tile per chunk, workgroup-memory accumulation; P2G ~3× faster, 1.8–2.2× overall | — | Subgroup reductions remain an option on top, behind the WGSL `subgroups` feature with a fallback |
 | 2 | **Auto dt from CFL** with a relaxed safety factor (0.1 → ~0.2 · dx / c), capped at ~0.03 s | ~2× simulated time per substep for the stiff Li / Cam-Clay presets (Stomakhin already went to 0.02) | S | §8.4 shows it on the slope; check deposition on real terrain first |
 | 3 | **Fuse G2P and the next P2G** (G2P2G, Wang et al. 2020) | one particle read/write per substep instead of two; one dispatch less | M | Needs double-buffered grid (read velocities of step n while accumulating step n+1) |
 | 4 | **Indirect dispatch over a compacted tile list** | grid update cost ∝ active tiles without launching the idle workgroups | S–M | Worth it only for domains ≫ 320² |

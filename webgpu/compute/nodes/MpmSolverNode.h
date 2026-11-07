@@ -555,13 +555,16 @@ private:
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_state_readback; // MapRead staging copy of m_state_buffer
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_density_buffer;
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_grid_velocity_buffer; // vec4f per node
-    std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_tile_flag_buffer; // u32 per tile of columns
+    std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_tile_flag_buffer; // u32 per tile of columns, then the particle sort
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_column_peak_buffer; // ColumnStats per (x, y) column
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_output_texture;
     std::unique_ptr<webgpu::raii::BindGroup> m_bind_group;
 
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_prepare_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_seed_pipeline;
+    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_sort_count_pipeline;
+    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_sort_scan_pipeline;
+    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_sort_scatter_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_p2g_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_grid_update_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_g2p_pipeline;

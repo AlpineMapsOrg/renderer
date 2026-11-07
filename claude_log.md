@@ -38,6 +38,36 @@ the test fills the real uniform. Results, tolerances and what is not covered:
 - **Not done:** a one-particle substep through the whole kernels. `test_mpm.py` ports the older
   dense-grid loop, so that needs a new reference first.
 
+
+### 2. Tile-sorted P2G (branch `p2g-tile-sort`)
+
+Analysis of taichi_mpm (Notion page "Faster P2G: tile-sorted particles and shared-memory
+accumulation"):
+- Its "real-time" demo is 2D with 1.5 k particles; its 3D runs take 17–288 s per frame on CPU.
+- Per million particles and step: Wang 2020 1.2 ms, Taichi GPU 3.9–5.5 ms, weBIGeo 8.8 ms on
+  an M5 with about a third of their memory bandwidth.
+
+Implemented the proposal:
+- A per-chunk counting sort of the particle **indices** by 4×4-column tile (`mpm_sort_*`).
+  The data lives after the tile flags in binding 10, so the layout stays at 8 storage buffers.
+- P2G sums each workgroup's home-tile window (6×6×16 nodes) in workgroup memory and writes
+  each node once.
+- The particle buffer keeps its order, because the renderer pairs particles by index.
+
+Measured on the M5 (`run_headless.mjs --chrome --baseline HEAD`; 09 §8.6): 1.73–2.16× less GPU
+time per run across materials and 65 k–1 M particles, P2G about 3× faster. The centre-of-mass
+trace is bit-identical to `main` in every configuration.
+
+- **G2P in sorted order:** tried and reverted. It is slower at 131 k and 1 M particles, because
+  scattered 128-byte particle access costs more than the grid locality saves.
+- **App batch check (avaKot):** without entrainment, the only differences are from the later
+  stop time; Fast pacing gives the branch different chunk sizes, so it reaches the rest
+  criterion 0.68 s later. Erosion is not reproducible on `main` itself: two runs gave peak
+  speeds of 117.0 and 104.5 m/s.
+- **Trap:** Playwright's headless shell has no GPU on macOS and silently runs SwiftShader.
+  Added `--chrome` to `run_headless.mjs`, which uses the installed Chrome (Metal).
+- **Trap:** zsh does not word-split `$cfg` (again); run benchmark loops under `bash -c`.
+
 ## 2026-10-27
 
 ### 1. Paper references checked against the PDFs

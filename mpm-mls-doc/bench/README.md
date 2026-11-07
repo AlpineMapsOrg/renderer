@@ -27,6 +27,7 @@ queries; Chrome quantises them to 0.1 ms unless
 npm i -g playwright            # once
 node mpm-mls-doc/bench/run_headless.mjs                              # SwiftShader (CPU)
 node mpm-mls-doc/bench/run_headless.mjs --gpu                        # the machine's GPU
+node mpm-mls-doc/bench/run_headless.mjs --chrome                     # the installed Google Chrome (GPU)
 node mpm-mls-doc/bench/run_headless.mjs --baseline HEAD~3 --out r.json particles=65536
 ```
 
@@ -36,7 +37,9 @@ moved apart. The kernel schedule (v1: separate clear pass; v2: tile-flagged grid
 clear) is detected from the shader sources, so old revisions still run.
 
 SwiftShader runs anywhere (CI, containers) but its absolute timings say nothing about a GPU;
-use it for relative numbers and for the physics check.
+use it for relative numbers and for the physics check. On macOS, Playwright's headless shell
+has no GPU and falls back to SwiftShader even with `--gpu`; `--chrome` runs the installed
+Google Chrome, which uses Metal. The result's `adapter` field says which device ran.
 
 ## What is measured
 

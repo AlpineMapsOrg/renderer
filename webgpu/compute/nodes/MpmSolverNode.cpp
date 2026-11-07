@@ -51,6 +51,9 @@ namespace {
     /* Size of struct ColumnStats in mpm_common.wgsl, in units of uint32: peak depth and speed
      * (f32), two per-substep accumulators, then the column's snow cover and its eroded rest. */
     constexpr uint32_t COLUMN_STATS_STRIDE_U32 = 6u; // 24 bytes (the last two: entrainment cover)
+    // Columns per sort tile edge, SORT_TILE in mpm_common.wgsl: P2G sums one sort tile's particles in
+    // workgroup memory, and the particle indices are sorted by it once per chunk.
+    constexpr uint32_t SORT_TILE = 4u;
     /* Size of struct SimState in mpm_common.wgsl, in units of uint32. */
     constexpr uint32_t SIM_STATE_SIZE_U32 = 21u; // 84 bytes
     /* Slots of struct SimState. */
@@ -176,6 +179,9 @@ MpmSolverNode::MpmSolverNode(webgpu::Context& ctx, const MpmSolverSettings& sett
 
     reg.register_shader("mpm_prepare", "webgpu_compute::mpm_prepare");
     reg.register_shader("mpm_seed", "webgpu_compute::mpm_seed");
+    reg.register_shader("mpm_sort_count", "webgpu_compute::mpm_sort_count");
+    reg.register_shader("mpm_sort_scan", "webgpu_compute::mpm_sort_scan");
+    reg.register_shader("mpm_sort_scatter", "webgpu_compute::mpm_sort_scatter");
     reg.register_shader("mpm_p2g", "webgpu_compute::mpm_p2g");
     reg.register_shader("mpm_grid_update", "webgpu_compute::mpm_grid_update");
     reg.register_shader("mpm_g2p", "webgpu_compute::mpm_g2p");
@@ -272,6 +278,9 @@ void MpmSolverNode::create_pipelines(WGPUDevice device, const webgpu::RenderReso
     };
     m_prepare_pipeline = make("mpm_prepare");
     m_seed_pipeline = make("mpm_seed");
+    m_sort_count_pipeline = make("mpm_sort_count");
+    m_sort_scan_pipeline = make("mpm_sort_scan");
+    m_sort_scatter_pipeline = make("mpm_sort_scatter");
     m_p2g_pipeline = make("mpm_p2g");
     m_grid_update_pipeline = make("mpm_grid_update");
     m_g2p_pipeline = make("mpm_g2p");
@@ -331,7 +340,12 @@ bool MpmSolverNode::ensure_resources()
     m_grid_velocity_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
         m_ctx->device(), storage_usage, size_t(grid_res.x) * grid_res.y * grid_res.z * GRID_VELOCITY_STRIDE_U32, "mpm grid velocity buffer");
     const glm::uvec2 tiles(div_ceil(grid_res.x, GRID_WORKGROUP_SIZE.x), div_ceil(grid_res.y, GRID_WORKGROUP_SIZE.y));
-    m_tile_flag_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(m_ctx->device(), storage_usage, size_t(tiles.x) * tiles.y, "mpm tile flags");
+    // The tile flags, then the particle sort data (mpm_common.wgsl, "Particle indices sorted by
+    // sort tile"): a count and a cursor per sort tile plus one bucket for inactive particles, and
+    // the sorted particle indices. Sharing the binding keeps the solver at eight storage buffers.
+    const size_t sort_buckets = size_t(div_ceil(grid_res.x, SORT_TILE)) * div_ceil(grid_res.y, SORT_TILE) + 1u;
+    m_tile_flag_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
+        m_ctx->device(), storage_usage, size_t(tiles.x) * tiles.y + 2u * sort_buckets + num_particles, "mpm tile flags and particle sort");
     m_column_peak_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
         m_ctx->device(), storage_usage, size_t(grid_res.x) * grid_res.y * COLUMN_STATS_STRIDE_U32, "mpm column stats");
     m_density_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
@@ -1138,6 +1152,14 @@ void MpmSolverNode::submit_chunk(uint32_t substeps, bool last_chunk)
             m_seed_pipeline->run(compute_pass, particle_workgroups);
         } else if (m_run_first_chunk && m_run_refresh_stress) {
             m_refresh_stress_pipeline->run(compute_pass, particle_workgroups);
+        }
+
+        // P2G reads the particles in tile order. Sorted once per chunk: in a chunk's substeps a
+        // particle moves well under a sort tile, and a stale order only costs speed.
+        if (substeps > 0) {
+            m_sort_count_pipeline->run(compute_pass, particle_workgroups);
+            m_sort_scan_pipeline->run(compute_pass, glm::uvec3(1, 1, 1));
+            m_sort_scatter_pipeline->run(compute_pass, particle_workgroups);
         }
 
         // Dispatches within one compute pass are ordered and see each other's storage

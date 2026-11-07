@@ -77,7 +77,10 @@ with plain loads.
 
 Next to it, `tile_flags: array<atomic<u32>>` holds one flag per tile of 8 × 8 columns: P2G
 sets the tiles its stencil touches, the grid update skips tiles that are not set and resets
-the ones that are.
+the ones that are. After the flags, the same buffer holds the particle sort (03-shaders.md,
+`mpm_sort_*`): a count and a cursor per sort tile of 4 × 4 columns plus one bucket for inactive
+particles, then the sorted particle indices. Sharing the binding keeps the solver at WebGPU's
+default of eight storage buffers per stage.
 
 ## Fixed-point atomics
 
@@ -237,6 +240,7 @@ No pad slots left. The next field grows the struct to 256 B. The benchmark
 | particles | `(num_particles + pool) × 32` u32 (128 B each); the pool for entrained snow is `pool_size` × the release particles while entrainment is on, else 0 |
 | grid | `res.x·res.y·layers × 5` u32 (20 B each) |
 | column floors | `res.x·res.y` i32 |
+| tile flags and particle sort | `⌈res.x/8⌉·⌈res.y/8⌉ + 2·(⌈res.x/4⌉·⌈res.y/4⌉ + 1) + num_particles` u32 (320² and 131 k particles: 0.55 MB) |
 | state | 14 u32 |
 | density raster | `raster_resolution²` u32 |
 | column stats | `res.x·res.y × 6` u32 (24 B: peak depth, peak speed as f32; particle count, speed sum as atomic u32; entrainment cover and its eroded rest as f32) |

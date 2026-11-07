@@ -21,7 +21,8 @@
 | `shaders/mpm_friction.wgsl` | Basal-friction dispatcher: `switch` on `settings.basal_friction_model`; Coulomb, Voellmy (local flow depth from the grid update). |
 | `shaders/mpm_prepare.wgsl` | Scans terrain once per reset: altitude range for the readout, the per-column floor of the terrain-following grid, and the entrainment cover per column. |
 | `shaders/mpm_seed.wgsl` | Places particles in the release disc (map) or by release depth per cell (sandbox); leaves the entrainment pool inactive. |
-| `shaders/mpm_p2g.wgsl` | Stage 1: particle → grid. |
+| `shaders/mpm_sort_count.wgsl`, `mpm_sort_scan.wgsl`, `mpm_sort_scatter.wgsl` | Once per chunk: counting sort of the particle indices by 4 × 4-column tile, for P2G. |
+| `shaders/mpm_p2g.wgsl` | Stage 1: particle → grid, in tile order, summed per tile in workgroup memory. |
 | `shaders/mpm_grid_update.wgsl` | Stage 2: momentum → velocity, gravity, collisions; entrainment (`entrain_column()`, see [15-entrainment.md](15-entrainment.md)). |
 | `shaders/mpm_g2p.wgsl` | Stages 3+4: grid → particle, plasticity, advection; per-substep diagnostics reduced per workgroup. |
 | `shaders/mpm_column_stats.wgsl` | Sandbox only: sums particle speeds per grid column for the peak velocity raster. |

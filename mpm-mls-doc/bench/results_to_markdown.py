@@ -27,6 +27,15 @@ def load(path):
     return os.path.basename(path), stamp, data.get("commit", ""), runs, data.get("comparison")
 
 
+def browser(r):
+    agent = r.get("userAgent", "")
+    return "Chrome " + agent.split("Chrome/")[1].split(".")[0] if "Chrome/" in agent else "?"
+
+
+def tag(label, r, commit):
+    return f"({'baseline, ' if label == 'baseline' else ''}{r['schedule']} kernels, {commit})"
+
+
 def device(r):
     a = r.get("adapter", {})
     return a.get("description") or f"{a.get('vendor', '?')} {a.get('architecture', '?')}"
@@ -65,14 +74,17 @@ def main():
     out += ["## Real GPU", ""]
     if real:
         adapter = sorted({device(r) for _, _, _, runs, _ in real for r in runs.values()})
-        out += [f"Device: **Apple M5** (WebGPU adapter `{', '.join(adapter)}`), Chrome 152, 2026-09-28/29.", "", HEADER]
+        sessions = sorted({f"{browser(r)} ({stamp})" for _, stamp, _, runs, _ in real for r in runs.values()})
+        out += [f"Device: **Apple M5** (WebGPU adapter `{', '.join(adapter)}`); {', '.join(sessions)}.", "", HEADER]
         for name, stamp, commit, runs, _ in real:
             for label, r in runs.items():
-                out.append(row(name, "", r))
+                out.append(row(name, tag(label, r, commit) if len(runs) > 1 else "", r))
         out += ["",
-                "Reading it: P2G's fixed-point atomics are ~70 % of the GPU time whatever the material; Cam Clay (the benchmark default) "
-                "costs ~9 % more per substep than Stomakhin. `medium-pass` times one query pair per chunk as the app does; "
-                "it agrees with the per-stage total.", ""]
+                "Reading it: with P2G in buffer order (`v2` kernels), its fixed-point atomics are ~70 % of the GPU time whatever "
+                "the material. With the particles sorted by tile and summed in workgroup memory (`v2+sort`, the `sorted-p2g` "
+                "files), P2G is about 3× faster and ~45 % of the time; G2P is now the largest stage. Cam Clay (the benchmark "
+                "default) costs ~9 % more per substep than Stomakhin. `medium-pass` times one query pair per chunk as the app "
+                "does; it agrees with the per-stage total.", ""]
     else:
         out += ["_No real-GPU results checked in yet — run the page in a browser (bench/README.md)._", ""]
 
@@ -81,11 +93,10 @@ def main():
             "(`comparison.physics`: how far the centre-of-mass trace moved between the kernels).", "", HEADER]
     for name, stamp, commit, runs, comp in soft:
         for label, r in runs.items():
-            tag = f"({'baseline, ' if label == 'baseline' else ''}{r['schedule']} kernels, {commit})"
-            out.append(row(name, tag, r))
+            out.append(row(name, tag(label, r, commit), r))
     out += ["", "### Old vs new kernels", "",
             "| file | GPU speed-up | centre-of-mass travel | max trace difference |", "|---|---|---|---|"]
-    for name, stamp, commit, runs, comp in soft:
+    for name, stamp, commit, runs, comp in real + soft:
         if comp:
             ph = comp["physics"]
             out.append(f"| `{name}` | **{comp['gpuSpeedup']}×** | {ph['comTravel']:.1f} m | {ph['maxComDifference'] * 1000:.1f} mm |")
