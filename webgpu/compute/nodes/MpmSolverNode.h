@@ -258,8 +258,8 @@ public:
         bool reset_on_next_run = true;
     };
 
-private:
-    /* Mirrors struct MpmSettings in mpm_common.wgsl - keep the two in sync. */
+    /* Mirrors struct MpmSettings in mpm_common.wgsl - keep the two in sync. Public so the GPU
+     * golden tests (unittests/webgpu_compute/test_MpmGolden.cpp) fill the real struct. */
     struct MpmSolverSettingsUniform {
         glm::uvec3 grid_res;
         uint32_t num_particles;

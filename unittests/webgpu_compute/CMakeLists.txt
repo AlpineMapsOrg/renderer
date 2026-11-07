@@ -19,8 +19,12 @@
 project(alpine-renderer-unittests_webgpu_compute LANGUAGES CXX)
 
 alp_add_unittest(unittests_webgpu_compute
+    ../webgpu_engine/UnittestWebgpuContext.h ../webgpu_engine/UnittestWebgpuContext.cpp
     test_SimulationClock.cpp
     test_ReleaseResampling.cpp
+    test_MpmGolden.cpp
 )
 
 target_link_libraries(unittests_webgpu_compute PUBLIC webgpu_compute)
+# Inputs and expected outputs of the GPU golden tests, written by mpm-mls-doc/scripts/make_golden.py.
+target_compile_definitions(unittests_webgpu_compute PRIVATE MPM_GOLDEN_FILE="${CMAKE_CURRENT_SOURCE_DIR}/golden/mpm_golden.json")

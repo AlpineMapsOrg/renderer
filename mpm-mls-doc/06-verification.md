@@ -367,6 +367,47 @@ Details in [14-avaframe-release-on-map.md](14-avaframe-release-on-map.md).
   preset's `seed_anywhere` made every cover sample count as "under the release". Replaced by
   the per-column cover; `under_release()` now limits `seed_anywhere` to the disc.
 
+## 4o. GPU golden tests — the WGSL against the Python ports (2026-11-07)
+
+Sections 2–4e test the Python ports. `unittests/webgpu_compute/test_MpmGolden.cpp` tests the
+WGSL against them. It runs the real shader functions on the GPU (headless Dawn, Catch2) on the
+inputs in `unittests/webgpu_compute/golden/mpm_golden.json` and compares them with the ports'
+outputs in the same file. `scripts/make_golden.py` writes that file from the ports.
+
+Each group runs a one-case-per-thread wrapper kernel that `///use`s the module under test, with
+the real `MpmSolverSettingsUniform` bound at group 0, binding 0. That checks the field order of
+the uniform against `struct MpmSettings` as well. F and τ go through `store_f` / `particle_f` /
+`store_kirchhoff` / `particle_kirchhoff`, as G2P and P2G use them, so the row/column order of
+`struct Particle` is covered too.
+
+| Group | Cases | Largest difference GPU − port | Tolerance |
+|---|---|---|---|
+| `svd3` (incl. repeated and negative σ) | 66 | U Σ Vᵀ − F 4e-7, σ 2e-7, det − 1 8e-7 | 2e-5 |
+| Stomakhin | 65 (38 yielding) | F 2e-7, τ 4e-6 μ₀, J_P 2e-7 | 2e-5, 1e-4 μ₀ |
+| Drucker–Prager, Cases I–III | 64 | F 4e-7, τ 7e-7 μ₀, q 1e-7 | as above |
+| Cam Clay, Li Case V (E 0.14 and 3 MPa), Case II; all four branches | 596 | F 5e-7, τ 1e-6 μ₀, α 3e-7 | as above |
+| Coulomb / Voellmy friction | 114 each | 8e-8 / 2e-7 of \|v\| | 1e-5 |
+| Quadratic B-spline weights | 23 | 1e-6; the 27 weights sum to 1 within 1e-7 | 1e-5 |
+
+The branch taken (yielded or not) matches in every case.
+
+- **The cases keep a margin to every branch decision.** float32 against float64 may
+  legitimately take the other branch right at a decision. The first run hit two such cases, and
+  neither was a shader bug. One was a rotated identity, at the Drucker–Prager apex, where the
+  port's own rounding chose Case III. The other was a velocity exactly tangent to the terrain:
+  in float32, v·n came out −1e-8 instead of 0, so the GPU applied the Voellmy drag.
+- **One genuine float32 effect: the Cam Clay initial state.** For Li Case V at E = 3 MPa it is
+  2.2e-5 off relative. `ccc_asinh` computes log(x + √(x² + 1)), which cancels for
+  x = p₀/K = 1.2e-3. The tolerance for the initial state is 1e-4; the effect on p₀ is
+  physically irrelevant.
+- **The tests catch a real bug.** With q = 1.5‖s‖ in `mpm_material_ccc.wgsl` (the old audit's
+  reading of Wolper), all three Cam Clay groups fail: F is off by 1e-3, τ by 2e-3 μ₀, and
+  2–3 cases take the wrong branch.
+- **Not covered:** the kernels as a whole (P2G, grid update and G2P with the fixed-point
+  atomics, the terrain-following band and the textures). The functions they call are covered.
+  `test_mpm.py` ports an older dense-grid loop, so a one-particle substep test needs a new
+  reference first.
+
 ## 5. On real terrain
 
 Runs end to end on the Schneeberg DEM: seeds, flows downhill, deposits, animates, and the
@@ -502,6 +543,11 @@ MPM_MODEL=ccc ./.venv/bin/python test_mpm.py              # full loop with CCC
 
 # 4b. refactor safety - resolved WGSL vs git HEAD (edit its tables for a new refactor)
 python3 check_refactor_preserving.py
+
+# 4o. GPU golden tests: regenerate the golden file after changing a port, then run the
+# unit test (build with -DALP_BUILD_UNITTESTS=ON)
+./.venv/bin/python make_golden.py
+../../build/webgpu_app_macos_release/unittests/webgpu_compute/unittests_webgpu_compute
 ```
 
 All three were last re-run from this location on 2026-09-06 and reproduce the numbers

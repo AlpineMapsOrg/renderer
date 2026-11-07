@@ -13,6 +13,29 @@ capture of the terminal.
 
 ---
 
+## 2026-11-07
+
+### 1. GPU golden tests
+
+`unittests/webgpu_compute/test_MpmGolden.cpp` runs the real WGSL functions on the GPU and
+compares them with the Python ports: svd3, all three return mappings with their stress, both
+friction laws and the B-spline weights. 1,895 assertions over ~1,100 cases. The golden values
+come from `mpm-mls-doc/scripts/make_golden.py`. `MpmSolverSettingsUniform` is now public, so
+the test fills the real uniform. Results, tolerances and what is not covered:
+`06-verification.md` §4o.
+
+- **Agreement:** GPU and ports agree to 1e-7–4e-6 (float32 rounding), and every case takes the
+  same branch.
+- **First-run failures:** two were boundary cases in the test inputs, not bugs: the
+  Drucker–Prager apex, and a velocity exactly tangent to the terrain. The generator now keeps a
+  margin to every branch decision.
+- **One real float32 effect:** the Cam Clay initial state is off by 2.2e-5 relative
+  (`ccc_asinh` cancels for p₀/K = 1.2e-3). Physically irrelevant; noted in the tolerance.
+- **Verified by mutation:** putting the old audit's q = 1.5‖s‖ into the Cam Clay shader makes
+  all three Cam Clay groups fail. Restoring it makes the suite pass again.
+- **Not done:** a one-particle substep through the whole kernels. `test_mpm.py` ports the older
+  dense-grid loop, so that needs a new reference first.
+
 ## 2026-10-27
 
 ### 1. Paper references checked against the PDFs
