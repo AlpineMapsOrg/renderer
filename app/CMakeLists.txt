@@ -143,7 +143,7 @@ set_target_properties(alpineapp PROPERTIES
     QT_ANDROID_VERSION_NAME ${ALP_VERSION}
     QT_ANDROID_VERSION_CODE "${ALP_VERSION_INTEGER}"
 )
-target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
+target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2 Qt::Concurrent)
 alp_configure_target(alpineapp)
 
 if (ALP_ENABLE_QML_HOT_RELOAD)

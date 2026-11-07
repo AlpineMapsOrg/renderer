@@ -24,6 +24,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 
+#include <nucleus/planner/RouteOptimizer.h>
 #include <nucleus/track/GPX.h>
 
 namespace nucleus {
@@ -46,6 +47,14 @@ class PlannerModel : public QObject {
     // from the dem-interpolated line
     Q_PROPERTY(double avg_steepness READ avg_steepness NOTIFY points_changed)
     Q_PROPERTY(double max_steepness READ max_steepness NOTIFY points_changed)
+    // least-cost path optimisation (steep ski descent planning)
+    Q_PROPERTY(int steepness_weight READ steepness_weight WRITE set_steepness_weight NOTIFY optimisation_parameters_changed)
+    Q_PROPERTY(int distance_weight READ distance_weight WRITE set_distance_weight NOTIFY optimisation_parameters_changed)
+    Q_PROPERTY(int cross_slope_weight READ cross_slope_weight WRITE set_cross_slope_weight NOTIFY optimisation_parameters_changed)
+    // search margin around the route, in percent of the route extent
+    Q_PROPERTY(int search_radius READ search_radius WRITE set_search_radius NOTIFY optimisation_parameters_changed)
+    Q_PROPERTY(bool optimisation_running READ optimisation_running NOTIFY optimisation_running_changed)
+    Q_PROPERTY(QString optimisation_status READ optimisation_status NOTIFY optimisation_status_changed)
 public:
     explicit PlannerModel(QObject* parent = nullptr);
 
@@ -59,6 +68,16 @@ public:
     double descent() const;
     double avg_steepness() const;
     double max_steepness() const;
+    int steepness_weight() const;
+    void set_steepness_weight(int weight);
+    int distance_weight() const;
+    void set_distance_weight(int weight);
+    int cross_slope_weight() const;
+    void set_cross_slope_weight(int weight);
+    int search_radius() const;
+    void set_search_radius(int percent);
+    bool optimisation_running() const;
+    QString optimisation_status() const;
 
 public slots:
     // geo coordinates in degrees/metres, as reported by the camera depth readback
@@ -74,6 +93,9 @@ public slots:
     // the altitude is only a fallback, the dem altitude is preferred
     void set_user_position(double latitude, double longitude, double altitude);
     void clear_user_position();
+    // fetches high-resolution dem tiles for the planning area and replaces the
+    // route between the waypoints with the least-cost descent path
+    void optimise_route();
 
 signals:
     void points_changed();
@@ -83,9 +105,18 @@ signals:
     void track_imported(const QPointF& position);
     void user_position_changed(const nucleus::track::Gpx& marker);
     void user_position_cleared();
+    void optimisation_running_changed();
+    void optimisation_status_changed();
+    void optimisation_parameters_changed();
+
+private slots:
+    void optimisation_finished(const nucleus::planner::OptimisationResult& result);
 
 private:
     void update_render_data();
+    void invalidate_optimisation();
+    // flattened waypoint list (lat, lon) of the whole plan
+    std::vector<glm::dvec2> waypoint_sequence() const;
 
     nucleus::track::Gpx m_plan;
     // dense, dem-interpolated version of m_plan for rendering
@@ -95,4 +126,15 @@ private:
     double m_avg_steepness = 0;
     double m_max_steepness = 0;
     std::shared_ptr<nucleus::DataQuerier> m_data_querier;
+
+    // optimised least-cost descent path per consecutive waypoint pair (empty
+    // entries = approximate straight interpolation)
+    std::vector<std::vector<nucleus::track::Point>> m_optimised_segments;
+    int m_steepness_weight = 60;
+    int m_distance_weight = 40;
+    int m_cross_slope_weight = 50;
+    int m_search_radius = 20; // percent of the route extent
+    bool m_optimisation_running = false;
+    QString m_optimisation_status;
+    unsigned m_optimisation_generation = 0;
 };

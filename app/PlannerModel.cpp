@@ -20,10 +20,13 @@
 
 #include "RenderThreadNotifier.h"
 #include "RenderingContext.h"
+#include <QFutureWatcher>
 #include <QFile>
 #include <QFileInfo>
+#include <QtConcurrent/QtConcurrentRun>
 #include <gl_engine/Context.h>
 #include <nucleus/DataQuerier.h>
+#include <nucleus/planner/RouteOptimizer.h>
 #include <nucleus/srs.h>
 
 namespace {
@@ -106,10 +109,81 @@ double PlannerModel::descent() const { return m_plan.descent; }
 double PlannerModel::avg_steepness() const { return m_avg_steepness; }
 double PlannerModel::max_steepness() const { return m_max_steepness; }
 
+int PlannerModel::steepness_weight() const { return m_steepness_weight; }
+
+void PlannerModel::set_steepness_weight(int weight)
+{
+    if (m_steepness_weight == weight) {
+        return;
+    }
+    m_steepness_weight = weight;
+    emit optimisation_parameters_changed();
+}
+
+int PlannerModel::distance_weight() const { return m_distance_weight; }
+
+void PlannerModel::set_distance_weight(int weight)
+{
+    if (m_distance_weight == weight) {
+        return;
+    }
+    m_distance_weight = weight;
+    emit optimisation_parameters_changed();
+}
+
+int PlannerModel::cross_slope_weight() const { return m_cross_slope_weight; }
+
+void PlannerModel::set_cross_slope_weight(int weight)
+{
+    if (m_cross_slope_weight == weight) {
+        return;
+    }
+    m_cross_slope_weight = weight;
+    emit optimisation_parameters_changed();
+}
+
+int PlannerModel::search_radius() const { return m_search_radius; }
+
+void PlannerModel::set_search_radius(int percent)
+{
+    percent = std::clamp(percent, 5, 150);
+    if (m_search_radius == percent) {
+        return;
+    }
+    m_search_radius = percent;
+    emit optimisation_parameters_changed();
+}
+
+bool PlannerModel::optimisation_running() const { return m_optimisation_running; }
+
+QString PlannerModel::optimisation_status() const { return m_optimisation_status; }
+
+void PlannerModel::invalidate_optimisation()
+{
+    m_optimised_segments.clear();
+    m_optimisation_generation += 1; // discards in-flight optimisation results
+    if (!m_optimisation_status.isEmpty()) {
+        m_optimisation_status.clear();
+        emit optimisation_status_changed();
+    }
+}
+
+std::vector<glm::dvec2> PlannerModel::waypoint_sequence() const
+{
+    std::vector<glm::dvec2> sequence;
+    for (const auto& segment : m_plan.track) {
+        for (const auto& point : segment) {
+            sequence.emplace_back(point.latitude, point.longitude);
+        }
+    }
+    return sequence;
+}
+
 void PlannerModel::add_point_at(double latitude, double longitude, double altitude)
 {
     m_plan.add_new_point({ latitude, longitude, altitude });
     m_plan.recompute_stats();
+    invalidate_optimisation();
     update_render_data();
     emit points_changed();
 }
@@ -118,6 +192,7 @@ void PlannerModel::delete_point(int index)
 {
     m_plan.delete_point(unsigned(index));
     m_plan.recompute_stats();
+    invalidate_optimisation();
     update_render_data();
     emit points_changed();
 }
@@ -125,6 +200,7 @@ void PlannerModel::delete_point(int index)
 void PlannerModel::move_point_up(int index)
 {
     m_plan.move_point(unsigned(index), -1);
+    invalidate_optimisation();
     update_render_data();
     emit points_changed();
 }
@@ -132,6 +208,7 @@ void PlannerModel::move_point_up(int index)
 void PlannerModel::move_point_down(int index)
 {
     m_plan.move_point(unsigned(index), 1);
+    invalidate_optimisation();
     update_render_data();
     emit points_changed();
 }
@@ -139,6 +216,7 @@ void PlannerModel::move_point_down(int index)
 void PlannerModel::reset()
 {
     m_plan.reset();
+    invalidate_optimisation();
     update_render_data();
     emit points_changed();
 }
@@ -149,11 +227,14 @@ void PlannerModel::export_gpx(const QUrl& file_url)
         qDebug("PlannerModel::export_gpx: nothing to export");
         return;
     }
-    m_plan.creationDateTime = QDateTime::currentDateTime();
+    // when an optimised route exists, export the dense computed line (the
+    // route that is rendered), otherwise the clicked waypoint plan
+    nucleus::track::Gpx route = !m_optimised_segments.empty() ? m_render_line : m_plan;
+    route.creationDateTime = QDateTime::currentDateTime();
     // android file dialogs return content:// uris, which QFile can open but
     // which have no local file path
     const QString path = file_url.isLocalFile() ? file_url.toLocalFile() : file_url.toString();
-    m_plan.save(path);
+    route.save(path);
 }
 
 void PlannerModel::import_gpx(const QUrl& file_url)
@@ -184,6 +265,7 @@ void PlannerModel::import_gpx(const QUrl& file_url)
         m_plan.name = QFileInfo(path).completeBaseName();
     }
     m_plan.recompute_stats();
+    invalidate_optimisation();
     update_render_data();
     emit points_changed();
 
@@ -196,6 +278,69 @@ void PlannerModel::import_gpx(const QUrl& file_url)
         emit track_imported({ segment.front().latitude, segment.front().longitude });
         break;
     }
+}
+
+void PlannerModel::optimise_route()
+{
+    if (m_optimisation_running) {
+        return;
+    }
+    const auto waypoints = waypoint_sequence();
+    if (waypoints.size() < 2) {
+        return;
+    }
+
+    m_optimisation_running = true;
+    emit optimisation_running_changed();
+    m_optimisation_status = tr("Optimizing…");
+    emit optimisation_status_changed();
+    const unsigned generation = ++m_optimisation_generation;
+
+    nucleus::planner::OptimisationWeights weights;
+    weights.steepness = m_steepness_weight;
+    weights.distance = m_distance_weight;
+    weights.cross_slope = m_cross_slope_weight;
+    weights.search_padding = m_search_radius / 100.0;
+
+    auto* session = new nucleus::planner::RouteOptimisationSession(waypoints, weights, this);
+    connect(session, &nucleus::planner::RouteOptimisationSession::finished, this,
+            [this, generation, session](const nucleus::planner::OptimisationResult& result) {
+                session->deleteLater();
+                if (generation != m_optimisation_generation) {
+                    return; // waypoints changed while optimizing
+                }
+                optimisation_finished(result);
+            });
+    session->start();
+}
+
+void PlannerModel::optimisation_finished(const nucleus::planner::OptimisationResult& result)
+{
+    m_optimisation_running = false;
+    emit optimisation_running_changed();
+    m_optimisation_status = result.status;
+    emit optimisation_status_changed();
+
+    if (!result.success) {
+        m_optimised_segments.clear();
+        update_render_data();
+        emit points_changed();
+        return;
+    }
+
+    // distribute the optimised segment paths onto the waypoint pairs
+    m_optimised_segments.assign(result.segment_paths.size(), {});
+    size_t pair = 0;
+    for (const auto& segment : result.segment_paths) {
+        nucleus::track::Segment points;
+        points.reserve(segment.size());
+        for (const auto& lat_long_alt : segment) {
+            points.push_back({ lat_long_alt.x, lat_long_alt.y, lat_long_alt.z });
+        }
+        m_optimised_segments[pair++] = std::move(points);
+    }
+    update_render_data();
+    emit points_changed();
 }
 
 void PlannerModel::set_user_position(double latitude, double longitude, double altitude)
@@ -260,6 +405,8 @@ void PlannerModel::update_render_data()
     };
     const auto restart_chain = [&chain_started]() { chain_started = false; };
 
+    size_t pair_index = 0; // consecutive waypoint pair counter across plan segments
+
     for (const auto& segment : m_plan.track) {
         restart_chain();
 
@@ -284,26 +431,41 @@ void PlannerModel::update_render_data()
             }
             const nucleus::track::Point& b = segment[i + 1];
 
-            // interpolate between a and b, sampling the dem for the elevation
-            const glm::dvec2 world_a = nucleus::srs::lat_long_to_world({ a.latitude, a.longitude });
-            const glm::dvec2 world_b = nucleus::srs::lat_long_to_world({ b.latitude, b.longitude });
-            const double dist = glm::distance(world_a, world_b);
-            const int steps = std::min(k_max_steps_per_segment,
-                std::max(1, int(std::ceil(dist / k_sample_distance))));
+            // use the optimised least-cost path for this waypoint pair when
+            // available, otherwise interpolate the straight line, sampling
+            // the dem for the elevation
+            std::vector<nucleus::track::Point> straight_samples;
+            const std::vector<nucleus::track::Point>* path = &straight_samples;
+            if (pair_index < m_optimised_segments.size() && !m_optimised_segments[pair_index].empty()) {
+                path = &m_optimised_segments[pair_index];
+            } else {
+                const glm::dvec2 world_a = nucleus::srs::lat_long_to_world({ a.latitude, a.longitude });
+                const glm::dvec2 world_b = nucleus::srs::lat_long_to_world({ b.latitude, b.longitude });
+                const double dist = glm::distance(world_a, world_b);
+                const int steps = std::min(k_max_steps_per_segment,
+                    std::max(1, int(std::ceil(dist / k_sample_distance))));
 
-            for (int s = 1; s < steps; ++s) {
-                const double t = double(s) / double(steps);
-                const double lat = a.latitude + (b.latitude - a.latitude) * t;
-                const double lon = a.longitude + (b.longitude - a.longitude) * t;
+                for (int s = 1; s < steps; ++s) {
+                    const double t = double(s) / double(steps);
+                    const double lat = a.latitude + (b.latitude - a.latitude) * t;
+                    const double lon = a.longitude + (b.longitude - a.longitude) * t;
 
-                double alt = a.elevation + (b.elevation - a.elevation) * t;
-                if (m_data_querier) {
-                    const std::expected<float, QString> dem_altitude = m_data_querier->get_altitude({ lat, lon });
-                    if (dem_altitude.has_value()) {
-                        alt = dem_altitude.value();
+                    double alt = a.elevation + (b.elevation - a.elevation) * t;
+                    if (m_data_querier) {
+                        const std::expected<float, QString> dem_altitude = m_data_querier->get_altitude({ lat, lon });
+                        if (dem_altitude.has_value()) {
+                            alt = dem_altitude.value();
+                        }
                     }
+                    straight_samples.push_back({ lat, lon, alt });
                 }
-                line_points.push_back({ lat, lon, alt });
+            }
+            ++pair_index;
+
+            // the path endpoints are the exact waypoints themselves; waypoint b
+            // is appended by the next loop iteration (or as the segment end)
+            for (size_t k = 0; k + 1 < path->size(); ++k) {
+                line_points.push_back((*path)[k]);
             }
         }
 
