@@ -10,7 +10,7 @@
 | `dt` | 0.01 s (preset: 0.02) | CFL bound; the node lowers it to 80 % of `max_stable_dt()` before any run that exceeds it. Too large = explosion. Stomakhin at 12.5 m cells is fine up to at least 0.03 (09-performance-analysis.md §8.4). |
 | `substeps_per_run` | 32 (preset: 24) | Simulated time per node execution = `dt × substeps`; the overlay and the readback update once per run. **Only used by Manual pacing (accuracy) and the node editor's Step**: otherwise the simulation clock sizes each run itself ([13-simulation-driver.md](13-simulation-driver.md)). |
 | `substeps_per_submit` | 2 | Chunk size the run is submitted in. WebGPU has one queue, so rendering and simulation take turns on the GPU; small chunks keep the view smooth, one big chunk maximises simulated time per second. **Only used by Manual pacing and the node editor's Step**; the clock picks the chunks from the Pacing budget otherwise (no longer written into the settings). See "Cost". |
-| `num_particles` | 65536 (preset: 131072 → 65536) | Mostly visual density: even 32k is > 100 particles per 12.5 m cell. Cost is linear, P2G contention worse than linear. Panel: **Detail** Low / Medium / High. |
+| `num_particles` | 65536 (preset: 131072 → 65536) | Mostly visual density: even 32k is > 100 particles per 12.5 m cell. Cost is about linear in the particle count (1 M particles: 106 ms per 24-substep run on an M5). Panel: **Detail** Low / Medium / High. |
 | `release_radius` | 120 m | Start-zone size, independent of the domain. |
 | `slab_thickness` | 1.5 m | Depth of released snow. |
 | `youngs_modulus` | 1.4e5 Pa | Stiffness, **shared by all models**. Drives the CFL bound via the P-wave speed. Li 2021 uses 3 MPa. |
@@ -105,7 +105,7 @@ not just different.
 | Flow speeds up forever, `mu_eff` drops below the basal μ, never stops | Fixed-point bias at low-weight grid nodes (fixed 2026-09-13: rounding + 64-bit mass). If it reappears: particles-per-node × speed > 2·10⁵ saturates the momentum accumulator | Fewer particles or a larger release area (keep < ~1000 particles per cell); check `mu_eff` in the energy-line readout — healthy flows sit at or above the basal μ |
 | A few particles keep moving at 20+ m/s after the mass has stopped | Lone particles on a coarse grid see almost no basal friction (their nodes barely touch the terrain layer) | Cosmetic at < 0.1 % of particles; ignore or hide with a density threshold in the overlay |
 
-## The resolution problem (be honest about this in the report)
+## The resolution problem
 
 Stomakhin's parameters were tuned for **metre-scale** snow in film VFX. Here a 1.5 m slab
 sits in 12.5 m cells (4000 m / 320) — the released layer is **an order of magnitude thinner than one grid
@@ -117,7 +117,7 @@ This is inherent to the scale gap, not a bug. Options, none free:
 
 - **Shrink the domain** (256–512 m → 2–4 m cells). Physically better, but then it cannot run
   out into the valley — the thing the simulation is *for*.
-- **Thicken the slab** to a few cells. Visually better, physically dishonest about how much
+- **Thicken the slab** to a few cells. Visually better, but physically misleading about how much
   snow is involved.
 - **Multi-resolution grid.** The real fix, and a genuine research direction. The
   terrain-following band (2026-09-13) removed the O(N³) memory problem and lets the domain
@@ -135,22 +135,28 @@ Worth stating plainly in the report: at avalanche scale, the interesting limitat
 > baseline; the new analysis, the benchmark and the A/B results are in
 > [09-performance-analysis.md](09-performance-analysis.md).
 
-Measured on an Apple M5 (08-domain-size-options.md §5), per run of 24 substeps:
+GPU time per run of 24 substeps (0.24 s simulated) on an Apple M5, kernel benchmark
+([10-benchmark-results.md](10-benchmark-results.md), [09-performance-analysis.md](09-performance-analysis.md) §8.6):
 
-```
-ms ≈ 9 + 25 · (grid nodes / 10⁶) + 0.38 · (particles / 10³)
-```
+| Particles | Grid | GPU ms per run | Ceiling (simulated s per wall s, GPU only) |
+|---|---|---|---|
+| 65 536 | 320² × 12 | 6.4 | 34× |
+| 131 072 (preset) | 320² × 16 | 12.5 | 19× |
+| 524 288 | 320² × 16 | 56 | 4.3× |
+| 1 048 576 | 320² × 16 | 106 | 2.2× |
 
-The preset (320² × 16 = 1.6 M nodes, 131 k particles) runs in ~100 ms of GPU time for
-0.24 s of simulated time — 2.4× real time. Particles are the steeper axis: ~550 k is the
-real-time ceiling at this substep count, whatever the grid.
+Particles are the steeper axis: the grid update is under 5 % of the time, P2G and G2P scale with
+the particle count. In the app the frame's rendering shares the GPU, so the real-time margin is
+smaller than the ceiling. An earlier fit of the September kernels (`ms ≈ 9 + 25 · nodes/10⁶ +
+0.38 · particles/10³`, 08-domain-size-options.md §5; it timed the whole run including the readback)
+gives 100 ms for the preset and 450 ms for 1 M particles: the current kernels are 4–8× faster.
 
 **Frame rate vs simulation speed.** There is no second GPU queue in WebGPU, so a run
 submitted as one 100 ms command buffer parks the next rendered frame behind it: the view
 drops to ~25 fps while playing. The run is therefore submitted in chunks of
 `substeps_per_submit` substeps with two chunks in flight (`MpmSolverNode::submit_chunk`),
-so every frame's command buffer only ever waits for one chunk. Measured on the M5, preset
-scenario, vsync at 60 Hz:
+so every frame's command buffer only ever waits for one chunk. Measured on the M5 with the
+September kernels, preset scenario, vsync at 60 Hz:
 
 | `substeps_per_submit` | fps while playing | simulated s per wall s |
 |---|---|---|

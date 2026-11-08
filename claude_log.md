@@ -15,6 +15,30 @@ capture of the terminal.
 
 ## 2026-11-08
 
+### 2. Documentation pass for outside readers
+
+Went through the living docs in `mpm-mls-doc/`. The audience is now other people who want to
+understand the project, not the author; the dated reports stay unchanged as historical records,
+and 10-benchmark-results stays generated.
+
+- **README:** new intro; a "What this project adds to weBIGeo" section (solver, simulation
+  driver, 3D rendering, switchable overlays, AvaFrame integration, panel and scenarios,
+  benchmark and test tooling); "Current state" (what works, verification, performance,
+  limitations) instead of "Known gaps"; an AI-assistance disclaimer (implemented and documented
+  with Claude, directed by the author; the author inspected the shader and C++ files manually).
+- **Audit reports** moved to `mpm-mls-doc/audit-report/` and listed at the end of the README;
+  relative links inside them and from 01/07 updated and checked to resolve.
+- **Stale content fixed:** 05's September performance figures replaced by the current benchmark
+  (old fit kept as a dated note: kernels now 4-8x faster); 07 reframed as a description,
+  rendering and the com1DFA comparison marked done, Cam Clay cost measured (~9 %); 01's
+  deviations table gains the sorted P2G, the Cam Clay Taylor series and the contact order; 02
+  lists the golden tests, the benchmark and the substep test; 09 marks display interpolation
+  done and G2P2G as the next candidate; 14 and avaframe/README no longer say entrainment is
+  unused; 15 gains the limitation that entrainment runs are not bit-reproducible (pool slots from
+  a global atomic).
+- **Verified:** `test_mpm.py` re-run, numbers reproduce (mass 150.00, min z 3.00, mean jp 0.7456).
+  Notes to self ("be honest in the report", "tested by Manuel") removed.
+
 ### 1. Whole-kernel substep test
 
 The verification report's main limitation was that the transfer kernels were checked by

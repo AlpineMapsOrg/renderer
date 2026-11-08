@@ -9,7 +9,7 @@ which is why one bind group layout and one bind group serve all of them.
 One node execution, all inside a **single compute pass**:
 
 ```
-[buffer clear] density_raster; on reset also grid, tile_flags, column_stats   (outside the pass)
+[buffer clear] density_raster; on reset also grid, tile_flags (flags and sort data), column_stats   (outside the pass)
 begin compute pass                                                  (one per chunk)
   if reset:  mpm_prepare  →  mpm_seed
   else if a stress parameter changed since the last run:  mpm_refresh_stress
@@ -150,6 +150,12 @@ activates during the chunk is still transferred. In a chunk's substeps a particl
 under a tile (0.04 cells per substep at 50 m/s, Δx = 12.5 m, Δt = 0.01 s); a stale order only
 costs speed, never correctness. Cost: 0.2 ms per 24-substep run at 131 k particles on the M5.
 
+The bucket counts must be zero when `mpm_sort_count` starts: the buffer is cleared at a reset
+(the whole `tile_flags` binding), and `mpm_sort_scan` zeroes them again after reading them.
+Only P2G uses the order. G2P stays in buffer order: it reads and writes the whole 128-byte
+particle, and the scattered access of the sorted order cost more than the better grid locality
+saved (measured: 6.1 vs 5.8 ms per run at 131 k particles, 66 vs 62 ms at 1 M).
+
 ## `mpm_p2g` — 256×1×1, over the sorted particles
 
 Stage 1. Skips `mass <= 0`. Invocation 0 first zeroes `SimState.plastic_particles`: the
@@ -179,8 +185,17 @@ for offset in 3×3×3:
     slot = grid_slot(base + offset)                     # −1 outside the box or the column's band → skip
     dpos = (offset − fx) · dx
     w    = kernel_weight(...)
-    add_node_mass(cell, w · mass)                       # u32 lo/hi at 2^20, carry from atomicAdd's return
-    atomicAdd(v*, to_fixed(w · (mass·velocity + affine·dpos)))   # i32 at 1e4, rounded
+    units = round(w · mass · 2^20)                      # mass in MASS_SCALE units
+    fixed = to_fixed(w · (mass·velocity + affine·dpos)) # i32 at 1e4, rounded
+    if the node lies in the home tile's window (6×6 columns, band layers < 16):
+        wg_mass[node] += units; wg_momentum[node] += fixed       # workgroup memory
+    else:
+        add_node_mass_units(cell, units)                # u32 lo/hi at 2^20, carry from atomicAdd's return
+        atomicAdd(v*, fixed)                            # the grid directly
+
+barrier
+for each window node of the workgroup that received anything:
+    add_node_mass_units(cell, wg_mass[node]); atomicAdd(v*, wg_momentum[node])   # once per node
 ```
 
 Both quantise with `round`, never truncation — see the fixed-point section of
@@ -255,8 +270,8 @@ the version without peaks.
 
 ## `mpm_g2p` — 256×1×1, over particles
 
-Stages 3+4 fused. No early return: each invocation calls `update_particle()` if it has
-one, then the workgroup reduces its diagnostics and invocation 0 adds them to `SimState`
+Stages 3+4 fused, in buffer order (not the sorted order of P2G; see `mpm_sort_*` above). No
+early return: each invocation calls `update_particle()` if it has one, then the workgroup reduces its diagnostics and invocation 0 adds them to `SimState`
 once (max speed, yield count, path, box contacts).
 
 A particle with negative mass was entrained in this substep's grid update: G2P makes its mass

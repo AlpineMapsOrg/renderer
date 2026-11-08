@@ -69,7 +69,8 @@ and where: [12-rendering.md](12-rendering.md).
 | `apps/webgpu_app/compute/NodeGraphPanel.h` | Added `node_graph()` accessor so other panels can reach the graph. |
 | `apps/webgpu_app/compute/NodeGraphPanel.cpp` | Preset list entry. |
 | `apps/webgpu_app/ImGuiManager.h/.cpp`, `App.cpp` | Registers `AvalanchePanel` (guarded by `ALP_WEBGPU_APP_ENABLE_COMPUTE`); owns the `SimulationDriver`. `App::render()` ticks it (`tick_simulations()`) before the frame is painted, also with the GUI hidden, and repaints every frame while a simulation plays. |
-| `unittests/CMakeLists.txt`, `unittests/webgpu_compute/` | `unittests_webgpu_compute`: the simulation clock against a fake simulation. |
+| `unittests/CMakeLists.txt`, `unittests/webgpu_compute/` | `unittests_webgpu_compute`: the simulation clock against a fake simulation; the release resampling; `test_MpmGolden.cpp`, the GPU golden tests of the MPM shader functions (inputs and expected outputs in `golden/mpm_golden.json`, from `mpm-mls-doc/scripts/make_golden.py`). Not run on CI: they need a GPU. |
+| `mpm-mls-doc/bench/` | Kernel benchmark (`index.html`, `mpm_bench.js`, `run_headless.mjs`) and the whole-kernel substep test (`check_substep.html`, `check_substep.mjs`, reference in `golden/substep_golden.json` from `scripts/make_golden_substep.py`); `headless_common.mjs` is shared by both drivers. See [bench/README.md](bench/README.md). |
 | `apps/webgpu_app/resources.qrc` | Graph resource. |
 | `webgpu/engine/Context.h/.cpp`, `apps/webgpu_app/RenderingContext.cpp` | The engine context owns an `AvalancheRenderer` (`avalanche_renderer()`); the app creates it and registers `ParticleRenderNode`. |
 | `webgpu/engine/Window.cpp` | Calls the renderer: `prepare()` before the G-buffer pass, `draw()` after the tiles, `draw_transparent()` after compose (before the track lines). |

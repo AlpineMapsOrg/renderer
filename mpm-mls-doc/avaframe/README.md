@@ -373,5 +373,7 @@ it prepares, including earlier runs in `mpm/`**: copy them aside first.
   but kept: they come straight from pyproj.
 - Why Voellmy with com1DFA's parameters gives so little drag in the MPM (see 11, finding 3).
 - GeoTIFF DEMs.
-- Entrainment and resistance benchmarks. They are ignored on purpose: the MPM solver has
-  neither.
+- Resistance areas and their benchmarks: ignored, the MPM solver has no resistance term.
+- AvaFrame's entrainment benchmarks (avaHockeyChannel, avaHelixChannel) have not been run.
+  Entrainment is compared with com1DFA on the five real avalanches instead
+  ([15-entrainment.md](../15-entrainment.md)).

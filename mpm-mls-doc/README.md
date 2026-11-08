@@ -1,15 +1,53 @@
-# MLS-MPM avalanche simulation — implementation notes
+# MLS-MPM avalanche simulation in weBIGeo
 
-Working notes on the MLS-MPM snow solver added to weBIGeo for the VisComp WS26 project.
-Written to be read by me later: enough detail to pick the code back up, change parameters
-with intent, and pull material into the final report.
+Technical documentation of the MLS-MPM snow solver that the VisComp WS26 project added to
+weBIGeo. It explains how the solver works, how it is built into weBIGeo, how it was verified
+and how fast it is, for anyone who wants to understand the project, run it or change it.
 
-Not a paper. Compact, technical, opinionated. Where the implementation deviates from the
-literature, that is called out explicitly rather than smoothed over.
+Where the implementation deviates from the literature, the documents say so and give the
+reason.
 
-**On citations:** these notes *cite* the papers and point at the specific section or
-equation each piece follows — they don't reproduce text from them. Pull the actual wording
-from the sources when writing the report. Full list in [refs.md](refs.md).
+> **AI assistance.** The implementation and this documentation were written with Claude
+> (Anthropic's AI model, used through Claude Code), directed by the project author. Statements
+> about what the code does and how well it works are backed by the tests and measurements in
+> [06-verification.md](06-verification.md) and [09-performance-analysis.md](09-performance-analysis.md);
+> paper references were checked against the PDFs. The project author also inspected the shader
+> files and the C++ files manually.
+
+**Citations:** the documents cite the papers by section and equation, without reproducing
+their text. Full list in [refs.md](refs.md); the verification of every formula against its
+source is the separate shader verification report (see [06-verification.md](06-verification.md)).
+
+## What this project adds to weBIGeo
+
+weBIGeo already had a statistical trajectory model for avalanches. This project adds:
+
+- **A physical avalanche simulation.** An MLS-MPM snow solver on the GPU (`MpmSolverNode`),
+  run on weBIGeo's own terrain: three exchangeable snow materials, Coulomb and Voellmy basal
+  friction, entrainment of the snow cover, a terrain-following grid for whole avalanche paths
+  ([01](01-theory.md)–[03](03-shaders.md), [07](07-constitutive-models.md),
+  [08](08-domain-size-options.md), [15](15-entrainment.md)).
+- **A simulation driver.** A generic `TimeSteppedSimulation` interface and a `SimulationDriver`
+  that plays any time-stepped compute node back frame by frame: in real time at 0.1–4× with
+  interpolation, or as fast as the GPU allows. MPM is the first node that uses it
+  ([13](13-simulation-driver.md)).
+- **3D avalanche rendering on the map.** An `AvalancheRenderer` in the engine that draws the
+  flow into the G-buffer: a draped flow surface, the track, the snow cover, and the particles
+  as powder, ellipsoids or spheres ([12](12-rendering.md)).
+- **Switchable map overlays.** `Overlay::enabled` in the engine: a disabled overlay is left out
+  of the overlay chain, so the 2D density overlay can hide while the 3D view is shown
+  ([02](02-files-and-api.md)).
+- **AvaFrame integration.** Downloads AvaFrame's real test avalanches in the app, runs them in a
+  sandbox on AvaFrame's DEM or on the map from AvaFrame's release areas, and compares a
+  simulation with com1DFA using AIMEC. The comparison scripts also rate weBIGeo's existing
+  trajectory model, not only MPM ([11](11-avaframe-comparison.md),
+  [14](14-avaframe-release-on-map.md), [avaframe/](avaframe/README.md)).
+- **An avalanche panel and scenarios.** A sidebar panel with a location picker, playback and
+  the main settings; ready-to-run graph presets; `GeoRegionNode`, which builds a region from
+  latitude, longitude and extent, so a scenario needs no GPX file ([02](02-files-and-api.md)).
+- **Benchmark and test tooling.** A standalone WebGPU benchmark of the real kernels, run
+  headless against any git revision, plus GPU golden tests and a whole-kernel substep test
+  ([bench/](bench/README.md), [06](06-verification.md), [09](09-performance-analysis.md)).
 
 ## Read in this order
 
@@ -22,9 +60,6 @@ from the sources when writing the report. Full list in [refs.md](refs.md).
 | [05-tuning.md](05-tuning.md) | Which knob does what, sensible ranges, failure modes, how to extend. |
 | [06-verification.md](06-verification.md) | What was actually tested, how, and what is still unverified. |
 | [07-constitutive-models.md](07-constitutive-models.md) | Proposal v3.0 gap analysis: which material/friction models exist, and the design for making them exchangeable. |
-| [report-implementation-audit-final-2026-10-03.md](report-implementation-audit-final-2026-10-03.md) | **Issue #3 final audit**: both independent audits merged, findings by severity with their source, comparison of the two, and the merged recommendations. |
-| [report-implementation-audit.md](report-implementation-audit.md) | Issue #3 report: paper-to-code comparison, deviations, verification boundaries, and recommended next steps. |
-| [report-implementation-audit-opus.md](report-implementation-audit-opus.md) | Issue #3 second, independent audit, checked against the paper texts. |
 | [08-domain-size-options.md](08-domain-size-options.md) | Why the domain was 1.6 km, the options for a whole avalanche path, measured GPU cost, and what was chosen (terrain-following grid). |
 | [09-performance-analysis.md](09-performance-analysis.md) | **Performance**: why the demo felt slow, where the GPU time goes, VRAM and device limits, leaks found and fixed, main-loop/threading options, the benchmark method, and the first round of optimisations with measurements. |
 | [scripts/](scripts/README.md) | **Python scripts**: every script in this folder, what it checks or produces, setup and how to run it — shader validation, the Python ports, the GPU golden tests, the AvaFrame comparison, the benchmark tables. |
@@ -57,11 +92,13 @@ Region ─→ Select Tiles ─→ Request Height ─→ Stitch Tiles ─→ Heig
 ```
 
 One node execution = `substeps_per_run` MPM steps. Re-running continues from the current
-state, which is what makes it animate. Each step is the classic MPM loop (the grid clear is
-folded into the grid update since 2026-09-27):
+state, which is what makes it animate. Each step is the classic MPM loop; the particles are
+sorted by grid tile once per submitted chunk, so that P2G can sum each tile's contributions in
+workgroup memory ([03-shaders.md](03-shaders.md)):
 
 ```
-P2G (flags active tiles) → grid update (active tiles only, clears as it goes) → G2P + advection
+sort particles by tile (once per chunk)
+P2G (tile order, flags active tiles) → grid update (active tiles only, clears as it goes) → G2P + advection
 ```
 
 All of it, plus the visualisation passes, runs in **one WebGPU compute pass per submitted
@@ -69,34 +106,57 @@ chunk** (a few substeps per frame, paced from the measured GPU time). Playback i
 `SimulationDriver`'s, every frame: real time on the map, as fast as the budget allows in
 the sandbox — [13-simulation-driver.md](13-simulation-driver.md).
 
-## Current status
+## Current state
 
-Works end to end: real terrain, real DEM, animated, positioned by latitude/longitude, with
-a picker for stored locations.
+**What works.** The solver runs end to end on real terrain in the native app and in the
+browser: released at stored locations or at AvaFrame's release areas, animated in real time
+or as fast as the GPU allows, drawn as a 2D density overlay or in 3D on the map.
 
-Known gaps, honestly:
+- **Materials and friction** ([07-constitutive-models.md](07-constitutive-models.md)):
+  Stomakhin, Drucker–Prager and Cohesive Cam Clay, switchable at runtime; Coulomb and Voellmy
+  basal friction; seven presets from Li et al. 2021; a per-run diagnostics readback and
+  com1DFA's energy-line test, which recovers the set basal friction to under 1 %.
+- **Entrainment** ([15-entrainment.md](15-entrainment.md)): com1DFA's plowing and erosion, in
+  the sandbox and on the map.
+- **3D rendering** ([12-rendering.md](12-rendering.md)): a draped flow surface from a B-spline
+  mass splat, a track, a snow cover, and the particles as powder, ellipsoids or spheres.
+- **Comparison with AvaFrame** ([11-avaframe-comparison.md](11-avaframe-comparison.md)):
+  five real avalanches against com1DFA, rated with AIMEC.
 
-- **3D rendering on the map** ([12-rendering.md](12-rendering.md)):
-  an `AvalancheRenderer` in `webgpu/engine/` draws a draped flow surface from a B-spline
-  mass splat, a track where the flow has been, a lit snow cover that thins to patches below
-  the snow line, and the particles as soft powder (default), ellipsoids or spheres. The 2D
-  density raster remains the output in the sandbox and when the 3D view is off. Not
-  measured yet: the GPU cost of the renderer. Tested in the browser (web build).
-- **Parameters are Stomakhin's paper values**, authored for metre-scale snow. At the default
-  12.5 m grid cells the released slab is sub-cell and the flow reads more fluid than slab-like.
-  See [05-tuning.md](05-tuning.md).
-- Material layer is **done** as far as proposal v3.0 goes (2026-09-13): Stomakhin,
-  Drucker–Prager and Cohesive Cam Clay switchable at runtime, Coulomb and Voellmy basal
-  friction, seven presets from Li et al. 2021, a per-run diagnostics readback, and the
-  com1DFA energy-line test — which recovers the set basal friction to under 1 % offline
-  and runs live in the sidebar — [07-constitutive-models.md](07-constitutive-models.md).
-  **Entrainment** came last (2026-10-27): com1DFA's plowing and erosion, in the sandbox, on
-  the map and in the web build — [15-entrainment.md](15-entrainment.md).
-- **Audited against the papers** (issue #3, 2026-10-03). The fixes are in: Cam Clay is now
-  the full Wolper NACC return including its shear hardening, the plastic ratio and the
-  energy line measure what Li and Tonnel measure, Voellmy uses the local flow depth, and the
-  sidebar warns when the box (band ceiling, walls) shapes the result — 07 §2h. Still a
-  deliberate deviation: the non-associated Cam Clay return (Li's presets were calibrated
-  with the associative one) and the resolution (Li: 0.5 m cells, here ~12 m).
-- **No CK-MPM** [6]. Would touch only P2G/G2P transfer, per the stretch goal.
-- Not validated against any real avalanche. Educational only — as the proposal states.
+**Verification** ([06-verification.md](06-verification.md)). Every formula of the shaders was
+compared with its source paper. Python ports of the shader functions are tested against
+analytic properties of the models; GPU golden tests compare the real WGSL functions with the
+ports; a whole-kernel test runs the sort, P2G, grid update and G2P on the GPU against a float64
+reference. The deliberate deviations from the papers: the non-associated Cam Clay return of
+Wolper et al. 2019 instead of the associative one Li's presets were calibrated with, no
+friction-angle hardening for Drucker–Prager, and the resolution (Li et al.: 0.5 m cells, here
+5–12.5 m).
+
+**Performance** ([09-performance-analysis.md](09-performance-analysis.md),
+[10-benchmark-results.md](10-benchmark-results.md)). On an Apple M5 the preset (131 k particles,
+320² × 16 grid) takes 12.5 ms of GPU time per 24 substeps (0.24 s simulated); 1 M particles take
+106 ms.
+
+**Limitations.**
+
+- **Resolution.** At 5–12.5 m grid cells the released slab (about 1 m) is thinner than a cell,
+  so the material models cannot show slab fracture as in Li et al.; the flow reads more fluid
+  than slab-like ([05-tuning.md](05-tuning.md)).
+- **Speed against com1DFA.** The flows run about twice as fast as com1DFA's with the same
+  Coulomb friction ([15-entrainment.md](15-entrainment.md)).
+- **No CK-MPM** [6]: it would change only the P2G/G2P transfers.
+- **Not validated against observed avalanches**, only against com1DFA. Educational use only,
+  as the proposal states.
+
+## Audit reports
+
+Issue #3's paper-to-code audit of 2026-10-03, in [audit-report/](audit-report/). They are
+historical records that describe the code as it was then. The fixes that followed are in
+[07-constitutive-models.md](07-constitutive-models.md) §2h; their checks on the device are in
+[06-verification.md](06-verification.md) §4j.
+
+| File | What's in it |
+|---|---|
+| [report-implementation-audit-final-2026-10-03.md](audit-report/report-implementation-audit-final-2026-10-03.md) | **Final audit**: both independent audits merged, findings by severity with their source, comparison of the two, and the merged recommendations. |
+| [report-implementation-audit.md](audit-report/report-implementation-audit.md) | First audit: paper-to-code comparison, deviations, verification boundaries, and recommended next steps. |
+| [report-implementation-audit-opus.md](audit-report/report-implementation-audit-opus.md) | Second, independent audit, checked against the paper texts. |

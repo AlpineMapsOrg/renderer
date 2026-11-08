@@ -4,7 +4,7 @@
 compare the MPM documentation and implementation with the proposal and the cited papers,
 identify material deviations, and separate verified behaviour from remaining work. The
 audit was performed against the WGSL and C++ sources on the current `main` branch and the
-offline checks in [`scripts/`](scripts/). It is an implementation audit, not a claim that
+offline checks in [`scripts/`](../scripts/). It is an implementation audit, not a claim that
 the solver is a validated avalanche forecast model.
 
 **AI assistance.** Prepared with GitHub Copilot CLI in **Auto mode**. The interface
@@ -52,7 +52,7 @@ and G2P uses `4/dx` with the offset in grid units. This is the important MLS-MPM
 asymmetry from Hu et al.; the source does not accidentally use world units in both places.
 The fixed-point atomic representation is an engineering adaptation required by WGSL, not a
 change to the continuum equations. The production-scale regression in
-[`06-verification.md`](06-verification.md) is important: truncation previously injected
+[`06-verification.md`](../06-verification.md) is important: truncation previously injected
 energy through the ratio of quantised momentum to mass, and rounding plus the 64-bit mass
 pair fixed that failure.
 
@@ -103,7 +103,7 @@ The first term in `affine` is the MLS internal-force contribution and the second
 APIC affine momentum contribution. The sign and `dt V` factor are important: omitting the
 negative sign would turn the internal stress into an energy source. The source paper is
 Hu et al. 2018, §4 and the paper’s MLS-MPM update equations ([3] in
-[`refs.md`](refs.md)); the repository also identifies the `mls-mpm88` implementation as
+[`refs.md`](../refs.md)); the repository also identifies the `mls-mpm88` implementation as
 the practical reference.
 
 G2P uses
@@ -686,15 +686,15 @@ ports cannot silently diverge from WGSL through a transcription error.
 
 ## Sources
 
-The paper list and source-to-file mapping are maintained in [`refs.md`](refs.md). Relevant
+The paper list and source-to-file mapping are maintained in [`refs.md`](../refs.md). Relevant
 implementation entry points are:
 
-* [`mpm_p2g.wgsl`](../webgpu/compute/shaders/mpm_p2g.wgsl),
-  [`mpm_g2p.wgsl`](../webgpu/compute/shaders/mpm_g2p.wgsl), and
-  [`mpm_grid_update.wgsl`](../webgpu/compute/shaders/mpm_grid_update.wgsl);
-* [`mpm_material_stomakhin.wgsl`](../webgpu/compute/shaders/mpm_material_stomakhin.wgsl);
-* [`mpm_material_drucker_prager.wgsl`](../webgpu/compute/shaders/mpm_material_drucker_prager.wgsl);
-* [`mpm_material_ccc.wgsl`](../webgpu/compute/shaders/mpm_material_ccc.wgsl);
-* [`mpm_friction.wgsl`](../webgpu/compute/shaders/mpm_friction.wgsl);
-* [`06-verification.md`](06-verification.md) and
-  [`07-constitutive-models.md`](07-constitutive-models.md).
+* [`mpm_p2g.wgsl`](../../webgpu/compute/shaders/mpm_p2g.wgsl),
+  [`mpm_g2p.wgsl`](../../webgpu/compute/shaders/mpm_g2p.wgsl), and
+  [`mpm_grid_update.wgsl`](../../webgpu/compute/shaders/mpm_grid_update.wgsl);
+* [`mpm_material_stomakhin.wgsl`](../../webgpu/compute/shaders/mpm_material_stomakhin.wgsl);
+* [`mpm_material_drucker_prager.wgsl`](../../webgpu/compute/shaders/mpm_material_drucker_prager.wgsl);
+* [`mpm_material_ccc.wgsl`](../../webgpu/compute/shaders/mpm_material_ccc.wgsl);
+* [`mpm_friction.wgsl`](../../webgpu/compute/shaders/mpm_friction.wgsl);
+* [`06-verification.md`](../06-verification.md) and
+  [`07-constitutive-models.md`](../07-constitutive-models.md).

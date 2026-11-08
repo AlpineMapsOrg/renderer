@@ -1,14 +1,12 @@
-# Constitutive & friction models — status and plan
+# Constitutive and friction models
 
-Written 2026-09-13 against proposal **v3.0** and the *Snow/Avalanche Sim Paper Summaries*
-Notion page. Answers two questions: which of the models named there are actually in the code
-today, and how to make the model layer configurable and exchangeable.
+Which material and friction models the project proposal (v3.0) asks for, which of them are
+implemented and how they were verified, and how the model layer is designed so that models can
+be exchanged. First written 2026-09-13 as a gap analysis; the status is kept current.
 
-The framing from the paper summaries is the right one and worth keeping in your head:
-**the flow solver and the material model are independent layers.** MLS-MPM is the solver.
-The constitutive model is what makes it snow. Basal friction is a *third* thing — a boundary
-condition, not part of either. v3.0 already keeps these verbally separate; the code should
-too.
+The design follows one principle: **the flow solver and the material model are independent
+layers.** MLS-MPM is the solver. The constitutive model is what makes it snow. Basal friction is
+a *third* thing — a boundary condition, not part of either. The code keeps the three apart.
 
 ## 1. What proposal v3.0 asks for (delta vs v1.0)
 
@@ -18,9 +16,9 @@ too.
 | A constitutive model — Stomakhin [5] *or* successors Gaume CCC [11], Li et al. [12,13] | **done** — Stomakhin, Drucker–Prager and Cohesive Cam Clay behind a switch |
 | Model is configurable / regime presets (Li 2021 Table 1) | **done** — switch + seven presets in the sidebar |
 | Basal friction via simple Coulomb using terrain normals | **done**; Voellmy added alongside (2026-09-13) |
-| Single-particle rendering | not done (2D density overlay instead) |
+| Single-particle rendering | **done** — particles in 3D on the map (powder, ellipsoids, spheres) and a flow surface; the 2D density overlay remains — [12-rendering.md](12-rendering.md) |
 | Entrainable material along the flow path | **done** (2026-10-27): com1DFA's plowing and erosion, cover from AvaFrame's entrainment areas or one thickness — [15-entrainment.md](15-entrainment.md) |
-| Compare against non-real-time models (com1DFA / Flow-Py) | not done |
+| Compare against non-real-time models (com1DFA / Flow-Py) | **done** — five real avalanches against com1DFA and com4FlowPy (Flow-Py), rated with AIMEC — [11-avaframe-comparison.md](11-avaframe-comparison.md) |
 | CK-MPM (stretch) | not done |
 
 ## 2. What is implemented — verified against the shader source
@@ -232,7 +230,7 @@ on day one.
 
 ### 2h. Audit fixes — 2026-10-03
 
-Issue #3's audit ([report-implementation-audit-final-2026-10-03.md](report-implementation-audit-final-2026-10-03.md))
+Issue #3's audit ([report-implementation-audit-final-2026-10-03.md](audit-report/report-implementation-audit-final-2026-10-03.md))
 re-checked every formula against the papers. What it changed in the code:
 
 - **H1, Cam Clay shear hardening.** The fixed-p return was Wolper's NACC for Cases 1–2 but
@@ -394,10 +392,10 @@ report.
 The existing `Scenario` struct (location) and a material preset are orthogonal; a scenario
 can name a default preset but the two stay separate.
 
-## 4. Next steps, in order
+## 4. Build order
 
-Ordered so each step is independently useful and the risky physics comes after the plumbing
-that will be needed to test it.
+The order in which the model layer was built: each step was independently useful, and the risky
+physics came after the plumbing needed to test it.
 
 **1. Refactor for exchangeability — no new physics.** ✅ **Done 2026-09-13.** Split
 `mpm_material_stomakhin.wgsl` out, added `mpm_material.wgsl` / `mpm_friction.wgsl`
@@ -417,9 +415,8 @@ now in and verified, which CCC reuses.
 return-mapping choice (Wolper's three-case projection rather than the associative rule).
 Wolper's shear hardening (§6.2.3) was missing until 2026-10-03, see §2h.
 
-Still true and still worth doing: **benchmark it.** Nobody has run CCC interactively. Per
-particle it is one SVD plus a handful of scalars — same order as Stomakhin — so it should be
-fine, but that is an expectation, not a measurement. And the CFL note stands: at Li's
+Benchmarked since: Cam Clay costs about 9 % more per substep than Stomakhin
+([10-benchmark-results.md](10-benchmark-results.md)). The time step is the larger effect: at Li's
 E = 3 MPa, ρ = 250 the wave speed is ~110 m/s vs ~19 m/s at Stomakhin's values, so the
 allowed dt drops ~6×. The CFL readout already uses the shared E, so switching a preset will
 show it.
@@ -459,7 +456,8 @@ feasibility").
   - Validation: AvaFrame's hockey and helix entrainment benchmarks, and com1DFA runs with
     entrainment on the five real avalanches.
 
-**8. Comparison to com1DFA / Flow-Py** (v3.0's final stage) — needs 6 first.
+**8. Comparison to com1DFA / Flow-Py** ✅ **Done 2026-10-11**: five real avalanches against com1DFA
+and com4FlowPy, rated with AIMEC — [11-avaframe-comparison.md](11-avaframe-comparison.md).
 
 ## 5. Sources
 

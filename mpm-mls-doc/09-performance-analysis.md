@@ -520,7 +520,7 @@ grid update ×2 in absolute terms but still < 7 %): the SVD and the sinh hardeni
 next to P2G's atomics, so the material model is not a performance factor. (Speeds differ with
 the model because the elastic parameters do, not because of numerics.)
 
-On a real GPU P2G dominates (74 %): its 27 × 5 fixed-point atomics per particle are the cost,
+On a real GPU P2G dominated (74 %, before the sorted P2G of §8.6): its 27 × 5 fixed-point atomics per particle were the cost,
 and the tile-flagged grid update is down to 4 % — the SwiftShader "grid-update floor" of §8.3
 was indeed a CPU-backend artefact. Per-stage and per-pass timing agree, so the per-stage
 passes cost nothing measurable here.
@@ -688,10 +688,10 @@ for this note — check the numbers against the PDFs before quoting them in the 
 |---|---|---|---|---|
 | 1 | ~~Keep particles tile-sorted and pre-reduce P2G~~ | **Done (§8.6):** counting sort by 4 × 4-column tile per chunk, workgroup-memory accumulation; P2G ~3× faster, 1.8–2.2× overall | — | Subgroup reductions remain an option on top, behind the WGSL `subgroups` feature with a fallback |
 | 2 | **Auto dt from CFL** with a relaxed safety factor (0.1 → ~0.2 · dx / c), capped at ~0.03 s | ~2× simulated time per substep for the stiff Li / Cam-Clay presets (Stomakhin already went to 0.02) | S | §8.4 shows it on the slope; check deposition on real terrain first |
-| 3 | **Fuse G2P and the next P2G** (G2P2G, Wang et al. 2020) | one particle read/write per substep instead of two; one dispatch less | M | Needs double-buffered grid (read velocities of step n while accumulating step n+1) |
+| 3 | **Fuse G2P and the next P2G** (G2P2G, Wang et al. 2020) — the next candidate: since §8.6 G2P is the largest stage | one particle read/write per substep instead of two; one dispatch less | M | Needs double-buffered grid (read velocities of step n while accumulating step n+1) |
 | 4 | **Indirect dispatch over a compacted tile list** | grid update cost ∝ active tiles without launching the idle workgroups | S–M | Worth it only for domains ≫ 320² |
 | 5 | **Leaner particle**: f16 for C (and τ), drop `mass` (flag bit) | particle bandwidth −30–40 % | M | Watch the APIC precision; F must stay f32 |
 | 6 | **CK-MPM kernel** | fewer node accesses per particle, less diffusion | L | stretch goal already |
-| 7 | **Display interpolation** between the last two runs | smooth motion at any simulation speed | S | pairs well with low sim rates on weak GPUs |
+| 7 | ~~Display interpolation between the last two runs~~ | **Done:** real-time playback interpolates between the particles before and after each chunk ([13-simulation-driver.md](13-simulation-driver.md)) | — | |
 | 8 | Second device / worker (§6.2) | frame and simulation overlap | L | after 1–3 |
 | 9 | Quieter per-run logging, `copy_to_buffer` release fix, registry unregister | removes the upstream parts of §5 | S | upstream PRs |

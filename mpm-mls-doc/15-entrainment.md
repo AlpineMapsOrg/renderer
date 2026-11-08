@@ -161,4 +161,10 @@ without, and entrainment not presented as what makes the MPM accurate.
 - **Not resolved at this resolution:** erosion versus entrainment, basal abrasion and
   erosion–deposition waves (Li et al. 2022, 2024). They need a cover 1–2 cells thick at
   0.2–0.7 m cells.
+- **Runs with entrainment are not bit-reproducible.** Entrained particles take their pool slot
+  from a global atomic counter in the grid update, in the order the GPU schedules the columns,
+  and their position is seeded from the slot. Two runs of the same build differ: avaKot with
+  erosion gave a peak speed of 117.0 and 104.5 m/s (2026-11-07). Without entrainment the solver
+  is deterministic. A fix would assign the slots by column (a prefix sum over the columns'
+  counts) instead of by arrival.
 - **No deposition back into the cover** (com1DFA's detrainment is off by default too).

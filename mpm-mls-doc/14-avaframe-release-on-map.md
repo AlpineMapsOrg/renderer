@@ -2,10 +2,10 @@
 
 The five AvaFrame test avalanches of the comparison ([11-avaframe-comparison.md](11-avaframe-comparison.md))
 also exist as map scenarios (Kontertal, Gallreide, Hintertux, Wolfsgruben, Madlein), for watching
-them in real time on weBIGeo's terrain. Until 2026-10-24 they released a disc of the same area on
-the release area's centroid, masked by the map's own 30–45° release slopes. Now they release from
-AvaFrame's actual release areas, like the AvaFrame sandbox — as an approximation, because the
-release lives in another coordinate system and on another DEM.
+them in real time on weBIGeo's terrain. They release from AvaFrame's actual release areas, like
+the AvaFrame sandbox. This is an approximation, because the release lives in another coordinate
+system and on another DEM. (Until 2026-10-24 they released a disc of the same area on the release
+area's centroid, masked by the map's own 30–45° release slopes.)
 
 ![AvaFrame release areas against the disc used before](avaframe-map-release.svg)
 
@@ -87,5 +87,6 @@ centroid moves 160 m. All other centroids agree to under half a metre.
 - Not compared against com1DFA on the map: the runout there depends on the map's terrain, and the
   comparison stays in the sandbox.
 - The picker (avaGar) was not clicked in a test; scenarios were set through the startup prefs.
-- The release areas' other AvaFrame inputs (entrainment, resistance areas) are not used anywhere.
-- Web build: tested in the browser by Manuel (25 Oct): the download and the map release work. The data is kept in the browser's memory, so a page reload needs the download again.
+- AvaFrame's resistance areas are not used. Its entrainment areas are: they set the snow cover
+  of these scenarios when entrainment is on ([15-entrainment.md](15-entrainment.md)).
+- Web build: tested manually in the browser (25 Oct): the download and the map release work. The data is kept in the browser's memory, so a page reload needs the download again.

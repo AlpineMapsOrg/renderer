@@ -249,7 +249,7 @@ The settings live in `AvalancheRenderer::Settings` and are serialised by `Partic
   the surface at 3× (Medium grid: 1197² nodes, about 1.4 M quads, most rejected in the vertex
   shader, plus up to 10×10 nodes per particle in the splat), and powder overdraw (it grows
   with the square of "Powder size").
-- **Web build:** tested in the browser by Manuel (25 Oct); it renders as natively.
+- **Web build:** tested manually in the browser (25 Oct); it renders as natively.
 - **Checked on Hintertux only** for detail particles, the mass-splat surface, track, snow cover
   and powder. The checks are listed in [06-verification.md](06-verification.md).
 - The track is one flat colour, with no streaks along the flow.

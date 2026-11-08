@@ -127,7 +127,7 @@ terrain-following grid with 12–16 layers, domain 4–6 km at 12.5 m. Zero line
 the code we already own; the maintainers see the same file set as today. A dense-grid
 stopgap (A) is one JSON edit if something is needed for a demo before B lands.
 
-What B does *not* solve, for honesty in the report: `dx` stays ≥ ~10 m for real-scale
+What B does *not* solve: `dx` stays ≥ ~10 m for real-scale
 runs, so the slab is still sub-cell (see 05-tuning.md, "the resolution problem"). A
 finer grid would need C or a multi-resolution scheme, neither of which is in scope.
 
@@ -188,9 +188,9 @@ particle passes (P2G + G2P) ~45 %; the rest is splat, rasterise and callback lat
   real-time ceiling at ~550 k particles regardless of grid; 262 k already costs as much
   as the whole grid does. Beyond that the options are fewer substeps per run (the panel
   then animates in larger simulated steps), a larger `dt` where CFL allows, or accepting
-  slower than real time. The P2G atomics are the hot loop (03-shaders.md); a
-  shared-memory P2G would be the next optimisation, but that is unrelated to the domain
-  question.
+  slower than real time. The P2G atomics were the hot loop; the shared-memory P2G
+  (09-performance-analysis.md §8.6, 2026-11-07) has since made the kernels 4–8× faster than
+  these measurements (preset 100 → 12.5 ms per run, 1 M particles 450 → 106 ms), which does not change the domain question.
 
 Caveats: the timer wraps the whole run including the async readback callback, so it
 carries up to one event-loop tick of latency (a few ms); the 16-layer dense-grid rows

@@ -270,7 +270,7 @@ p× = p_c + t (p_tr − p_c)
 
 Shear on the tensile side of the centre (`p_tr < p_c`) softens, on the compressive side
 hardens — without it, shear would never change `p₀` and a slab could not weaken in shear.
-Until 2026-10-03 this step was missing (audit H1, [report-implementation-audit-final-2026-10-03.md](report-implementation-audit-final-2026-10-03.md)).
+Until 2026-10-03 this step was missing (audit H1, [report-implementation-audit-final-2026-10-03.md](audit-report/report-implementation-audit-final-2026-10-03.md)).
 Explicit — the projection uses the old `p₀`, then hardening updates it.
 
 `q = √(3/2)‖s‖`, the von Mises equivalent stress of Gaume (after Eq. 2) and Li. Wolper §6.1
@@ -357,9 +357,11 @@ Fully GPU-side, no readback.
 | Fixed-point atomic accumulation | WGSL has no atomic float add. Momentum `atomic<i32>` at 1e4, rounded and clamped before every add; mass a 64-bit `atomic<u32>` lo/hi pair at 2²⁰. |
 | G2P and advection fused into one kernel | Both are per-particle passes over the same data; no reason to split. |
 | No grid clear pass: the grid update zeroes the accumulators it read | Keeps the whole run inside one compute pass and skips empty tiles (until 2026-09-27 a `mpm_clear_grid` kernel zeroed every node). |
-| Terrain collision at grid *and* particle level | Grid-only lets snow leak through between nodes at these cell sizes. |
+| Terrain collision at grid *and* particle level; the particle contact after advection, with the position projected onto the surface (Stomakhin §4.1 applies it before advection) | Grid-only lets snow leak through between nodes at these cell sizes; projecting after advection keeps particles out of the terrain. |
+| P2G in tile order: particle indices sorted by 4 × 4-column tile once per chunk, each tile's contributions summed in workgroup memory | Performance only, about 2× per substep. The grid sums are integers, so the result is bit-identical to one atomic per particle and node ([03-shaders.md](03-shaders.md), [09-performance-analysis.md](09-performance-analysis.md) §8.6). |
 | Guards not in the papers: Stomakhin `J_P` and its hardening factor clamped to [0.05, 20]; Cam Clay sinh argument ≤ 20; σ clamped to [10⁻³, 10³] before the log; M ≥ 10⁻³, ξ ≥ 10⁻⁶ | Keep a diverging particle from producing inf/NaN. The `J_P` clamp caps compaction stiffening at 20×; the CFL bound uses the unhardened stiffness. |
 | Cam Clay: Wolper's non-associated return (volume-preserving) instead of Gaume's associative one | Closed form; the associative return needs a local Newton solve per particle (Wolper §6.1). Li's regime presets were calibrated with the associative rule. |
+| Cam Clay: sinh and asinh as Taylor series below 0.1 | In float32, exp- and log-based sinh/asinh lose precision of order ε/x for small x; with Li's Case V at E = 3 MPa (x = 1.2·10⁻³) p₀ was off by 8·10⁻⁵. |
 | Drucker–Prager: fixed φ, no Klár §7.3 hardening | Simplicity; it is the cohesionless alternative, not the main model. |
 | Box boundaries: domain walls and the band ceiling stop outward flow | Finite memory. The readback counts particle-substeps in contact with them, and the panel warns when that is not zero. |
 | SVD from the eigen-decomposition of FᵀF in f32 | Fast and branch-light. Squares the condition number: fine near the identity, where the elastic strains stay, weaker for strongly distorted F. |

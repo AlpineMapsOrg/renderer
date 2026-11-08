@@ -1,7 +1,16 @@
 # Verification
 
-What was actually checked, how, and what wasn't. Keep the distinction — it matters for the
-report, where "verified" and "compiles" are very different claims.
+What was checked, how, and what was not. "Verified" here means a test or measurement with a
+stated result; where something was only inspected or only compiles, the section says so.
+
+The verification has four layers, from the formulas to the running app:
+
+| Layer | What it shows | Where |
+|---|---|---|
+| Formulas against the papers | every formula of the shaders matches its source, deviations stated | the shader verification report (Notion, "Verification of the MLS-MPM snow solver shaders") |
+| Python ports of the shader functions | the formulas have the properties the papers state (yield surfaces, closed-form slope mechanics, energy line) | §2–§4i, `scripts/` |
+| GPU golden tests and the whole-kernel substep test | the WGSL on the GPU computes what the ports compute, the functions alone and the kernels together | §4o, §4p |
+| Runs on the device and on real terrain | the app does what the parts promise: diagnostics, playback, AvaFrame comparison | §4f–§4n, §5 |
 
 ## 1. Shader validation — `tint`
 
@@ -329,7 +338,7 @@ Details and the full table in [13-simulation-driver.md](13-simulation-driver.md)
   and the driver ticked after the paint. Both fixed (tick before paint, repaint while playing).
 - **Accuracy unchanged**: batch avaKot / Stomakhin Coulomb at rest after 80.25 s (phase 6:
   79.60 s), same footprint (12.51 ha) and peak speed (54.01 m/s).
-- Web build: tested in the browser by Manuel (25 Oct): real-time playback and interpolation work.
+- Web build: tested manually in the browser (25 Oct): real-time playback and interpolation work.
 
 ## 4m. AvaFrame release areas on the map (2026-10-24)
 
@@ -498,7 +507,7 @@ that it shows the flow faithfully. Method, because the app needs a window:
 - Settings switched from code between captures of the same frame, for A/B comparisons. A
   camera nudge of 0.5 m forces the redraw: the app only repaints on change.
 - Window captures by process id.
-- The user's preferences and `imgui.ini` were backed up and restored, and the test build was
+- The app's stored preferences and `imgui.ini` were backed up and restored, and the test build was
   reverted each time.
 
 | Check | Result |
@@ -514,7 +523,7 @@ that it shows the flow faithfully. Method, because the app needs a window:
 
 **Not checked:** the GPU cost of the renderer, steps 5–8 on scenarios other than
 Hintertux, and the entrainable snow beyond Madlein. The interpolation rule for newly filled
-pool slots is checked by reading only: accuracy playback does not interpolate. The web build was tested in the browser by Manuel (25 Oct) and renders correctly. What is implemented: [12-rendering.md](12-rendering.md).
+pool slots is checked by reading only: accuracy playback does not interpolate. The web build was tested manually in the browser (25 Oct) and renders correctly. What is implemented: [12-rendering.md](12-rendering.md).
 
 ## Bugs found and fixed along the way
 
@@ -623,9 +632,12 @@ python3 check_refactor_preserving.py
 node ../bench/check_substep.mjs --chrome
 ```
 
-All three were last re-run from this location on 2026-09-06 and reproduce the numbers
-above exactly (mass 150.00, min z 3.00, mean jp 0.7456). `validate_wgsl.py` and
-`check_refactor_preserving.py` were re-run on 2026-09-13 after the dispatcher refactor.
+The Python tests were last re-run on 2026-11-08 and all pass; `test_mpm.py` reproduces the
+numbers above exactly (mass 150.00, min z 3.00, mean jp 0.7456). `validate_wgsl.py` and the GPU
+golden tests last ran on 2026-11-07, the substep test on 2026-11-08; the shaders have not
+changed in between.
+`check_refactor_preserving.py` was last run on 2026-09-13, for the dispatcher refactor its
+tables describe.
 
 `validate_wgsl.py` is the one worth running habitually — WGSL otherwise only fails at
 runtime, and it takes seconds. It keeps a `_resolved_*.wgsl` file for any kernel that fails

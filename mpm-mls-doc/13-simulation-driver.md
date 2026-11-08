@@ -174,7 +174,7 @@ did not show):
   that refuses chunks; reset; pause and mode switch close the open run; step; accuracy run
   sizes; chunk hysteresis). Forcing the interpolation to 1 fails the two drawn-time sections;
   removing the run-size cap failed the earlier version.
-- Web build: tested in the browser by Manuel (25 Oct): real-time playback and interpolation work.
+- Web build: tested manually in the browser (25 Oct): real-time playback and interpolation work.
 
 ## Not done / open
 
