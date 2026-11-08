@@ -1,10 +1,9 @@
 # Simulation driver: real time and accuracy playback
 
-How a time-stepped simulation is played back frame by frame (2026-10-24). Before this, the
-avalanche panel stepped the MPM solver from `AvalanchePanel::draw()`: UI code, which stopped
-with the GUI hidden, and one pacing that ran the simulation as fast as the GPU budget allowed.
-That suits the sandbox (accuracy, fastest result) but not a "cinema" view on the map, where the
-avalanche should move at a steady, chosen speed.
+How a time-stepped simulation is played back frame by frame. Playback is driven from the app's
+render loop, not from UI code, so it keeps running with the GUI hidden, and it has two modes:
+*real time* for the map, where the avalanche should move at a steady, chosen speed, and
+*accuracy* for the sandbox, where the fastest result matters.
 
 ## Decisions
 
@@ -12,7 +11,7 @@ avalanche should move at a steady, chosen speed.
 |---|---|
 | Architecture | An interface in `webgpu_compute` that time-stepped nodes implement; an app-level driver ticks every implementing node each frame; panels only control. |
 | Falling behind | Fixed-step loop. `dt` never scales with the frame time (explicit solver, CFL bound). When the GPU cannot keep up, simulated time falls behind and the panel says so. |
-| Modes | Map: real time. Sandbox and batch: accuracy (the old pacing). A switch in the panel changes either. |
+| Modes | Map: real time. Sandbox and batch: accuracy (as fast as the pacing budget allows). A switch in the panel changes either. |
 | Speed | 0.1x to 4x, default 1x. |
 | Interpolation | Real time only, switchable ("Interpolate", on by default). Positions are blended between the last two simulated states, as game engines do; accuracy shows the latest state. |
 | Other simulations | Interface generic, MPM the only adopter. The trajectory model is one-shot and stays a plain node. |
@@ -47,7 +46,7 @@ AvalanchePanel::draw() ── when the GUI is shown
 
 ## The two modes
 
-**Accuracy** — unchanged from the old `apply_pacing()`. Chunk = budget / GPU ms per step
+**Accuracy** — chunk = budget / GPU ms per step
 (1–64, with 1/8 hysteresis); run = max(2 chunks, 24 steps); a new run whenever the previous one
 is done. `advance()`: the solver submits two chunks at once and each further chunk from the
 previous one's work-done callback. Simulated time runs at whatever rate the GPU manages (2–3x
@@ -109,13 +108,12 @@ its track) all move with the presentation time; the 2D density overlay stays per
 
 **Ordering.** The driver ticks at the start of `App::render()`, before the paint: the chunk is
 submitted, then the renderer writes its uniforms (with this frame's interpolation), then the
-frame's command buffer reads both. Before, it ticked in the GUI pass after the paint, so a frame
-would have drawn the new chunk with the previous frame's interpolation.
+frame's command buffer reads both. Ticking after the paint would draw the new chunk with the
+previous frame's interpolation.
 
-**Repaint.** The map only repaints on request. `ParticleRenderNode` requested it when the solver
-completed a run, so the 3D view updated once per run — every 8 frames in real time before this
-change, every 2–3 frames in accuracy. Now `tick_simulations()` reports a playing simulation and
-the app repaints every frame.
+**Repaint.** `tick_simulations()` reports a playing simulation, and the app then repaints every
+frame. This is due to the map repainting only on request: a repaint per completed run would
+update the 3D view only every 8 frames in real time and every 2–3 in accuracy.
 
 ## Panel
 
@@ -123,8 +121,8 @@ the app repaints every frame.
 under the transport. Mode and pacing are remembered per context (`playback/map_mode`,
 `playback/map_pacing`, `playback/sandbox_mode`, `playback/sandbox_pacing`), speed and
 interpolation once (`playback/speed`, `playback/interpolate`). Defaults: map real time +
-Smooth, sandbox accuracy + Balanced, interpolation on; the old single `playback/pacing` carries
-over to the sandbox. Batch mode always plays at accuracy, Fast. Readouts: "Speed: 1.00x real
+Smooth, sandbox accuracy + Balanced, interpolation on; a single `playback/pacing` from older builds is taken
+over for the sandbox. Batch mode always plays at accuracy, Fast. Readouts: "Speed: 1.00x real
 time, budget 8.7 substeps/frame", or in orange "… – behind 4.00x" with the reason in the
 tooltip, or in accuracy "Speed: 2.4x real time, 16 substeps/frame".
 

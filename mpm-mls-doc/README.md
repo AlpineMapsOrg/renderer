@@ -60,7 +60,7 @@ weBIGeo already had a statistical trajectory model for avalanches. This project 
 | [05-tuning.md](05-tuning.md) | Which knob does what, sensible ranges, failure modes, how to extend. |
 | [06-verification.md](06-verification.md) | What was actually tested, how, and what is still unverified. |
 | [07-constitutive-models.md](07-constitutive-models.md) | Proposal v3.0 gap analysis: which material/friction models exist, and the design for making them exchangeable. |
-| [08-domain-size-options.md](08-domain-size-options.md) | Why the domain was 1.6 km, the options for a whole avalanche path, measured GPU cost, and what was chosen (terrain-following grid). |
+| [08-domain-size-options.md](08-domain-size-options.md) | **Simulation domain**: the terrain-following grid that covers a whole avalanche path (region, domain, band, box boundaries), its limits, why not a dense grid (with measurements), and the alternatives not chosen. |
 | [09-performance-analysis.md](09-performance-analysis.md) | **Performance**: GPU time by particle count and material, where it goes and why the kernels are fast (active tiles, sorted P2G, one SVD), memory and device limits, sharing the GPU with the map, resource lifetime, the benchmark method, and what would make it faster. |
 | [scripts/](scripts/README.md) | **Python scripts**: every script in this folder, what it checks or produces, setup and how to run it — shader validation, the Python ports, the GPU golden tests, the AvaFrame comparison, the benchmark tables. |
 | [bench/](bench/README.md) | Standalone WebGPU benchmark of the real kernels, headless A/B against any git revision. |

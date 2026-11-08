@@ -13,21 +13,21 @@ error — so it is written down.
 | Grid space | `(position.xy − domain_origin) / dx` horizontally; **`position.z / dx`** vertically, i.e. the z index is absolute altitude in cells. Only a band of layers per column is stored — see below. |
 | Settings lat/lon | `glm::dvec2(latitude, longitude)`, converted in `update_gpu_settings()` |
 
-**Metres, not world units (2026-10-10).** weBIGeo's world coordinates are Web Mercator, which
-stretches horizontal distances by 1/cos(latitude) — 1.47 at 47° N — while heights are real
-metres. Until 2026-10-10 the solver took world units as metres, so every horizontal distance was
-1.47× too long: slopes too flat (a 37° slope at about 27°) and the "4000 m" domain only ~2700 m
-on the ground. `MpmSolverNode::update_gpu_settings()` now converts region size, domain position
-and release centre to metres with `cos(latitude of the region centre)`, and converts the domain
+**Metres, not world units.** The solver works in metres on the ground.
+`MpmSolverNode::update_gpu_settings()` converts region size, domain position and release centre
+to metres with `cos(latitude of the region centre)`, and converts the domain
 box back to world units for the map. One factor per region is enough: across a few kilometres it
 varies by well under 0.1 %. `region_size` in the uniform is therefore in metres; the uv mapping is
-a ratio and does not care. Measurement: [06-verification.md](06-verification.md) §4k.
+a ratio and does not care. This is due to weBIGeo's world coordinates being Web Mercator, which
+stretches horizontal distances by 1/cos(latitude), 1.47 at 47° N, while heights are real metres:
+taken as metres, every slope would be too flat (a 37° slope at about 27°) and a "4000 m" domain
+only ~2700 m on the ground. Measurement: [06-verification.md](06-verification.md) §4k.
 
 The v-flip matches `avalanche_trajectories_compute.wgsl` and the height texture (row 0 =
 north). `world_to_uv()` is the only place it is applied — go through it.
 
-**Why lat/lon for domain and release centres:** they used to be normalized [0,1] within the
-region. That breaks the moment the region changes, because `SelectTilesNode` snaps to tile
+**Why lat/lon for domain and release centres:** a position normalized to [0,1] within the
+region would break the moment the region changes, because `SelectTilesNode` snaps to tile
 boundaries — the same normalized value lands on different ground. Geographic anchors are
 converted where the region bounds are known, so tile snapping cannot move a scenario
 relative to the terrain.
@@ -47,12 +47,11 @@ struct Particle {
 }
 ```
 
-The six `tau_*` slots used to be `volume` and five pads (2026-09-27). The volume was the same
-for every particle and now comes from `settings.particle_volume`; the pads carry the Kirchhoff
-stress of the particle's current elastic state, which G2P computes from the SVD its return
-mapping already did, so P2G no longer needs an SVD of its own
+The six `tau_*` slots carry the Kirchhoff stress of the particle's current elastic state,
+which G2P computes from the SVD its return mapping already did, so P2G needs no SVD of its own
 ([09-performance-analysis.md](09-performance-analysis.md) §2.3). Seeded as zero (F = I is
-stress-free in every model).
+stress-free in every model). The particle volume is the same for every particle and comes from
+`settings.particle_volume`.
 
 Every `vec3f` sits at a multiple of 16 — WGSL aligns vec3 to 16 bytes, so the padding floats
 are not optional. Useful scalars are tucked into those slots rather than wasted. Total is
@@ -94,10 +93,12 @@ const MASS_SCALE: f32 = 1048576.0;     // 2^20, u32 lo/hi pair with carry
 Clamping matters: without it a diverging simulation wraps the accumulator and produces
 garbage that looks like a physics bug rather than an overflow.
 
-### Round, don't truncate — and give the mass its own scale (2026-09-13)
+### Round, don't truncate — and give the mass its own scale
 
-The first version truncated every contribution (`i32(x · 1e4)`) and kept the mass in one
-`i32` at the same 1e-4 quantum. That is the bug behind "the simulation never cools down"
+Every contribution is rounded to the nearest quantum, and the mass has its own, finer scale
+(2²⁰ per unit, 64-bit). This is due to the bias of truncation: truncating every contribution
+(`i32(x · 1e4)`) with the mass at the momentum's 1e-4 quantum pumps energy into the flow
+without limit, so it never comes to rest
 (see [06-verification.md](06-verification.md#bugs-found-and-fixed-along-the-way), bug 8).
 The mechanism, because it is not obvious:
 
@@ -116,7 +117,7 @@ The mechanism, because it is not obvious:
 
 Rounding makes the sums unbiased; the finer mass scale removes the remaining ratio noise
 where the mass is only a few units. `test_sheet_fixed_point.py` emulates both schemes:
-the old one runs away by 335 % in 20 s, the new one is within 0.1 % of the rigid block.
+the truncating one runs away by 335 % in 20 s, the rounding one is within 0.1 % of the rigid block.
 
 Why the mass is 64-bit but the momentum is not: mass is non-negative, so the `atomicAdd`
 carry trick from `SimState` works and the range is unlimited. Momentum is signed, and a
@@ -173,10 +174,9 @@ Slots 18–20 (entrainment, 2026-10-27): see [15-entrainment.md](15-entrainment.
 
 Three slots changed meaning or were added on 2026-10-03 (audit M1, M2, M3, M5):
 
-- `plastic_particles` was "plastic state has ever left its initial value", counted once per
-  run in `mpm_splat`. Li et al. 2021's ratio is the share yielding *at* a time, so it is now
-  the count of `PlasticReturn.yielded` in the last substep's G2P.
-- `seed_first_hits` (the old `_reserved`) gives the seeded area, and from it the real snow
+- `plastic_particles` is the count of `PlasticReturn.yielded` in the last substep's G2P, which
+  is Li et al. 2021's ratio: the share yielding *at* a time, not the share that has ever yielded.
+- `seed_first_hits` gives the seeded area, and from it the real snow
   volume per particle the Voellmy depth needs (`seeded_particle_volume()`).
 - `sum_path` is the energy line's `s`, mass-averaged per particle. It is cumulative since the
   reset, not per run, so a run whose readback is skipped loses nothing.
@@ -197,9 +197,9 @@ converge; before every non-reset run `reset_run_counters()` zeroes slots 3–4, 
 16–17 — not 5 and 14–15, which hold from the reset on.
 **Read back** after each run: the last chunk's command buffer copies it into a persistent
 MapRead buffer (`m_state_readback`), which the work-done callback maps into
-`MpmSolverNode::last_state()`; the value therefore describes the previous completed run. (It
-used to go through `RawBuffer::read_back_async()`, which allocated a staging buffer per call
-and leaked a command buffer per call — 09-performance-analysis.md §6.)
+`MpmSolverNode::last_state()`; the value therefore describes the previous completed run.
+`RawBuffer::read_back_async()` is not used: it allocates a staging buffer and leaks a command
+buffer per call (09-performance-analysis.md §6).
 
 Both buffers are **allocated once in the constructor and never reallocated** — an async
 readback in flight while `ensure_resources()` recreated them would be a use-after-free. They
@@ -245,8 +245,8 @@ No pad slots left. The next field grows the struct to 256 B. The benchmark
 | density raster | `raster_resolution²` u32 |
 | column stats | `res.x·res.y × 6` u32 (24 B: peak depth, peak speed as f32; particle count, speed sum as atomic u32; entrainment cover and its eroded rest as f32) |
 
-Grid memory used to be **O(N³)** — 128³ = 42 MB, 256³ = 335 MB — and that is what kept
-the domain at 1.6 km. It is now `res_xy² × layers`: 320² × 16 = 33 MB for a 4 km domain
+Grid memory is `res_xy² × layers`, not the O(N³) of a dense box grid (128³ = 42 MB, 256³ =
+335 MB, which limits a dense grid to about 1.6 km): 320² × 16 = 33 MB for a 4 km domain
 at 12.5 m, 512² × 16 = 84 MB for 6.4 km.
 
 ## The terrain-following grid (2026-09-13)
@@ -292,7 +292,7 @@ stencil). Nodes deep inside the terrain carried no particles anyway; they only h
 velocity projected. Verified on device: the Breite Ries run on the band grid reproduces
 the dense-grid run to three digits (06-verification.md §5).
 
-The ceiling of the band replaces the old vertical clamp: `mpm_g2p` keeps a particle below
+The ceiling of the band is the vertical limit: `mpm_g2p` keeps a particle below
 `(column_floor + layers − 2.5) · dx`, so its stencil stays inside the stored layers. With
 16 layers at 12.5 m that is 170 m of pile above the ground — nothing reaches it.
 

@@ -4,12 +4,12 @@
 
 | Setting | Default | Effect |
 |---|---|---|
-| `domain_size_xy` | 1024 m (preset: 4000) | Simulated box, **in metres on the ground** (since 2026-10-10; before that Web Mercator units, ~1.47× less ground). **Clamped to the tiled region** — bigger needs a bigger `GeoRegionNode.extent` (preset: 8000 m). |
+| `domain_size_xy` | 1024 m (preset: 4000) | Simulated box, **in metres on the ground**, not Web Mercator world units ([04-data-layout.md](04-data-layout.md)). **Clamped to the tiled region** — bigger needs a bigger `GeoRegionNode.extent` (preset: 8000 m). |
 | `grid_resolution_xy` | 64 (preset: 320) | With domain size, sets `dx`. Memory and grid work are `res² × layers`. |
-| `grid_layers` | 12 (was 16) | Node layers stored above the terrain per column (the grid follows the surface). Headroom for piles and terrain steps, not the relief. 10–16 is plenty; the pile headroom is `dx × (layers − 4.5)`. |
+| `grid_layers` | 12 | Node layers stored above the terrain per column (the grid follows the surface). Headroom for piles and terrain steps, not the relief. 10–16 is plenty; the pile headroom is `dx × (layers − 4.5)`. |
 | `dt` | 0.01 s (preset: 0.02) | CFL bound; the node lowers it to 80 % of `max_stable_dt()` before any run that exceeds it. Too large = explosion. Stomakhin at 12.5 m cells is fine up to at least 0.03 (09-performance-analysis.md §3.3). |
 | `substeps_per_run` | 32 (preset: 24) | Simulated time per node execution = `dt × substeps`; the overlay and the readback update once per run. **Only used by Manual pacing (accuracy) and the node editor's Step**: otherwise the simulation clock sizes each run itself ([13-simulation-driver.md](13-simulation-driver.md)). |
-| `substeps_per_submit` | 2 | Chunk size the run is submitted in. WebGPU has one queue, so rendering and simulation take turns on the GPU; small chunks keep the view smooth, one big chunk maximises simulated time per second. **Only used by Manual pacing and the node editor's Step**; the clock picks the chunks from the Pacing budget otherwise (no longer written into the settings). See "Cost". |
+| `substeps_per_submit` | 2 | Chunk size the run is submitted in. WebGPU has one queue, so rendering and simulation take turns on the GPU; small chunks keep the view smooth, one big chunk maximises simulated time per second. **Only used by Manual pacing and the node editor's Step**; otherwise the clock picks the chunks from the Pacing budget, without writing them into the settings. See "Cost". |
 | `num_particles` | 65536 (preset: 131072 → 65536) | Mostly visual density: even 32k is > 100 particles per 12.5 m cell. Cost is about linear in the particle count (1 M particles: 106 ms per 24-substep run on an M5). Panel: **Detail** Low / Medium / High. |
 | `release_radius` | 120 m | Start-zone size, independent of the domain. |
 | `slab_thickness` | 1.5 m | Depth of released snow. |
@@ -81,8 +81,8 @@ dt  ≲ 0.1 · dx / c                              MpmSolverNode::max_stable_dt(
 
 The node checks it before every run and lowers `dt` to 80 % of the bound (with a warning in
 the log), so a hand edit of E, ρ, ν or the grid cannot slip past it; the graph editor shows
-the bound in orange when `dt` exceeds it. Until 2026-10-03 the bound used `√(E/ρ)` — 16 %
-too slow at ν = 0.3 — and was only applied with a preset. At dx = 12.5 m it gives dt ≲ 0.063 s,
+the bound in orange when `dt` exceeds it. The P-wave speed, not the bar speed `√(E/ρ)`, is
+used because it is the fastest wave (`√(E/ρ)` is 16 % slower at ν = 0.3). At dx = 12.5 m it gives dt ≲ 0.063 s,
 so the preset's 0.02 s still has a 3× margin. Stomakhin's compaction hardening (up to 20×
 stiffer) is not in the bound.
 
@@ -142,7 +142,7 @@ GPU time per run of 24 substeps (0.24 s simulated) on an Apple M5, kernel benchm
 Particles are the steeper axis: the grid update is under 5 % of the time, P2G and G2P scale with
 the particle count. In the app the frame's rendering shares the GPU, so the real-time margin is
 smaller than the ceiling. An earlier fit of the September kernels (`ms ≈ 9 + 25 · nodes/10⁶ +
-0.38 · particles/10³`, 08-domain-size-options.md §5; it timed the whole run including the readback)
+0.38 · particles/10³`, 08-domain-size-options.md §3; it timed the whole run including the readback)
 gives 100 ms for 131 072 particles and 450 ms for 1 M: the current kernels are 4–8× faster.
 
 **Frame rate vs simulation speed.** There is no second GPU queue in WebGPU, so a run
@@ -159,7 +159,7 @@ September kernels, preset scenario, vsync at 60 Hz:
 | 4 | 53 | 1.8 |
 | **2 (default)** | **60** | **1.65** |
 
-Since 2026-10-24 there are two playback modes ([13-simulation-driver.md](13-simulation-driver.md)):
+There are two playback modes ([13-simulation-driver.md](13-simulation-driver.md)):
 *accuracy* is the scheme above, sized from the Pacing budget; *real time* submits one chunk
 per frame with just enough steps to reach the wall clock times the speed, and the renderer
 interpolates between the last two states (1.00x at 60 fps on the M5 at Smooth, every frame
@@ -237,22 +237,9 @@ per-model shader variants would need pipeline recreation on every switch. A bran
 uniform costs nothing — every particle takes the same path. `ComputeAvalancheTrajectoriesNode`
 does exactly this for its physics/runout models.
 
-## The 3D renderer (next big thing)
+## The 3D renderer
 
-The current output is a top-down density projection. The proposal's Phase 5 wants real
-particle rendering. What is already in place:
-
-- The node exposes `particle buffer` as an output socket — a renderer can bind it directly,
-  **no CPU readback**.
-- `Particle` is 128 B with position at offset 0, so a vertex shader can read positions with
-  a stride and nothing else.
-
-What is needed: a new **Renderer** in `webgpu/engine/` (not an Overlay — overlays are
-screen-space and cannot depth-test against terrain), registered on `webgpu_engine::Context`,
-instantiated in `RenderingContext::initialize()`, invoked from `Window::paint()` after the
-tile mesh pass so it depth-tests against terrain. See `docs/webgpu_engine.md` and
-`CloudRenderer` as the closest existing analogue.
-
-Rendering technique options are surveyed in the Notion sub-page; billboards are the
-recommended starting point, with screen-space surface reconstruction (Preiner [8], Wu et
-al. [9]) as the upgrade.
+The particles are drawn in 3D on the map by `AvalancheRenderer` in `webgpu/engine/`: a renderer,
+not an overlay, so it depth-tests against the terrain. It reads the solver's particle buffer
+directly, with no CPU readback. What it draws and how to change it:
+[12-rendering.md](12-rendering.md).

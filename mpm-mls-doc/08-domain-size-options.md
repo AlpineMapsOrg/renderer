@@ -1,200 +1,101 @@
-# Simulation domain: why it is small, and the options for making it big enough
+# Simulation domain: the terrain-following grid
 
-*Analysis 2026-09-13. **E + B were implemented the same day** — see 04-data-layout.md "The terrain-following grid" and 06 §4i. The other options stay here as the record of what was considered.*
+The solver's grid covers a whole avalanche path: the graph preset simulates a 4 km box at
+12.5 m cells (320² columns), and the grid goes up to 512² columns, 6.4 km at the same cell size.
+This is implemented as a **terrain-following grid**: each column stores only a band of node
+layers that starts just below the terrain, so memory and grid work scale with the area, not
+with the volume. This is due to the limitation of a dense 3D grid, whose cost grows with the
+cube of the edge length (§3). The layout is in
+[04-data-layout.md](04-data-layout.md#the-terrain-following-grid-2026-09-13), the verification in
+[06-verification.md](06-verification.md) §4i.
 
-## 1. What the code does today
+## 1. What is implemented
 
-Two nested boxes, both settings of the graph preset (`mpm_avalanche_simulation.json`) and
-of the scenario table in `AvalanchePanel`:
+**Region and domain.** Two nested boxes, both set in the graph preset
+(`mpm_avalanche_simulation.json`) and per scenario in `AvalanchePanel`:
 
-| Box | Set by | Preset value | Limit in code |
+| Box | Set by | Preset | Limit |
 |---|---|---|---|
-| **Region** — the terrain that is downloaded, stitched, decoded, normal-mapped | `GeoRegionNode.extent`, `SelectTilesNode.zoomlevel` | 2500 m, zoom 15 (12.8 m/px, 834 m tiles) | stitched image ≤ 8192 px (`TileStitchNode`) → 105 km at z15, 26 km at z17 |
-| **Domain** — the MPM grid box | `MpmSolverNode.domain_size_xy`, `grid_resolution_xy/z` | 1600 m, 128×128×128, `dx` = 12.5 m | `MAX_GRID_RESOLUTION` = 256 per axis; domain clamped into the region (`update_gpu_settings`) |
+| **Region**: the terrain that is downloaded, stitched, decoded and normal-mapped | `GeoRegionNode.extent`, `SelectTilesNode.zoomlevel` | 8000 m, zoom 15 (12.8 m/px) | stitched image ≤ 8192 px (`TileStitchNode`): 105 km at z15 |
+| **Domain**: the MPM grid | `MpmSolverNode.domain_size_xy`, `grid_resolution_xy`, `grid_layers` | 4000 m, 320² × 12, `dx` = 12.5 m | 512 columns per side, 64 layers; the domain is clamped into the region (`update_gpu_settings`) |
 
-The grid is a **dense 3D array**, `res_x · res_y · res_z` nodes × 20 B, cleared and
-updated in full every substep:
+At zoom 15 an 8 km region is a 625 px stitched texture, which costs next to nothing; zoom 16
+(6.4 m/px) suits cells below 10 m.
 
-- 128³ = 2.1 M nodes = 42 MB; clear + grid update touch all of them 24× per run.
-- The snow occupies 2–3 layers above the terrain at any (x, y). Terrain relief of 600 m
-  in the preset spans ~50 layers, the remaining layers are air. **~98 % of the nodes never
-  carry mass.** Grid passes are ~40 % of the per-substep work (2 × 2.1 M node-ops vs
-  2 × 3.5 M stencil-ops for 131 k particles).
-- Domain size scales as `res³`: doubling the edge at constant `dx` costs 8× memory and 8×
-  grid work. That is the actual reason the domain is 1.6 km.
+**The band.** Column `(i, j)` stores `L` layers from
+`floor(i, j) = ⌊terrain(i, j) / dx⌋ · dx − 2 dx`, which `mpm_prepare` writes once per reset into
+`column_floor`. A stencil node in a neighbouring column is mapped through that column's own
+floor; if it falls outside `[0, L)` it does not exist and is skipped. That only happens two or
+more cells inside the terrain or near the top of the band, where nothing carries mass. Particles
+are kept below `(column_floor + L − 2.5) · dx`, so their stencil stays inside the band: the pile headroom above the ground is
+`dx × (L − 4.5)`, about 95 m with 12 layers at 12.5 m.
 
-Boundary behaviour, which is what "clamped" looks like on screen:
+**Grid work follows the snow.** On top of the band, the grid update runs only over the 8 × 8-
+column tiles that P2G touched ([09-performance-analysis.md](09-performance-analysis.md) §2.1).
+The grid holds no state between substeps, it is rebuilt from the particles every substep.
 
-- `mpm_grid_update`: nodes with index < 2 or ≥ res − 3 get their outward velocity zeroed
-  (all six faces).
-- `mpm_g2p`: particle positions clamped to `[2 dx, size − 2 dx]` in x, y and to the
-  vertical range, with that velocity component zeroed.
+**Box boundaries.** The sides of the box and the top of the band are frictionless walls: the
+grid update zeroes the outward velocity on the two outer node rows and the top three layers,
+and G2P clamps particle positions to `[2 dx, size − 2 dx]`. Snow reaching a wall piles up
+against it and its runout is cut off, so G2P counts particle-substeps whose stencil reaches
+those nodes, and the sidebar warns with their share.
 
-So the domain faces are frictionless walls. Snow reaching one piles up against it like a
-dam and the runout is cut off — physically meaningless past that point.
+## 2. Limits
 
-Two facts that make the options below cheap:
+- **Resolution.** `dx` stays at about 10 m or more for real-scale runs, so the released slab
+  is thinner than a cell ([05-tuning.md](05-tuning.md), "the resolution problem"). A finer grid
+  over the same area would need a sparse or multi-resolution grid (§4).
+- **Terrain steps.** Neighbouring columns must not differ by more than about `L − 4` layers,
+  otherwise a stencil loses nodes: with 12 layers at 12.5 m that is a 100 m step between
+  adjacent cells, which no Alpine terrain model at this resolution has.
+- **Region.** The domain never leaves the downloaded region; a larger domain needs a larger
+  `GeoRegionNode.extent`.
 
-1. **The grid holds no state between substeps.** It is rebuilt from the particles every
-   substep (clear → P2G). The domain origin, size and `dx` can change between runs
-   without any transfer; only the vertical origin scan (`mpm_prepare`) has to be re-run.
-2. **Downstream follows automatically.** `AvalanchePanel` steps the solver with
-   `rerun()`, `NodeGraph` chains `run_completed` to the next node, and
-   `OverlayRenderNode` re-reads the `domain aabb` output every run. A moving or growing
-   domain needs no change outside the solver.
+## 3. Why not a dense grid
 
-## 2. Options
+A dense grid stores `res_x · res_y · res_z` nodes. The snow occupies 2–3 layers above the terrain
+at any point, while 600 m of relief spans about 50 layers at 12.5 m, so about 98 % of a dense
+grid's nodes never carry mass, and doubling the edge at constant `dx` costs 8× the memory and
+the grid work. A dense 128³ grid (42 MB) limits the domain to 1.6 km at 12.5 m.
 
-Estimates count lines outside `MpmSolverNode.*`, the `mpm_*.wgsl` shaders, the two
-panels we own (`AvalanchePanel`, `MpmSolverNodeRenderer`) and our graph preset. Those are
-the lines a maintainer of the upstream repo has to review.
+Measured on an Apple M5 (2026-09-13, the kernels of that time, which cleared and updated every
+node every substep): mean wall time per run of 24 substeps at dt 0.01 s, runs 11–50 after a
+fresh seed, Stomakhin. The 16-layer dense rows clamp the particles vertically, so their physics
+is meaningless; their timing still isolates the grid passes.
 
-### A. Bigger dense grid (settings only)
-
-Raise `domain_size_xy`, `grid_resolution_xy` (to 256) and reduce `grid_resolution_z` to
-what the relief needs.
-
-| | |
-|---|---|
-| Reach | 3.2 km at 12.5 m (256 × 256 × 64 = 4.2 M nodes, 84 MB, 2× grid work); 5 km at 20 m |
-| Non-MPM code | **0 lines** (preset JSON, scenario table) |
-| MPM code | ~10 lines: allow `MAX_GRID_RESOLUTION` 512 in xy, keep z separate (already is) |
-| Downside | Still `res³`; 5 km at 12.5 m would be 400 × 400 × 64 = 10 M nodes and ~5× today's grid cost. Quality or size, not both. |
-
-### B. Terrain-following grid ("column band") — the real fix
-
-*Implemented; sketch and explanation in [04-data-layout.md](04-data-layout.md#the-terrain-following-grid-2026-09-13).*
-
-Keep only `K` layers per (x, y) column, starting a fixed number of cells below the
-terrain: node `(i, j, k)` lives at `z = floor(i, j) + k · dx`, with
-`floor(i, j) = ⌊terrain(i, j) / dx⌋ · dx − 2 dx` written once per reset by `mpm_prepare`
-into a `column_floor[res_x · res_y]` buffer. A stencil node in a neighbouring column is
-mapped through that column's own floor; if it falls outside `[0, K)` it does not exist
-and is skipped (that only happens ≥ 2 cells inside the terrain or > (K − 3) cells above
-it, where nothing carries mass anyway).
-
-| | |
-|---|---|
-| Reach | 512 × 512 × 12 = 3.1 M nodes = 63 MB → **6.4 km at 12.5 m**, or 3.2 km at 6.25 m. Grid work +50 % vs today for 16× the area. |
-| Non-MPM code | **0 lines** |
-| MPM code | ~150 lines: `grid_index` / `is_inside_grid` / `to_grid_space` in `mpm_common`, one buffer + binding, `mpm_prepare` writes floors, clear/update dispatch over `res_x · res_y · K`, a `layers` setting in the node and both panels. |
-| Constraint | Adjacent columns must not differ by more than ~K − 4 layers: with K = 16 at 12.5 m that is a 150 m step between neighbouring cells — no Alpine DTM at this resolution does that. K is a setting; the prepare pass can count violations into `SimState` for a warning. |
-| Physics change | None. Nodes deep inside the terrain today only get their velocity projected; particles never reach them (measured: all within one cell of the surface). Dropping them from the stencil is a partition-of-unity loss only at cliffs steeper than the constraint. |
-
-This is what turns the size problem from `res³` into `res²`: memory and grid work then
-scale with the DEM footprint, like a thickness-integrated model's, while the solver
-stays fully 3D within the band.
-
-### C. Sparse / blocked grid (SPGrid-style)
-
-Activate 4³ or 8³ blocks where particles are, hash them, run passes over active blocks
-only. Truly unbounded, but WGSL has no dynamic allocation: it needs a block-activation
-pass, a hash table with collision handling in atomics, a compaction pass, and a
-second-level index in every P2G/G2P access. Hundreds of lines in the hot loop, the
-lookup makes P2G slower, and it debugs badly. Reach beyond B is not needed for a
-single avalanche path (a 6 km box holds every runout in the Alps). **Not recommended.**
-
-### D. Moving / growing window (on top of A or B)
-
-Because the grid holds no state, the domain can follow the snow: after each run take the
-particle bounding box (four `atomicMin/Max` in `mpm_splat`, read back with the state
-that already comes back), set the next run's domain to that box plus a margin, clamped to
-the region, and `dx = max(size / res, dx_min)`. Re-run `mpm_prepare` when the origin
-moves (it is a `res_x · res_y` dispatch, negligible).
-
-| | |
-|---|---|
-| Reach | Whatever the region holds, with the grid concentrated on the snow; resolution degrades as the deposit tail and the front spread apart. |
-| Non-MPM code | **0 lines** — the overlay re-reads the aabb each run, the height and release textures are region-wide already. |
-| MPM code | ~80 lines in `MpmSolverNode` (bbox readback, origin/`dx` update, prepare on move) + 4 counters in `mpm_splat`. |
-| Downside | Visible re-rasterisation when the box jumps; the release area gets coarser late in the run. Without B it only postpones the `res³` problem. |
-
-### E. Larger terrain region (prerequisite for all of the above)
-
-The domain can never leave the region. `GeoRegionNode.extent` 2500 → 8000 m keeps a
-6 km domain plus margin covered. At z15 that is 100 tiles, a 625 px stitched texture —
-trivial; z16 (6.4 m/px, 1250 px) if `dx` goes below 10 m.
-
-| | |
-|---|---|
-| Non-MPM code | **0 lines**: `extent` and `zoomlevel` are existing settings; the scenario table in `AvalanchePanel` carries them per location already. |
-| Note | `ComputeReleasePointsNode` and `ComputeNormalsNode` scale with the texture; `sampling_interval` may need a bump for big regions or every slope becomes a release point. |
-
-## 3. Recommendation
-
-**E + B**, then D if a single scenario ever needs more than ~6 km: region to 8 km,
-terrain-following grid with 12–16 layers, domain 4–6 km at 12.5 m. Zero lines outside
-the code we already own; the maintainers see the same file set as today. A dense-grid
-stopgap (A) is one JSON edit if something is needed for a demo before B lands.
-
-What B does *not* solve: `dx` stays ≥ ~10 m for real-scale
-runs, so the slab is still sub-cell (see 05-tuning.md, "the resolution problem"). A
-finer grid would need C or a multi-resolution scheme, neither of which is in scope.
-
-## 4. Upstream footprint so far, for reference
-
-Everything the project has touched outside its own files, per `git diff e459373c`:
-
-| File | Lines | What |
-|---|---|---|
-| `webgpu/compute/NodeRegistry.cpp` | +4 | register the two nodes |
-| `webgpu/compute/CMakeLists.txt` | +17 | add sources and shaders |
-| `apps/webgpu_app/compute/nodes/NodeRendererFactory.cpp` | +4 | renderer for the node |
-| `apps/webgpu_app/compute/NodeGraphPanel.{h,cpp}` | +5 | `node_graph()` accessor the panel uses |
-| `apps/webgpu_app/ImGuiManager.cpp` | +4 | register the panel |
-| `apps/webgpu_app/CMakeLists.txt`, `resources.qrc` | +3 | panel sources, graph preset |
-
-None of the options adds to this list.
-
-## 5. Measured cost (Apple M5, 10-core GPU, 2026-09-13)
-
-Mean wall time per run (24 substeps of dt = 0.01 s, i.e. 0.24 s of simulated time), runs
-11–50 of a fresh seed, Stomakhin preset. Configurations with 16 layers on the dense grid
-clamp the particles vertically (200 m range against 600 m of relief), so their physics is
-garbage; the timing is still representative of the grid passes, which is what they
-isolate.
-
-| Grid | Nodes | Particles | ms / run |
+| Grid | Nodes | Particles | ms per run |
 |---|---|---|---|
-| 128 × 128 × 128 (preset) | 2.10 M | 131 k | **116** |
+| 128 × 128 × 128, dense, 1.6 km | 2.10 M | 131 k | **116** |
 | 128 × 128 × 16 | 0.26 M | 131 k | 66 |
-| 256 × 256 × 64 (option A, 3.2 km) | 4.19 M | 131 k | 162 |
+| 256 × 256 × 64, dense, 3.2 km | 4.19 M | 131 k | 162 |
 | 256 × 256 × 16 | 1.05 M | 131 k | 83 |
-| 512 × 512 × 16 (option B at 6.4 km) | 4.19 M | 131 k | 157 |
+| 512 × 512 × 16, band, 6.4 km | 4.19 M | 131 k | 157 |
 | 128 × 128 × 128 | 2.10 M | 262 k | 166 |
 | 256 × 256 × 16 | 1.05 M | 524 k | 216 |
 
-A linear fit over these is good to ~10 %:
+A linear fit is good to about 10 %:
 
 ```
 ms per run ≈ 9  +  25 · (grid nodes / 10⁶)  +  0.38 · (particles / 10³)
-per substep:      1.0 ms per 10⁶ nodes,      16 µs per 10³ particles
 ```
 
-So today the grid passes (clear + update, 2 × 2.1 M nodes) are ~45 % of a run and the
-particle passes (P2G + G2P) ~45 %; the rest is splat, rasterise and callback latency.
+So the band covers 16× the area of the dense 1.6 km grid at the same `dx` for about 1.4× its
+cost, while a dense grid at 5 km (400² × 64, 10 M nodes) would take about 260 ms per run, slower
+than the 0.24 s it simulates. The fit times the whole run including the readback callback, so
+it carries a few milliseconds of event-loop latency. The current kernels are 4–8× faster than
+these numbers ([09-performance-analysis.md](09-performance-analysis.md)); the comparison between
+dense and band grids is unchanged by that.
 
-**What that means for the options.** "Real time" here is a run finishing within the
-0.24 s it simulates; the preset runs 2× faster than that.
+## 4. Alternatives not chosen
 
-- **A** (256² × 64): 162 ms — still real time, at 2× the area. Its ceiling is 400² × 64
-  ≈ 10 M nodes ≈ 260 ms — no longer real time, for 5 km.
-- **B** (512² × 16 ≈ 4.2 M nodes): ~157 ms — real time at **4× today's edge, 16× the
-  area**, same `dx`. 12 layers: ~130 ms. At 256² × 16 (3.2 km) it is *faster* than the
-  preset is now, 83 ms. Memory 84 MB at 512² × 16.
-- **D**: no per-run cost; the extra prepare dispatch is a `res_x · res_y` pass, well
-  under a millisecond.
-- **Particles are the other axis.** 0.38 ms per 1 000 particles per run puts the
-  real-time ceiling at ~550 k particles regardless of grid; 262 k already costs as much
-  as the whole grid does. Beyond that the options are fewer substeps per run (the panel
-  then animates in larger simulated steps), a larger `dt` where CFL allows, or accepting
-  slower than real time. The P2G atomics were the hot loop; the shared-memory P2G
-  (09-performance-analysis.md §2.2, 2026-11-07) has since made the kernels 4–8× faster than
-  these measurements (preset 100 → 12.5 ms per run, 1 M particles 450 → 106 ms), which does not change the domain question.
-
-Caveats: the timer wraps the whole run including the async readback callback, so it
-carries up to one event-loop tick of latency (a few ms); the 16-layer dense-grid rows
-have all particles piled at the vertical clamp, which changes atomic contention in P2G
-somewhat. Neither changes the picture: B buys the area for roughly the cost of the
-preset's own wasted air.
-
+- **A bigger dense grid** (256² × 64, 3.2 km): settings only, but still cubic, so size and
+  resolution trade against each other.
+- **A sparse, blocked grid** (SPGrid-style: active 4³ or 8³ blocks found through a hash): truly
+  unbounded, but WGSL has no dynamic allocation, so it needs a block-activation pass, an atomic
+  hash table with collision handling, a compaction pass and a second-level index in every P2G
+  and G2P access. That is hundreds of lines in the hot loop and a slower P2G, for a reach no
+  single avalanche path needs: a 6 km box holds every runout in the Alps.
+- **A moving or growing window** that follows the particles' bounding box: possible, because
+  the grid holds no state, and cheap (a bounding-box readback and a `mpm_prepare` dispatch per
+  move), but the resolution coarsens as the front and the deposit tail spread apart, and the
+  overlay jumps when the box moves. With the band grid it is not needed below about 6 km.

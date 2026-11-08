@@ -88,9 +88,9 @@ else:  ε ← ε − δγ · ε̂/‖ε̂‖             Case III – onto the c
 ```
 
 `plastic_state` accumulates δγ (Klár's hardening state q); Klár's hardening of φ (§7.3,
-Eq. 29–31) is left out. Cohesionless, so cold-dense regime only. *(Originally "the
-fallback if CCC is too slow" — the M5 benchmark shows it is not cheaper, 0.66 vs 0.64 ms per
-substep, so it is an alternative material, not a performance fallback.)* Verified: `test_material_dp.py` checks every Case III output
+Eq. 29–31) is left out. Cohesionless, so cold-dense regime only. It is an alternative
+material, not a performance fallback for Cam Clay: both cost the same per substep
+([09-performance-analysis.md](09-performance-analysis.md) §3.2). Verified: `test_material_dp.py` checks every Case III output
 lands on the cone to `|y| < 1.5e-10` over 500 random gradients; `test_mpm.py` with
 `MPM_MODEL=drucker_prager` shows the qualitative signature (spreads instead of piling).
 
@@ -130,7 +130,7 @@ implementation of the same surface and hardening law:
 Case 1  p > p₀          → (p₀, 0),      α += tr ε + p₀/K      (compaction: harden)
 Case 2  p < −βp₀        → (−βp₀, 0),    α += tr ε − βp₀/K     (dilation: soften)
 Case 3  y > 0 otherwise → q onto the ellipse at fixed p,
-                          α += (p× − p)/K  (Wolper §6.2.3, since 2026-10-03; see §2h)
+                          α += (p× − p)/K  (Wolper §6.2.3; see §2h)
 ```
 
 Explicit: the old p₀ is used for the projection, then hardening is updated. Case 3's
@@ -278,13 +278,13 @@ deliberate choices:
 - **Friction-angle hardening for Drucker–Prager** (Klár 2016 §7.3): the friction angle is
   constant (§2d).
 
-## 3. Making models exchangeable — design
+## 3. How the models are exchangeable
 
-### 3a. Follow the codebase precedent: runtime switch on a uniform enum
+### 3a. A runtime switch on a uniform enum, as in the trajectory node
 
 `ComputeAvalancheTrajectoriesNode` already does this: `PhysicsModelType` / `FrictionModelType`
 C++ enums → `model_type: u32` / `runout_model_type: u32` in the uniform → `if`/`switch` in
-WGSL → a `Combo` in the node renderer. Same pattern here.
+WGSL → a `Combo` in the node renderer. The solver uses the same pattern.
 
 Why runtime rather than compile-time (`///if` variants):
 - The shader preprocessor's defines are **global**, not per-registration, so per-model

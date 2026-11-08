@@ -4,10 +4,10 @@ The five AvaFrame test avalanches of the comparison ([11-avaframe-comparison.md]
 also exist as map scenarios (Kontertal, Gallreide, Hintertux, Wolfsgruben, Madlein), for watching
 them in real time on weBIGeo's terrain. They release from AvaFrame's actual release areas, like
 the AvaFrame sandbox. This is an approximation, because the release lives in another coordinate
-system and on another DEM. (Until 2026-10-24 they released a disc of the same area on the release
-area's centroid, masked by the map's own 30–45° release slopes.)
+system and on another DEM. Without the AvaFrame data downloaded, they release a disc of the same
+area on the release area's centroid, masked by the map's own 30–45° release slopes.
 
-![AvaFrame release areas against the disc used before](avaframe-map-release.svg)
+![AvaFrame release areas against the fallback disc](avaframe-map-release.svg)
 
 *Made by `avaframe/tools/map_release_figure.py` from the prepared datasets.*
 
@@ -15,7 +15,7 @@ area's centroid, masked by the map's own 30–45° release slopes.)
 
 | Topic | Decision |
 |---|---|
-| Data missing | AvaFrame's areas when the AvaFrame data is downloaded (sandbox download), else the disc as before; the panel says which. |
+| Data missing | AvaFrame's areas when the AvaFrame data is downloaded (sandbox download), else the fallback disc; the panel says which. |
 | Slope mask | AvaFrame's areas as they are. The 30–45° mask stays for the generic disc scenarios. |
 | Depth | AvaFrame's thickness per cell as vertical depth, with AvaFrame's slope (exactly as the sandbox). |
 | Release scenario | Picker in the panel (only avaGar has several: relGar, relGar2, relGar6); default the comparison's. |
@@ -40,7 +40,7 @@ Select Tiles ── region aabb ──→ AvaFrame Release ── release area �
 3. **Solver**: with a `ReleaseArea` on its optional "release area" input it uses its release grid
    mode — the sandbox's — on the map: the depth texture takes the release point mask's binding,
    seeding samples the bounds and keeps a sample with probability depth / max depth, every
-   particle stands for volume / particles. Without one, the disc as before.
+   particle stands for volume / particles. Without one, the fallback disc.
 
 `AvaFrameReleaseNode` never fails the graph: without a dataset (generic scenario, data not
 downloaded, synthetic dataset) its output is null and `status()` says why.
@@ -70,10 +70,10 @@ truly differ. Exact runs stay in the AvaFrame sandbox, on AvaFrame's own DEM.
 | Wolfsgruben / relWog | 165,334 m³ on 13.52 ha | 165,292 m³ on 13.52 ha | 47.121610, 10.288465 | 47.12161, 10.28847 | 0.42 |
 | Madlein / relMal1to3 | 438,914 m³ on 34.87 ha | 438,846 m³ on 34.87 ha | 47.032131, 10.280935 | 47.03342, 10.27979² | 0.67 |
 
-¹ The centres of the old discs: the release centroids computed independently with pyproj when the
-scenarios were set up. Residual: largest corner residual of the affine fit, in world units.
-² Madlein's disc sat on the largest of its three areas; the map now releases all three, so the
-centroid moves 160 m. All other centroids agree to under half a metre.
+¹ The centres of the fallback discs: the release centroids computed independently with pyproj
+when the scenarios were set up. Residual: largest corner residual of the affine fit, in world units.
+² Madlein's fallback disc sits on the largest of its three areas; AvaFrame's release covers all
+three, so its centroid lies 160 m away. All other centroids agree to under half a metre.
 
 - All 65,536 particles seeded in every scenario; no release reaches outside its domain.
 - Without the data (sandbox root pointing at an empty folder): the panel says "a disc of the same

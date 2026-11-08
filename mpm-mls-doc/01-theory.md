@@ -176,7 +176,7 @@ E = 1.4e5 Pa, ν = 0.2, ξ = 10, θ_c = 2.5e-2, θ_s = 7.5e-3, ρ = 400 kg/m³.
 
 Everything above needs a 3×3 SVD, once per particle per substep: the return mapping in G2P
 does it and also returns τ = P·Fᵀ of the returned state, which the next P2G reads from the
-particle. Until 2026-09-27 it was twice (stress in P2G + plasticity in G2P). WGSL has no
+particle, so P2G needs no SVD of its own. WGSL has no
 linear algebra library, so `svd3()` implements it from scratch:
 
 1. `A = Fᵀ F` (symmetric, positive semi-definite)
@@ -270,7 +270,6 @@ p× = p_c + t (p_tr − p_c)
 
 Shear on the tensile side of the centre (`p_tr < p_c`) softens, on the compressive side
 hardens — without it, shear would never change `p₀` and a slab could not weaken in shear.
-Until 2026-10-03 this step was missing (audit H1, [report-implementation-audit-final-2026-10-03.md](audit-report/report-implementation-audit-final-2026-10-03.md)).
 Explicit — the projection uses the old `p₀`, then hardening updates it.
 
 `q = √(3/2)‖s‖`, the von Mises equivalent stress of Gaume (after Eq. 2) and Li. Wolper §6.1
@@ -331,7 +330,7 @@ particle, over dx². The real volume is the seeded area × `slab_thickness` / pa
 the seeded area being the release disc times the share of seeding threads whose first
 random sample hit a release point (`seeded_particle_volume()` in `mpm_common`; the particle
 volume in the uniform is normalised and useless as a length). Floored at 0.1 m for the
-flow's fringe. Until 2026-10-03 `h` was the constant `slab_thickness` (audit M3).
+flow's fringe. A constant `slab_thickness` would ignore that the flow thins as it spreads.
 
 μ = 0.155 with ξ = 4000 m/s² are the parameters of **com1DFA's Voellmy option**; com1DFA's
 default friction model is samosAT, and Tonnel et al. 2023 name Voellmy but give no formula
@@ -356,7 +355,7 @@ Fully GPU-side, no readback.
 | Particle mass normalised to 1, volume = 1/ρ | Keeps fixed-point grid accumulators in i32 range independent of real snow mass. Physically a pure unit change — see [04-data-layout.md](04-data-layout.md). |
 | Fixed-point atomic accumulation | WGSL has no atomic float add. Momentum `atomic<i32>` at 1e4, rounded and clamped before every add; mass a 64-bit `atomic<u32>` lo/hi pair at 2²⁰. |
 | G2P and advection fused into one kernel | Both are per-particle passes over the same data; no reason to split. |
-| No grid clear pass: the grid update zeroes the accumulators it read | Keeps the whole run inside one compute pass and skips empty tiles (until 2026-09-27 a `mpm_clear_grid` kernel zeroed every node). |
+| No grid clear pass: the grid update zeroes the accumulators it read | Keeps the whole run inside one compute pass and skips empty tiles; a clear pass would touch every node every substep. |
 | Terrain collision at grid *and* particle level; the particle contact after advection, with the position projected onto the surface (Stomakhin §4.1 applies it before advection) | Grid-only lets snow leak through between nodes at these cell sizes; projecting after advection keeps particles out of the terrain. |
 | P2G in tile order: particle indices sorted by 4 × 4-column tile once per chunk, each tile's contributions summed in workgroup memory | Performance only, about 2× per substep. The grid sums are integers, so the result is bit-identical to one atomic per particle and node ([03-shaders.md](03-shaders.md), [09-performance-analysis.md](09-performance-analysis.md) §2.2). |
 | Guards not in the papers: Stomakhin `J_P` and its hardening factor clamped to [0.05, 20]; Cam Clay sinh argument ≤ 20; σ clamped to [10⁻³, 10³] before the log; M ≥ 10⁻³, ξ ≥ 10⁻⁶ | Keep a diverging particle from producing inf/NaN. The `J_P` clamp caps compaction stiffening at 20×; the CFL bound uses the unhardened stiffness. |

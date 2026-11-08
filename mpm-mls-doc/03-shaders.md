@@ -26,9 +26,8 @@ submit → wgpuQueueOnSubmittedWorkDone → next chunk, or map readback + comple
 each other's storage writes. That is exactly the MPM dependency chain, so no pass churn is
 needed between stages.
 
-**No clear pass (2026-09-27).** There used to be a `mpm_clear_grid` kernel zeroing every node
-every substep. The grid update is the last reader of the P2G accumulators, so it now zeroes
-the nodes it consumed itself; together with the active-tile flags (below) the grid work
+**No clear pass.** The grid update is the last reader of the P2G accumulators, so it zeroes
+the nodes it consumed itself instead of a separate kernel zeroing every node every substep; together with the active-tile flags (below) the grid work
 follows the snow instead of the domain. See [09-performance-analysis.md](09-performance-analysis.md) §2.1.
 
 ## Bindings (shared by all)

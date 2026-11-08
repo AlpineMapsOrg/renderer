@@ -45,6 +45,10 @@ and 10-benchmark-results stays generated.
   README and 05 called 131 k particles "the preset": the graph preset is 65 536 at 320² × 12.
   07's struck-through to-do list replaced by what is really not implemented; Build order removed.
   Links into 09's old section numbers updated in eight docs and `results_to_markdown.py`.
+- **Follow-up 2:** history-first passages rewritten solution-first in 01, 03, 04, 05, 07, 13, 14.
+  08 rewritten as "Simulation domain: the terrain-following grid" (its §1 still described the
+  dense 128³ grid); the September measurements kept as the reason. 05's "3D renderer (next big
+  thing)" plan replaced by a pointer to 12. 06 left as the dated test record.
 
 ### 1. Whole-kernel substep test
 
