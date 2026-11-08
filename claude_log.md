@@ -13,6 +13,38 @@ capture of the terminal.
 
 ---
 
+## 2026-11-08
+
+### 1. Whole-kernel substep test
+
+The verification report's main limitation was that the transfer kernels were checked by
+inspection only: the golden tests (11-07) cover functions, not the kernels with their bindings.
+Added `bench/check_substep.mjs` (page `check_substep.html`), which runs the real sort, P2G,
+grid update and G2P kernels on the GPU from a known state of 300 particles on a planar slope
+and compares all particle fields with the float64 reference of `scripts/make_golden_substep.py`
+(mirrors the shaders including the fixed-point rounding). Two scenarios: free (1 and 3
+substeps) and contact (1 substep). `MpmBench` gained `setParticles`, `readParticles`,
+`prepareTerrain` and a terrain function; `headless_common.mjs` now holds what `run_headless.mjs`
+and the new checker share.
+
+- **Result (M5):** velocity within 3.3e-4 m/s, position 4.9e-4 m (float32 spacing at 2000-4000 m),
+  F within 1.6e-6, for all three materials. The shaders from before the sort give the same
+  errors to the digit.
+- **Sensitivity:** eight mutations are all caught: P2G stress factor 3.9 instead of 4
+  (Drucker-Prager only), G2P factor 3.9 instead of 4, x and y swapped in the P2G window flush,
+  gravity 1 % low, contact projected 1 mm too high, contact velocity not corrected, the sort
+  scatter dropping a bit of the index, Cam Clay q = 1.5 |s|.
+- **Found while building it:** a first version with contact in all three substeps failed for Cam
+  Clay alone, with a 2 m/s velocity error at the first substep. The cause was in the test input,
+  not the kernels: a particle ended within 1e-4 m of the surface, below float32 spacing, and took
+  the other branch of the contact decision. Contact flicker is structural (a particle on the
+  surface is pressed into it by gravity every substep), so contact is now a scenario of one
+  substep, and the generator rejects inputs with a surface margin below 4e-4 m.
+- **Also on SwiftShader** in 3 s. Not covered: domain walls, Voellmy, entrainment, curved terrain,
+  the mass carry, long runs.
+- The report (Notion) now describes the sorted P2G and cites this test for the transfer kernels;
+  section 4 was rewritten for `main` and the callouts of the formulas the test covers updated.
+
 ## 2026-11-07
 
 ### 1. GPU golden tests

@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>MLS-MPM whole-kernel substep check</title>
+<pre id="log">running...</pre>
+<script type="module">
+// Runs the real kernels (sort, P2G, grid update, G2P) on the GPU from the known state in
+// golden/substep_golden.json and compares every particle field with the float64 reference of
+// scripts/make_golden_substep.py after the scenario's substeps. Driver: check_substep.mjs.
+import { DEFAULTS, MpmBench, loadKernelSources, requestDevice } from './mpm_bench.js';
+
+const params = new URLSearchParams(location.search);
+const shaderBase = params.get('shaders') ?? '../../webgpu/compute/shaders/';
+const log = (s) => { document.getElementById('log').textContent += '\n' + s; console.log(s); };
+
+// Indices of struct Particle's 32 floats, by field.
+const FIELDS = {
+  position: [0, 1, 2],
+  velocity: [4, 5, 6],
+  plastic_state: [7],
+  C: [8, 9, 10, 12, 13, 14, 16, 17, 18],
+  tau: [11, 15, 19, 23, 27, 31],
+  F: [20, 21, 22, 24, 25, 26, 28, 29, 30],
+};
+
+function compare(gpu, expected, particles) {
+  const out = {};
+  for (const [name, idx] of Object.entries(FIELDS)) {
+    let maxError = 0, scale = 0;
+    for (let p = 0; p < particles; p++) for (const i of idx) {
+      maxError = Math.max(maxError, Math.abs(gpu[p * 32 + i] - expected[p * 32 + i]));
+      scale = Math.max(scale, Math.abs(expected[p * 32 + i]));
+    }
+    out[name] = { maxError, scale };
+  }
+  // The mass flag must come through untouched.
+  out.mass = { maxError: Math.max(...Array.from({ length: particles }, (_, p) => Math.abs(gpu[p * 32 + 3] - 1))), scale: 1 };
+  return out;
+}
+
+async function main() {
+  const golden = await (await fetch('./golden/substep_golden.json')).json();
+  const { device, adapterInfo } = await requestDevice();
+  device.lost.then((info) => log(`device lost: ${info.message}`));
+  const sources = await loadKernelSources(shaderBase);
+  const t = golden.terrain;
+  const result = { adapter: adapterInfo, particles: golden.particles, scenarios: {} };
+  for (const scenario of golden.scenarios) {
+    result.scenarios[scenario.name] = {};
+    for (const entry of scenario.entries) {
+      const bench = new MpmBench(device, sources, { ...DEFAULTS, model: entry.material, particles: golden.particles, dt: golden.dt, substepsPerRun: 1, substepsPerSubmit: 1 });
+      await bench.init();
+      bench.writeTerrain((x, y) => t.h0 + t.sx * (x - 4000) + t.sy * (y - 4000));
+      await bench.prepareTerrain();
+      bench.setParticles(entry.input);
+      let done = 0;
+      const errors = {};
+      for (const target of scenario.substeps) {
+        bench.cfg.substepsPerRun = bench.cfg.substepsPerSubmit = target - done;
+        await bench.run(false);
+        done = target;
+        errors[`after${target}`] = compare(await bench.readParticles(), entry[`after${target}`], golden.particles);
+      }
+      result.scenarios[scenario.name][entry.material] = errors;
+      log(`${scenario.name} ${entry.material}: ${JSON.stringify(errors)}`);
+      bench.destroy();
+    }
+  }
+  result.schedule = (await (async () => { const b = new MpmBench(device, sources, DEFAULTS); return b.schedule + (b.sorted ? '+sort' : ''); })());
+  device.destroy();
+  window.__result = result;
+}
+main().catch((e) => { log(`ERROR: ${e.stack ?? e.message}`); window.__error = e.message; });
+</script>

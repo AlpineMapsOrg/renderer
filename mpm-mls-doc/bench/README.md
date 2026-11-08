@@ -41,6 +41,14 @@ use it for relative numbers and for the physics check. On macOS, Playwright's he
 has no GPU and falls back to SwiftShader even with `--gpu`; `--chrome` runs the installed
 Google Chrome, which uses Metal. The result's `adapter` field says which device ran.
 
+## Whole-kernel substep check
+
+`check_substep.mjs` (page `check_substep.html`) is not a benchmark: it starts the same kernels
+from a known particle state on a planar slope and compares every field of `struct Particle`
+after the substeps of two scenarios (free, contact) with the float64 reference of `scripts/make_golden_substep.py`
+(`golden/substep_golden.json`). `--chrome` / `--gpu` / `--shaders-rev` work as for
+`run_headless.mjs`; a mismatch exits with status 1. See [../06-verification.md §4p](../06-verification.md).
+
 ## What is measured
 
 | Field | Meaning |

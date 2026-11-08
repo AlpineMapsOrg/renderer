@@ -21,6 +21,7 @@ Times are measured on an M5; `—` where none was measured.
 | [`test_energy_line.py`](test_energy_line.py) | A sliding slab against the energy line (Tonnel 2023 §5.2): the coupled loop removes μ of energy height per metre | numpy | ~3 min |
 | [`test_sheet_fixed_point.py`](test_sheet_fixed_point.py) | A thin slab at device scale with the shader's fixed-point accumulation emulated (the energy-pump bug) | numpy | ~4 min |
 | [`make_golden.py`](make_golden.py) | Runs the ports on fixed inputs and writes the golden file for the GPU tests | numpy | seconds |
+| [`make_golden_substep.py`](make_golden_substep.py) | Advances 300 particles by 1 and 3 substeps in float64, mirroring the kernels, for the whole-kernel test | numpy | seconds |
 | **AvaFrame comparison** ([avaframe/README.md](../avaframe/README.md)) | | | |
 | [`prepare_dataset.py`](../avaframe/prepare_dataset.py) | AvaFrame test cases → `extern/avaframe_sandbox/<dataset>/`: DEM, release and entrainment rasters, com1DFA references, AIMEC path | `avaframe/.venv` | — |
 | [`run_com1dfa.py`](../avaframe/run_com1dfa.py) | com1DFA 2.1 on a dataset: `null`, `coulomb`, `erosion`, `plowing` | `.venv-avaframe` | — |
@@ -114,7 +115,23 @@ cmake --build build/webgpu_app_macos_release --target unittests_webgpu_compute
 ./build/webgpu_app_macos_release/unittests/webgpu_compute/unittests_webgpu_compute
 ```
 
-The cases keep a margin to every branch decision of the return mappings, because float32 may
+### Whole-kernel substep test
+
+The golden tests above check functions. `make_golden_substep.py` writes the reference for
+`bench/check_substep.mjs`, which runs the real kernels (particle sort, P2G, grid update, G2P)
+on the GPU from a known particle state (a free scenario of three substeps and a contact
+scenario of one) and compares every particle field with the float64 reference. It needs Playwright (`npm i -g playwright`); `--chrome` uses the installed Chrome, which
+is the GPU on macOS, and without it SwiftShader (3 s, no GPU needed).
+
+```bash
+cd mpm-mls-doc/scripts && ./.venv/bin/python make_golden_substep.py && cd ../..
+node mpm-mls-doc/bench/check_substep.mjs --chrome
+node mpm-mls-doc/bench/check_substep.mjs --chrome --shaders-rev <git-rev>   # the shaders of another revision
+```
+
+Results and tolerances: [06-verification.md §4p](../06-verification.md).
+
+The cases of the first golden test keep a margin to every branch decision of the return mappings, because float32 may
 legitimately take the other branch right at one. The tests need a GPU and do not run on CI.
 Results and tolerances: [06-verification.md §4o](../06-verification.md).
 

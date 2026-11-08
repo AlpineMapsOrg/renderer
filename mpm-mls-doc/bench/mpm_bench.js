@@ -260,7 +260,8 @@ export class MpmBench {
         return Object.entries(this.bytes).reduce((sum, [k, v]) => sum + (inputs.has(k) ? 0 : v), 0);
     }
 
-    writeTerrain() {
+    // heightFn(x, y, region) -> altitude in region-relative metres; the default is the analytic slope.
+    writeTerrain(heightFn = terrainHeight) {
         const c = this.cfg;
         const n = c.heightTexels;
         const heights = new Float32Array(n * n);
@@ -269,7 +270,7 @@ export class MpmBench {
                 // texel centre -> region metres; row 0 is north (v grows with -y)
                 const x = ((col + 0.5) / n) * c.regionSize;
                 const y = (1 - (row + 0.5) / n) * c.regionSize;
-                heights[row * n + col] = terrainHeight(x, y, c.regionSize);
+                heights[row * n + col] = heightFn(x, y, c.regionSize);
             }
         }
         this.device.queue.writeTexture({ texture: this.resources.height_texture }, heights, { bytesPerRow: n * 4 }, [n, n]);
@@ -315,6 +316,37 @@ export class MpmBench {
             u[50] = c.particles; // release_particles: every particle is release, no pool
         this.device.queue.writeBuffer(this.resources.settings, 0, buf);
         this.dx = dx;
+    }
+
+    // struct Particle, 32 floats each: for tests that start from a known state instead of the seed.
+    setParticles(floats) {
+        if (floats.length !== this.cfg.particles * (PARTICLE_BYTES / 4)) throw new Error('particle array does not match cfg.particles');
+        this.device.queue.writeBuffer(this.resources.particles, 0, new Float32Array(floats));
+    }
+
+    async readParticles() {
+        const size = this.cfg.particles * PARTICLE_BYTES;
+        const staging = this.device.createBuffer({ size, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+        const encoder = this.device.createCommandEncoder();
+        encoder.copyBufferToBuffer(this.resources.particles, 0, staging, 0, size);
+        this.device.queue.submit([encoder.finish()]);
+        await staging.mapAsync(GPUMapMode.READ);
+        const out = new Float32Array(staging.getMappedRange().slice(0));
+        staging.destroy();
+        return out;
+    }
+
+    // Column floors and the altitude range, without seeding (a test places the particles itself).
+    async prepareTerrain() {
+        this.writeInitialState();
+        const encoder = this.device.createCommandEncoder();
+        const pass = encoder.beginComputePass();
+        pass.setBindGroup(0, this.bindGroup);
+        pass.setPipeline(this.pipelines.mpm_prepare);
+        pass.dispatchWorkgroups(...this.workgroups().prepare);
+        pass.end();
+        this.device.queue.submit([encoder.finish()]);
+        await this.device.queue.onSubmittedWorkDone();
     }
 
     writeInitialState() {

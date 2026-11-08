@@ -412,6 +412,70 @@ The branch taken (yielded or not) matches in every case.
   `test_mpm.py` ports an older dense-grid loop, so a one-particle substep test needs a new
   reference first.
 
+## 4p. Whole-kernel substep test — sort, P2G, grid update, G2P on the GPU (2026-11-08)
+
+§4o tests the shader functions. This test runs the kernels themselves with the real bindings,
+which §4o could not: the particle sort, P2G with its workgroup accumulation and fixed-point
+atomics, the grid update with the terrain collision, and G2P with plasticity and particle contact.
+
+`scripts/make_golden_substep.py` places 300 particles on a planar slope (around x = y = 3500 m,
+altitude 2000 m) in a known state: F, C, τ and velocity come from the return mapping of a random
+deformation, so the state is admissible. The particles share grid nodes (a 100 m × 100 m cluster is
+about 8 × 8 cells and straddles a tile boundary), and stencil nodes lie below the terrain, so the
+grid collision with Coulomb friction (μ 0.47) acts. The script advances them in float64 and mirrors
+the shaders step by step, including the fixed-point rounding of the grid accumulators (momentum
+10⁻⁴, mass 2⁻²⁰) and the terrain-following band. `bench/check_substep.mjs` runs the real WGSL
+kernels on the same input (`MpmBench`, the schedule of `MpmSolverNode`) and compares every field of
+`struct Particle`. Two scenarios, for three materials each:
+
+| Scenario | Substeps | What it exercises |
+|---|---|---|
+| free | 1 and 3 | no particle touches the surface; 600 grid-node collisions over the three substeps |
+| contact | 1 | 60 particles start 2–30 mm above the surface moving into it at 3.5–6 m/s; 22 of them touch it (the grid collision already removes part of the normal velocity of the others), plus 206 grid-node collisions |
+
+**Why contact is one substep.** A particle that touched the surface stays within float32 noise of
+it: gravity presses it into the slope by about 10⁻³ m per substep, so in the next substep its
+contact decision (`z < surface`) is a coin flip on the GPU and differs from float64 by about
+0.02 m/s. That is contact flicker, not a kernel error, and it is why a first version with three
+substeps of contact failed for Cam Clay alone: one particle ended within 10⁻⁴ m of the surface and
+took the other branch. The generator now rejects inputs in which a particle ends a substep
+within 4·10⁻⁴ m of the surface (about two float32 spacings at this altitude); in the free scenario
+the nearest particle is 0.44 m away, in the contact scenario 6.9·10⁻⁴ m. The terrain offset avoids
+ties of the column floor and of node against surface within 2 mm.
+
+Largest differences GPU (float32) − reference (float64), Apple M5, Chrome 158:
+
+| Field | Stomakhin | Drucker–Prager | Cam Clay | Tolerance |
+|---|---|---|---|---|
+| position [m], free, 3 substeps | 4.9e-4 | 4.9e-4 | 4.9e-4 | 1e-3 |
+| velocity [m/s] | 3.3e-4 | 3.0e-4 | 2.6e-4 | 2e-3 |
+| C [1/s] | 8.6e-5 | 6.0e-5 | 6.4e-5 | 1e-3 |
+| τ, relative to its largest component | 2.0e-5 | 1.5e-5 | 7.6e-4 | 5e-3 |
+| F | 1.6e-6 | 1.4e-6 | 6.6e-7 | 1e-4 |
+| plastic state | 1.1e-6 | 8.0e-7 | 2.6e-6 | 1e-4 |
+
+The contact scenario (one substep) agrees as closely: velocity 2.3e-4 m/s, position 2.4e-4 m.
+
+- **Position error is float32 spacing.** At 2000–4000 m the spacing is 1.2e-4 to 2.4e-4 m; the
+  4.9e-4 is two spacings after three roundings.
+- **Velocity and C errors are fixed-point rounding.** A contribution evaluated in float32 can land
+  on the other side of a 10⁻⁴ momentum step; through the node weight and 4/Δx that reaches a
+  particle as 10⁻⁴–10⁻³. This is the quantisation of the scheme (§4h), not a kernel error.
+- **The same errors, to the digit, with the shaders from before the sort (`--shaders-rev bac8fd99`)
+  and with the current ones.** The sorted P2G with workgroup accumulation produces exactly the
+  grid of the unsorted one, also through G2P, plasticity and the next substep.
+- **Mutations are detected.** Each of these, applied to a shader, fails the test: P2G stress factor
+  4/Δx² → 3.9/Δx² (Drucker–Prager only: the stress of the other two is too small to show it); G2P
+  APIC factor 4/Δx → 3.9/Δx (all materials); x and y swapped in the P2G window flush (velocity
+  errors of 5 m/s); gravity 1 % low in the grid update (3.4–3.8e-3 m/s); particle contact projected
+  1 mm too high (position 1.2e-3 m); particle contact velocity not corrected (2.5 m/s); the sort's
+  scatter dropping the lowest bit of the index (8 m/s); Cam Clay q = 1.5‖s‖ (τ 3e-2, Cam Clay only).
+- **Also runs on SwiftShader** (3 s, the same tolerances), so it does not need a GPU.
+- **Not covered:** domain walls and the band ceiling (the particles stay in the interior),
+  Voellmy (needs the column depth), entrainment, curved terrain, the carry of the 64-bit mass (the
+  masses are far below 2³² units), and runs longer than three substeps, where the f32/f64
+  differences grow and contact flicker sets in.
+
 ## 5. On real terrain
 
 Runs end to end on the Schneeberg DEM: seeds, flows downhill, deposits, animates, and the
@@ -552,6 +616,11 @@ python3 check_refactor_preserving.py
 # unit test (build with -DALP_BUILD_UNITTESTS=ON)
 ./.venv/bin/python make_golden.py
 ../../build/webgpu_app_macos_release/unittests/webgpu_compute/unittests_webgpu_compute
+
+# 4p. whole-kernel substep test: regenerate the reference after changing a port, then run it in
+# Chrome (needs Playwright; --chrome is the GPU on macOS, without it SwiftShader)
+./.venv/bin/python make_golden_substep.py
+node ../bench/check_substep.mjs --chrome
 ```
 
 All three were last re-run from this location on 2026-09-06 and reproduce the numbers
