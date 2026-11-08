@@ -65,7 +65,7 @@ def main():
 
     out = ["# Benchmark results", "",
            "*Generated from `bench/results/*.json` by `bench/results_to_markdown.py` — do not edit by hand.*",
-           "*What the numbers mean, and the scenarios behind them: [09-performance-analysis.md](09-performance-analysis.md) §7–8. "
+           "*What the numbers mean, and the scenarios behind them: [09-performance-analysis.md](09-performance-analysis.md) §3 and §7. "
            "How to run and add results: [bench/README.md](bench/README.md).*", "",
            "Each run is `substepsPerRun` = 24 MPM substeps of the real WGSL kernels on an analytic 35° slope (4 km domain, "
            "12.5 m cells), median over the measured runs. **GPU ms** are timestamp-query times summed over the stages; "

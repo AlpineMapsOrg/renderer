@@ -7,7 +7,7 @@
 | `domain_size_xy` | 1024 m (preset: 4000) | Simulated box, **in metres on the ground** (since 2026-10-10; before that Web Mercator units, ~1.47× less ground). **Clamped to the tiled region** — bigger needs a bigger `GeoRegionNode.extent` (preset: 8000 m). |
 | `grid_resolution_xy` | 64 (preset: 320) | With domain size, sets `dx`. Memory and grid work are `res² × layers`. |
 | `grid_layers` | 12 (was 16) | Node layers stored above the terrain per column (the grid follows the surface). Headroom for piles and terrain steps, not the relief. 10–16 is plenty; the pile headroom is `dx × (layers − 4.5)`. |
-| `dt` | 0.01 s (preset: 0.02) | CFL bound; the node lowers it to 80 % of `max_stable_dt()` before any run that exceeds it. Too large = explosion. Stomakhin at 12.5 m cells is fine up to at least 0.03 (09-performance-analysis.md §8.4). |
+| `dt` | 0.01 s (preset: 0.02) | CFL bound; the node lowers it to 80 % of `max_stable_dt()` before any run that exceeds it. Too large = explosion. Stomakhin at 12.5 m cells is fine up to at least 0.03 (09-performance-analysis.md §3.3). |
 | `substeps_per_run` | 32 (preset: 24) | Simulated time per node execution = `dt × substeps`; the overlay and the readback update once per run. **Only used by Manual pacing (accuracy) and the node editor's Step**: otherwise the simulation clock sizes each run itself ([13-simulation-driver.md](13-simulation-driver.md)). |
 | `substeps_per_submit` | 2 | Chunk size the run is submitted in. WebGPU has one queue, so rendering and simulation take turns on the GPU; small chunks keep the view smooth, one big chunk maximises simulated time per second. **Only used by Manual pacing and the node editor's Step**; the clock picks the chunks from the Pacing budget otherwise (no longer written into the settings). See "Cost". |
 | `num_particles` | 65536 (preset: 131072 → 65536) | Mostly visual density: even 32k is > 100 particles per 12.5 m cell. Cost is about linear in the particle count (1 M particles: 106 ms per 24-substep run on an M5). Panel: **Detail** Low / Medium / High. |
@@ -124,24 +124,18 @@ This is inherent to the scale gap, not a bug. Options, none free:
   span the whole path, but `dx` is still set by the footprint: 4 km at 320² is 12.5 m.
   Finer cells over a whole valley need a second level, which is out of scope.
 
-Worth stating plainly in the report: at avalanche scale, the interesting limitation is
+At avalanche scale, the interesting limitation is
 **resolution**, not the constitutive model.
 
 ## Cost
 
-> **Superseded in part (2026-09-27):** the kernels no longer clear or update the whole grid
-> every substep, P2G no longer runs an SVD, and the panel now paces substeps per frame from
-> measured GPU time. The numbers below are the *old* kernels on the M5 and remain the
-> baseline; the new analysis, the benchmark and the A/B results are in
-> [09-performance-analysis.md](09-performance-analysis.md).
-
 GPU time per run of 24 substeps (0.24 s simulated) on an Apple M5, kernel benchmark
-([10-benchmark-results.md](10-benchmark-results.md), [09-performance-analysis.md](09-performance-analysis.md) §8.6):
+([10-benchmark-results.md](10-benchmark-results.md), [09-performance-analysis.md](09-performance-analysis.md) §3.1):
 
 | Particles | Grid | GPU ms per run | Ceiling (simulated s per wall s, GPU only) |
 |---|---|---|---|
-| 65 536 | 320² × 12 | 6.4 | 34× |
-| 131 072 (preset) | 320² × 16 | 12.5 | 19× |
+| 65 536 (graph preset, Medium) | 320² × 12 | 6.4 | 34× |
+| 131 072 (High) | 320² × 16 | 12.5 | 19× |
 | 524 288 | 320² × 16 | 56 | 4.3× |
 | 1 048 576 | 320² × 16 | 106 | 2.2× |
 
@@ -149,7 +143,7 @@ Particles are the steeper axis: the grid update is under 5 % of the time, P2G an
 the particle count. In the app the frame's rendering shares the GPU, so the real-time margin is
 smaller than the ceiling. An earlier fit of the September kernels (`ms ≈ 9 + 25 · nodes/10⁶ +
 0.38 · particles/10³`, 08-domain-size-options.md §5; it timed the whole run including the readback)
-gives 100 ms for the preset and 450 ms for 1 M particles: the current kernels are 4–8× faster.
+gives 100 ms for 131 072 particles and 450 ms for 1 M: the current kernels are 4–8× faster.
 
 **Frame rate vs simulation speed.** There is no second GPU queue in WebGPU, so a run
 submitted as one 100 ms command buffer parks the next rendered frame behind it: the view

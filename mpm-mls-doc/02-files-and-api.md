@@ -150,7 +150,7 @@ our buffers, the input texture handles or the graph run id change — upstream n
 their textures on a full graph run), `update_gpu_settings()` (fills the uniform; converts
 lat/lon → region-relative metres), `write_initial_state()` (seeds the SimState atomics from
 the CPU), `create_pipelines()` (called through the one pipeline factory registered per
-resource registry, for every live solver — see 09-performance-analysis.md §5, L3).
+resource registry, for every live solver — see 09-performance-analysis.md §6).
 
 Async callbacks (work done, buffer maps) never capture `this`: they carry a copy of
 `m_alive`, a `shared_ptr<MpmSolverNode*>` the destructor sets to null, so a callback that

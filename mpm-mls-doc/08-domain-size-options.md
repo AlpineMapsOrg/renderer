@@ -189,7 +189,7 @@ particle passes (P2G + G2P) ~45 %; the rest is splat, rasterise and callback lat
   as the whole grid does. Beyond that the options are fewer substeps per run (the panel
   then animates in larger simulated steps), a larger `dt` where CFL allows, or accepting
   slower than real time. The P2G atomics were the hot loop; the shared-memory P2G
-  (09-performance-analysis.md §8.6, 2026-11-07) has since made the kernels 4–8× faster than
+  (09-performance-analysis.md §2.2, 2026-11-07) has since made the kernels 4–8× faster than
   these measurements (preset 100 → 12.5 ms per run, 1 M particles 450 → 106 ms), which does not change the domain question.
 
 Caveats: the timer wraps the whole run including the async readback callback, so it

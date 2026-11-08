@@ -29,7 +29,7 @@ needed between stages.
 **No clear pass (2026-09-27).** There used to be a `mpm_clear_grid` kernel zeroing every node
 every substep. The grid update is the last reader of the P2G accumulators, so it now zeroes
 the nodes it consumed itself; together with the active-tile flags (below) the grid work
-follows the snow instead of the domain. See [09-performance-analysis.md](09-performance-analysis.md) §9.1.
+follows the snow instead of the domain. See [09-performance-analysis.md](09-performance-analysis.md) §2.1.
 
 ## Bindings (shared by all)
 
@@ -208,7 +208,7 @@ term (Hu et al. [3]).
 27 nodes × 4 atomics (+1 on a mass carry, rare) = 108 atomic adds per particle per substep, now to
 workgroup memory for the home tile's particles; the grid receives at most 4 per window node and
 workgroup. P2G went from ~70 % to ~45 % of the GPU time, about 3× faster
-([09-performance-analysis.md](09-performance-analysis.md) §8.6).
+([09-performance-analysis.md](09-performance-analysis.md) §2.2).
 
 ## `mpm_grid_update` — 8×8×1, one workgroup per tile of columns
 

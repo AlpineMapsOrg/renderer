@@ -266,16 +266,17 @@ re-checked every formula against the papers. What it changed in the code:
   on the P-wave speed `√((λ+2μ)/ρ)` on every run (`MpmSolverNode::max_stable_dt()`), not
   only when a preset is applied; Klár section numbers corrected (§7.1/§7.3, not §5.3/§5.4).
 
-### 2c. Not implemented
+### 2i. Not implemented
 
-- ~~**Gaume 2018 Cohesive Cam Clay**~~ — **done 2026-09-13**, see §2e.
-- ~~**Li 2020/2021 regime presets**~~ — **done 2026-09-13**, see §2f.
-- ~~**Model selection**~~ — **done 2026-09-13.** `ConstitutiveModel` / `BasalFrictionModel`
-  enums, `u32` uniform fields, runtime `switch` dispatchers, combos in both panels.
-- ~~**Drucker–Prager**~~ — **done 2026-09-13**, see §2d.
-- ~~**Energy-line validation**~~ — **done 2026-09-13**, see §2g.
-- ~~**Entrainment**~~ — **done 2026-10-27**, see [15-entrainment.md](15-entrainment.md).
-  Comparison to com1DFA/Flow-Py: done in the AvaFrame comparison (11-avaframe-comparison.md).
+Everything proposal v3.0 asks for is implemented except CK-MPM (§1). What remains are
+deliberate choices:
+
+- **CK-MPM** [6], the stretch goal: it would change only the P2G/G2P transfers.
+- **The associative Cam Clay return** that Li 2021's presets were calibrated with. The solver
+  uses Wolper 2019's non-associated return (§2e); the associative one would replace only
+  `ccc_plasticity()`.
+- **Friction-angle hardening for Drucker–Prager** (Klár 2016 §7.3): the friction angle is
+  constant (§2d).
 
 ## 3. Making models exchangeable — design
 
@@ -341,7 +342,7 @@ mpm_material.wgsl                 material_stress(), material_plasticity()  — 
 
 *(2026-09-27: the `*_stress()` functions became `*_kirchhoff(U, …)` helpers called at the end of
 each `*_plasticity()`, which now also returns τ = P·Fᵀ; `material_stress()` is gone. P2G reads τ
-from the particle instead of running a second SVD — 09-performance-analysis.md §9.1.)*
+from the particle instead of running a second SVD — 09-performance-analysis.md §2.3.)*
 
 Each model file is self-contained and `///use`d by the dispatcher. `mpm_p2g` / `mpm_g2p` call
 only the dispatcher. **Adding a model = one new file + one `case` + one enum entry + one
@@ -386,80 +387,13 @@ Table 1 (the regime cases were designed for the same slope):
 Two traps from the paper summaries, now baked into the table so they aren't rediscovered:
 **warm plug has the lowest M with the highest β** (counter-intuitive but correct), and **ξ is
 what separates sliding slab from warm plug**, not Mβ. Also: Cases II and III did *not*
-reproduce their 2D regimes on real terrain in Li 2021 — expect re-tuning, say so in the
-report.
+reproduce their 2D regimes on real terrain in Li 2021, so the presets may need re-tuning on
+other terrain.
 
 The existing `Scenario` struct (location) and a material preset are orthogonal; a scenario
 can name a default preset but the two stay separate.
 
-## 4. Build order
-
-The order in which the model layer was built: each step was independently useful, and the risky
-physics came after the plumbing needed to test it.
-
-**1. Refactor for exchangeability — no new physics.** ✅ **Done 2026-09-13.** Split
-`mpm_material_stomakhin.wgsl` out, added `mpm_material.wgsl` / `mpm_friction.wgsl`
-dispatchers, both enums, the uniform/settings fields (144 → 160 B), the two combos, renamed
-`jp` → `plastic_state`, added `material_initial_state()` to the interface (the initial
-plastic state is model-dependent: Jp = 1 vs εᵥᵖ = 0). Proven behaviour-preserving by diffing
-the resolved WGSL against HEAD — see [06-verification.md](06-verification.md#4b-refactor-safety--resolved-shader-diff-against-head).
-All 8 pipelines confirmed on Metal.
-
-**2. Basal friction: μ → 0.47, add Voellmy.** ✅ **Done 2026-09-13.** See §2b. First real
-second case in a dispatcher; `test_friction.py` checks it.
-
-**3. Drucker–Prager (Klár 2016).** ✅ **Done 2026-09-13.** See §2d. Hencky elasticity is
-now in and verified, which CCC reuses.
-
-**4. Cohesive Cam Clay (Gaume 2018).** ✅ **Done 2026-09-13.** See §2e — including the
-return-mapping choice (Wolper's three-case projection rather than the associative rule).
-Wolper's shear hardening (§6.2.3) was missing until 2026-10-03, see §2h.
-
-Benchmarked since: Cam Clay costs about 9 % more per substep than Stomakhin
-([10-benchmark-results.md](10-benchmark-results.md)). The time step is the larger effect: at Li's
-E = 3 MPa, ρ = 250 the wave speed is ~110 m/s vs ~19 m/s at Stomakhin's values, so the
-allowed dt drops ~6×. The CFL readout already uses the shared E, so switching a preset will
-show it.
-
-**5. Regime presets** ✅ **Done 2026-09-13.** See §2f — presets, the plastic-particle
-readout, and the readback it needed.
-
-**6. Energy-line validation** ✅ **Done 2026-09-13.** See §2g. Offline: basal friction
-recovered to < 1 %. On-device: live `μ_eff` readout — which immediately exposed the
-fixed-point energy pump (06, bug 8). Fixed the same day; the sliding-slab and Stomakhin
-runs now cool down and stop.
-
-**7. Entrainment** ✅ **Done 2026-10-27**, as a cover field per grid column that the grid
-update erodes (com1DFA's plowing and erosion), not as particles - see
-[15-entrainment.md](15-entrainment.md). The notes below are the research it started from.
-
-Input: an entrainable-snow-depth texture (v3.0 says computing it is out
-of scope). Cheapest MPM-compatible mechanism: a flowing particle over a cell with entrainable
-depth **gains mass and volume** and the cell's depth decrements — no particle spawning, no
-free list. Note this breaks the current "mass = 1" invariant into "mass = 1 base unit,
-growing"; the fixed-point range still holds. Rate law needs research (Sovilla-style
-erosion ∝ velocity is the usual starting point). The CCC papers explicitly exclude
-entrainment and blame their velocity discrepancies on it — state that.
-
-**Research 2026-10-12** (Notion: "Entrainment with a particle snow cover — research and
-feasibility").
-- **The precedent.** Covering the path with an erodible snow cover of MPM particles is how
-  Gaume's group does it (Li 2022, Li 2024, Kyburz 2024). It needs a cover at least 1–2 cells
-  thick, 0.1–0.7 m cells, 0.4–23 M particles and 3–53 h of CPU time.
-- **Why the literal idea fails here:**
-  - μ 0.47 holds a resting cover only below about 25°;
-  - at 5–12.5 m cells the cover and the flow share the first node layer and the friction band.
-- **Recommended instead: dormant cover particles** (negative mass), woken in G2P by flow on
-  their nodes. This is Kyburz's "activation" idea, and at our resolution it amounts to
-  com1DFA's plowing mode.
-  - Cover from AvaFrame's ENT shapefiles (0.3 m): +10–82 % particles.
-  - Validation: AvaFrame's hockey and helix entrainment benchmarks, and com1DFA runs with
-    entrainment on the five real avalanches.
-
-**8. Comparison to com1DFA / Flow-Py** ✅ **Done 2026-10-11**: five real avalanches against com1DFA
-and com4FlowPy, rated with AIMEC — [11-avaframe-comparison.md](11-avaframe-comparison.md).
-
-## 5. Sources
+## 4. Sources
 
 Numbering per the proposal. Full entries in [refs.md](refs.md).
 

@@ -61,7 +61,7 @@ weBIGeo already had a statistical trajectory model for avalanches. This project 
 | [06-verification.md](06-verification.md) | What was actually tested, how, and what is still unverified. |
 | [07-constitutive-models.md](07-constitutive-models.md) | Proposal v3.0 gap analysis: which material/friction models exist, and the design for making them exchangeable. |
 | [08-domain-size-options.md](08-domain-size-options.md) | Why the domain was 1.6 km, the options for a whole avalanche path, measured GPU cost, and what was chosen (terrain-following grid). |
-| [09-performance-analysis.md](09-performance-analysis.md) | **Performance**: why the demo felt slow, where the GPU time goes, VRAM and device limits, leaks found and fixed, main-loop/threading options, the benchmark method, and the first round of optimisations with measurements. |
+| [09-performance-analysis.md](09-performance-analysis.md) | **Performance**: GPU time by particle count and material, where it goes and why the kernels are fast (active tiles, sorted P2G, one SVD), memory and device limits, sharing the GPU with the map, resource lifetime, the benchmark method, and what would make it faster. |
 | [scripts/](scripts/README.md) | **Python scripts**: every script in this folder, what it checks or produces, setup and how to run it — shader validation, the Python ports, the GPU golden tests, the AvaFrame comparison, the benchmark tables. |
 | [bench/](bench/README.md) | Standalone WebGPU benchmark of the real kernels, headless A/B against any git revision. |
 | [10-benchmark-results.md](10-benchmark-results.md) | Every checked-in benchmark result as a table: Apple M5 (Chrome/Metal) and SwiftShader, per material, per stage. Generated from `bench/results/*.json`. |
@@ -133,9 +133,10 @@ friction-angle hardening for Drucker–Prager, and the resolution (Li et al.: 0.
 5–12.5 m).
 
 **Performance** ([09-performance-analysis.md](09-performance-analysis.md),
-[10-benchmark-results.md](10-benchmark-results.md)). On an Apple M5 the preset (131 k particles,
-320² × 16 grid) takes 12.5 ms of GPU time per 24 substeps (0.24 s simulated); 1 M particles take
-106 ms.
+[10-benchmark-results.md](10-benchmark-results.md)). On an Apple M5 the graph preset (65 536
+particles, 320² × 12 grid) takes 6.4 ms of GPU time per 24 substeps, 131 072 particles take
+12.5 ms and 1 M particles 106 ms. At the preset's time step of 0.02 s that is about 70× faster
+than real time for the preset and 4.5× for 1 M particles, if the solver had the GPU to itself.
 
 **Limitations.**
 

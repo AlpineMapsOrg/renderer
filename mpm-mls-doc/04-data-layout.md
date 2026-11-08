@@ -51,7 +51,7 @@ The six `tau_*` slots used to be `volume` and five pads (2026-09-27). The volume
 for every particle and now comes from `settings.particle_volume`; the pads carry the Kirchhoff
 stress of the particle's current elastic state, which G2P computes from the SVD its return
 mapping already did, so P2G no longer needs an SVD of its own
-([09-performance-analysis.md](09-performance-analysis.md) §9.1). Seeded as zero (F = I is
+([09-performance-analysis.md](09-performance-analysis.md) §2.3). Seeded as zero (F = I is
 stress-free in every model).
 
 Every `vec3f` sits at a multiple of 16 — WGSL aligns vec3 to 16 bytes, so the padding floats
@@ -199,7 +199,7 @@ converge; before every non-reset run `reset_run_counters()` zeroes slots 3–4, 
 MapRead buffer (`m_state_readback`), which the work-done callback maps into
 `MpmSolverNode::last_state()`; the value therefore describes the previous completed run. (It
 used to go through `RawBuffer::read_back_async()`, which allocated a staging buffer per call
-and leaked a command buffer per call — 09-performance-analysis.md §5.)
+and leaked a command buffer per call — 09-performance-analysis.md §6.)
 
 Both buffers are **allocated once in the constructor and never reallocated** — an async
 readback in flight while `ensure_resources()` recreated them would be a use-after-free. They

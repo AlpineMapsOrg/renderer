@@ -38,6 +38,13 @@ and 10-benchmark-results stays generated.
   a global atomic).
 - **Verified:** `test_mpm.py` re-run, numbers reproduce (mass 150.00, min z 3.00, mean jp 0.7456).
   Notes to self ("be honest in the report", "tested by Manuel") removed.
+- **Follow-up:** 09-performance-analysis rewritten for the current state (697 → 301 lines:
+  summary, kernel design, measurements, memory recomputed from the current buffer sizes,
+  playback, lifetime, method, improvements); Li 2021 runtime figures dropped (never checked
+  against the PDF); the base-code lifetime fix noted as unmerged (`fix/node-lifetime-registrations`).
+  README and 05 called 131 k particles "the preset": the graph preset is 65 536 at 320² × 12.
+  07's struck-through to-do list replaced by what is really not implemented; Build order removed.
+  Links into 09's old section numbers updated in eight docs and `results_to_markdown.py`.
 
 ### 1. Whole-kernel substep test
 
