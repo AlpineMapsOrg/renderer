@@ -20,6 +20,7 @@
 
 #include "Node.h"
 #include "../TimeSteppedSimulation.h"
+#include "../VectorField.h"
 
 #include <webgpu/base/Buffer.h>
 #include <webgpu/base/Context.h>
@@ -97,7 +98,38 @@ struct MpmParticleView {
     uint32_t reset_count = 0; // changes when the particles are released anew (Reset), so per-run memory can be cleared
 };
 
-class MpmSolverNode : public Node, public TimeSteppedSimulation {
+/// What a field builder reads from the solver (VectorFieldSource::raw()). Documented and
+/// versioned: a change to the grid or particle layout bumps LAYOUT_VERSION, and the baseline
+/// builder (MpmBaselineFieldBuilder) is updated with it.
+struct MpmRawView {
+    static constexpr uint32_t LAYOUT_VERSION = 1;
+    uint32_t layout_version = LAYOUT_VERSION;
+
+    /* The particles, the grid geometry (domain_origin, dx, columns) and the placement on the map
+     * (world_from_metres): the same view the 3D renderer reads. */
+    const MpmParticleView* particles = nullptr;
+    /* grid_velocity of mpm_common.wgsl: one vec4f per node, xyz the velocity [m/s], w the node's
+     * mass in units of the normalised particle mass. Nodes of a column are grid_resolution.x *
+     * grid_resolution.y apart (layer-major), the layers stored from the column's terrain floor
+     * upwards; the nodes of tiles without flow are zero. nullptr before the first run. */
+    const webgpu::raii::RawBuffer<uint32_t>* grid_velocity = nullptr;
+    /* Per column: the first stored layer, in cells above the origin (i32). The band follows the
+     * terrain, so the layer of a node is not its altitude. */
+    const webgpu::raii::RawBuffer<uint32_t>* column_floor = nullptr;
+    glm::uvec3 grid_resolution = glm::uvec3(0); // columns in x and y, layers per column
+    /* Physical mass of one unit of node mass [kg] (the real snow volume of a particle times the
+     * density), and the density [kg/m^3]. kg_per_mass_unit is 0 until the first diagnostics
+     * readback of a run has told the volume. */
+    float kg_per_mass_unit = 0.0f;
+    float snow_density = 0.0f;
+    /* Real-time playback: 0..1 from the field before the last chunk to the one after it. */
+    float interpolation = 1.0f;
+    float simulated_time = 0.0f; // [s]
+    uint64_t generation = 0; // counts chunks that advanced the simulation; changes whenever grid_velocity does
+    uint64_t resource_generation = 0; // changes when the buffers are reallocated
+};
+
+class MpmSolverNode : public Node, public TimeSteppedSimulation, public VectorFieldSource {
     Q_OBJECT
 
 public:
@@ -482,6 +514,9 @@ public:
     float gpu_ms_per_step() const override { return m_perf.gpu_ms_per_substep; }
     void reset() override { request_reset(); }
 
+    /* VectorFieldSource: the grid velocity and what a builder needs to read it. */
+    RawSource raw() const override;
+
     void serialize_settings(QJsonObject& out) const override;
     void deserialize_settings(const QJsonObject& in) override;
 
@@ -631,6 +666,8 @@ private:
     bool m_readback_in_flight = false; // m_state_readback is being mapped - skip this run's copy
     bool m_readback_copied = false; // the last chunk of the current run copied the state
     uint32_t m_reset_count = 0; // tags readbacks, so one issued before a reset is dropped
+    uint64_t m_field_generation = 0; // chunks that advanced the simulation (MpmRawView::generation)
+    mutable MpmRawView m_raw_view; // refreshed by raw()
 
     /* GPU timing of the chunks: two query pairs, one per chunk in flight, each resolved into
      * its own MapRead buffer. A slot whose buffer is still mapped is simply not timed. */

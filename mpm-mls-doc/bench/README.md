@@ -47,7 +47,10 @@ Google Chrome, which uses Metal. The result's `adapter` field says which device 
 from a known particle state on a planar slope and compares every field of `struct Particle`
 after the substeps of two scenarios (free, contact) with the float64 reference of `scripts/make_golden_substep.py`
 (`golden/substep_golden.json`). `--chrome` / `--gpu` / `--shaders-rev` work as for
-`run_headless.mjs`; a mismatch exits with status 1. See [../06-verification.md §4p](../06-verification.md).
+`run_headless.mjs`; a mismatch exits with status 1. It also checks the grid velocity buffer: the node mass in `w`
+sums to the number of particles, nodes without mass hold no velocity, and after the flow has
+been moved 500 m the part of the grid it left is cleared (the mass still sums to the number of
+particles, not twice that). See [../06-verification.md §4p, §4q](../06-verification.md).
 
 ## What is measured
 
@@ -60,6 +63,9 @@ after the substeps of two scenarios (free, contact) with the float64 reference o
 | `simSecondsPerWallSecond` | Simulated time per wall second with the GPU doing nothing else - the ceiling for the app |
 | `memory.solverBytes` | GPU memory the solver owns (buffers + output texture), exact |
 | `physics.trace` | Centre of mass and speeds after every run - the fingerprint for A/B |
+
+`vectorField=1` also runs the baseline vector field builder (`mpm_vector_field.wgsl`, see
+[../16-vector-field.md](../16-vector-field.md)) once per run and reports it as the stage `vector_field`.
 
 `timing=pass` records one timestamp pair per submitted chunk instead of per stage, which is
 what the app does and avoids the per-pass overhead (use it for the total, `stages` for the

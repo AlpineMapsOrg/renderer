@@ -485,6 +485,44 @@ The contact scenario (one substep) agrees as closely: velocity 2.3e-4 m/s, posit
   masses are far below 2³² units), and runs longer than three substeps, where the f32/f64
   differences grow and contact flicker sets in.
 
+## 4q. Vector field — the grid velocity and the baseline builder (2026-11-09)
+
+The vector field ([16-vector-field.md](16-vector-field.md)) reads the whole grid velocity buffer,
+which the solver's own kernels never do, so three things are checked that §4p does not cover.
+
+**The grid velocity buffer** (`check_substep.mjs`, after the free scenario's three substeps with
+Stomakhin, then with the 300 particles moved 500 m and one more substep):
+
+| | Result | Expected |
+|---|---|---|
+| Node mass in `w`, summed over all nodes, after the 3 substeps | 300.0000 | 300 (each particle's weights add up to 1) |
+| The same after the move, one substep | 300.0000 | 300 |
+| Velocity on nodes without mass, both times | 0 | 0 |
+
+The second sum is the check on the tile clearing: with the `WAS_ACTIVE` bit switched off the grid
+update never revisits the tiles the flow left and the sum is 600 (measured), the old and the new
+mass. With the shaders from before the change the test fails at once (the mass is not written, and
+the old tiles hold velocity without mass). The whole-kernel errors of §4p are unchanged to the
+digit (velocity 3.3e-4 m/s, position 4.9e-4 m, F 1.6e-6 after three substeps), so the grid update
+change does not touch the physics. The benchmark's centre-of-mass trace is identical to the
+previous kernels' (maximum difference 0 in three A/B runs).
+
+**The baseline builder** (`test_VectorField.cpp`): the real `MpmBaselineFieldBuilder` and
+`mpm_vector_field.wgsl` on a synthetic grid velocity of 24 × 16 columns with 6 layers, with empty
+columns (velocity without mass, which must not count), flow columns (random mass and velocity) and
+fringe columns (almost no mass, a velocity of up to 150 m/s, which must not show). Every record is
+compared with a float64 reference: velocity, depth and mass to 1e-4 relative, flags exactly,
+pressure and coherence zero. The update protocol is checked too: the second update goes to the
+other buffer and leaves the first intact as `previous`; the same generation again encodes nothing
+and only updates the interpolation; a third update returns to the first buffer; a reseed drops
+`previous`; without a grid there is no field. A second case with an unknown particle volume checks
+that only the velocity is valid then. Two mutations of the kernel are detected: an unweighted
+average, and the missing fringe threshold. 3 cases, 15 399 assertions.
+
+**In the app:** the app starts the avalanche scenario (AvaFrame avaHit on the map) and runs for 48 s
+with the changed grid update and the reset that clears the grid velocity, with no error in the
+log. A reader of the field does not exist yet, so the builder has not run in the app.
+
 ## 5. On real terrain
 
 Runs end to end on the Schneeberg DEM: seeds, flows downhill, deposits, animates, and the

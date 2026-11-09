@@ -50,6 +50,13 @@ try {
             }
         }
     }
+    // The grid velocity buffer: node mass in w, and the old part of the grid cleared once the flow has moved.
+    const g = result.grid;
+    const massOk = (m) => Math.abs(m - g.particles) <= 1e-3; // each particle's weights add up to 1; fixed point at 2^-20
+    const gridOk = massOk(g.massBefore) && massOk(g.massAfter) && g.velocityWithoutMassBefore === 0 && g.velocityWithoutMassAfter === 0;
+    if (!gridOk) failed = true;
+    console.log(`  grid     node mass ${g.massBefore.toFixed(4)} -> ${g.massAfter.toFixed(4)} after the flow moved 500 m (expected ${g.particles}); ` +
+        `velocity on nodes without mass ${g.velocityWithoutMassBefore} / ${g.velocityWithoutMassAfter}${gridOk ? '' : ' !!'}`);
     console.log(failed ? 'FAILED' : 'all fields within tolerance');
 } finally {
     await browser.close();

@@ -9,6 +9,8 @@
 | `nodes/MpmSolverNode.h/.cpp` | The solver. Owns particles, grid and sim state on the GPU; runs the substep loop. |
 | `nodes/GeoRegionNode.h/.cpp` | Emits a region AABB from lat/lon + extent, so a scenario needs no GPX file. |
 | `TimeSteppedSimulation.h` | Interface of a simulation the driver plays back frame by frame; `MpmSolverNode` implements it. See [13-simulation-driver.md](13-simulation-driver.md). |
+| `VectorField.h` | `VectorField`, `FieldBuilder` and `VectorFieldSource`: the neutral flow field and how a model hands its raw data to whatever builds it. `MpmSolverNode` implements `VectorFieldSource`. See [16-vector-field.md](16-vector-field.md). |
+| `nodes/MpmVectorFieldBuilder.h/.cpp` | `MpmBaselineFieldBuilder`: the baseline `FieldBuilder` for the MLS-MPM solver. |
 | `SimulationClock.h/.cpp` | Per-simulation playback: real time (fixed-step accumulator, speed 0.1–4x) or accuracy (as fast as the GPU budget allows); play/pause/step and the speed readout. |
 | `SimulationDriver.h/.cpp` | Ticks the clock of every `TimeSteppedSimulation` in the graph once per frame, from `ImGuiManager::render()`. |
 | `nodes/AvaFrameReleaseNode.h/.cpp` | Map graph: AvaFrame's release areas resampled onto the region (`resample_release()`, through the dataset's affine placement) and handed to the solver as a `ReleaseArea` (R32Float depth texture, bounds, volume), with the entrainment area the same way (`resample_depth()`, `ReleaseArea::entrainment_*`). Null without data. See [14-avaframe-release-on-map.md](14-avaframe-release-on-map.md), [15-entrainment.md](15-entrainment.md). |
@@ -29,6 +31,8 @@
 | `shaders/mpm_refresh_stress.wgsl` | Recomputes the cached particle stress after a material edit without a reseed. |
 | `shaders/mpm_splat.wgsl` | Accumulates particles into a density raster. |
 | `shaders/mpm_rasterize.wgsl` | Density raster → RGBA texture. |
+| `shaders/vector_field.wgsl` | The baseline vector field record (`FieldRecord`, 32 bytes) and its flag bits; binding-free, shared by every model's builder and every reader. See [16-vector-field.md](16-vector-field.md). |
+| `shaders/mpm_vector_field.wgsl` | The solver's baseline vector field: the grid velocity averaged over depth, one record per column. Own bind group, run by `MpmBaselineFieldBuilder`, not part of the solver's pass. |
 
 ### Rendering (`webgpu/engine/`)
 
@@ -69,7 +73,7 @@ and where: [12-rendering.md](12-rendering.md).
 | `apps/webgpu_app/compute/NodeGraphPanel.h` | Added `node_graph()` accessor so other panels can reach the graph. |
 | `apps/webgpu_app/compute/NodeGraphPanel.cpp` | Preset list entry. |
 | `apps/webgpu_app/ImGuiManager.h/.cpp`, `App.cpp` | Registers `AvalanchePanel` (guarded by `ALP_WEBGPU_APP_ENABLE_COMPUTE`); owns the `SimulationDriver`. `App::render()` ticks it (`tick_simulations()`) before the frame is painted, also with the GUI hidden, and repaints every frame while a simulation plays. |
-| `unittests/CMakeLists.txt`, `unittests/webgpu_compute/` | `unittests_webgpu_compute`: the simulation clock against a fake simulation; the release resampling; `test_MpmGolden.cpp`, the GPU golden tests of the MPM shader functions (inputs and expected outputs in `golden/mpm_golden.json`, from `mpm-mls-doc/scripts/make_golden.py`). Not run on CI: they need a GPU. |
+| `unittests/CMakeLists.txt`, `unittests/webgpu_compute/` | `unittests_webgpu_compute`: the simulation clock against a fake simulation; the release resampling; `test_MpmGolden.cpp`, the GPU golden tests of the MPM shader functions (inputs and expected outputs in `golden/mpm_golden.json`, from `mpm-mls-doc/scripts/make_golden.py`); `test_VectorField.cpp`, the baseline vector field builder against a float64 reference. Not run on CI: they need a GPU. |
 | `mpm-mls-doc/bench/` | Kernel benchmark (`index.html`, `mpm_bench.js`, `run_headless.mjs`) and the whole-kernel substep test (`check_substep.html`, `check_substep.mjs`, reference in `golden/substep_golden.json` from `scripts/make_golden_substep.py`); `headless_common.mjs` is shared by both drivers. See [bench/README.md](bench/README.md). |
 | `apps/webgpu_app/resources.qrc` | Graph resource. |
 | `webgpu/engine/Context.h/.cpp`, `apps/webgpu_app/RenderingContext.cpp` | The engine context owns an `AvalancheRenderer` (`avalanche_renderer()`); the app creates it and registers `ParticleRenderNode`. |

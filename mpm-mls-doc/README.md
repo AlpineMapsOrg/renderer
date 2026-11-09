@@ -31,6 +31,9 @@ weBIGeo already had a statistical trajectory model for avalanches. This project 
   that plays any time-stepped compute node back frame by frame: in real time at 0.1–4× with
   interpolation, or as fast as the GPU allows. MPM is the first node that uses it
   ([13](13-simulation-driver.md)).
+- **A vector field for flow visualisation.** A neutral per-cell flow field and the interfaces that
+  hand it from a model to a reader, with a tested baseline builder for the MLS-MPM solver and room
+  for experimental builders ([16](16-vector-field.md)).
 - **3D avalanche rendering on the map.** An `AvalancheRenderer` in the engine that draws the
   flow into the G-buffer: a draped flow surface, the track, the snow cover, and the particles
   as powder, ellipsoids or spheres ([12](12-rendering.md)).
@@ -70,6 +73,7 @@ weBIGeo already had a statistical trajectory model for avalanches. This project 
 | [12-rendering.md](12-rendering.md) | **3D rendering on the map**: what is implemented and where — particles (spheres, ellipsoids, detail particles, powder), the mass-splat flow surface, track and snow cover, the frame order, panel controls, limits. |
 | [14-avaframe-release-on-map.md](14-avaframe-release-on-map.md) | **AvaFrame release areas on the map**: the five AvaFrame scenarios release from AvaFrame's areas (resampled through the affine placement), what is approximate, measurements. |
 | [15-entrainment.md](15-entrainment.md) | **Entrainment**: the flow picks up the snow cover (com1DFA's plowing and erosion), cover per grid column from AvaFrame's entrainment areas or one thickness, eroded snow from a particle pool; files, panel, validation against com1DFA with entrainment. |
+| [16-vector-field.md](16-vector-field.md) | **Vector field**: the neutral flow field (vector and attributes per cell) the avalanche models hand to whatever draws or exports it; the record, the interfaces, the MLS-MPM baseline builder, tests and cost. |
 | [13-simulation-driver.md](13-simulation-driver.md) | **Playback**: the generic `TimeSteppedSimulation` interface and `SimulationDriver`, real time (fixed-step loop with interpolation, one chunk per frame, 0.1–4x) vs accuracy, with measurements. |
 | [avaframe/](avaframe/README.md) | **AvaFrame comparison, phase 1**: prepares AvaFrame's test cases (DEM, release, com1DFA reference rasters, AIMEC path, map overlays) for comparing against the MPM solver. |
 | [refs.md](refs.md) | Bibliography. |

@@ -37,6 +37,33 @@ function compare(gpu, expected, particles) {
   return out;
 }
 
+// The grid velocity buffer after the scenario's substeps: the node mass in w sums to the particles'
+// mass (each particle's weights add up to 1), nodes without mass hold no velocity, and after the
+// flow has moved to another part of the grid the old part is cleared (the grid update runs once
+// more on a tile it processed in the previous substep). Without the clearing the second sum
+// would be twice the first.
+async function checkGrid(bench, golden, t) {
+  const sum = (g) => { let m = 0; for (let n = 0; n < g.length; n += 4) m += g[n + 3]; return m; };
+  const staleVelocity = (g) => { let v = 0; for (let n = 0; n < g.length; n += 4) if (g[n + 3] === 0) v = Math.max(v, Math.abs(g[n]), Math.abs(g[n + 1]), Math.abs(g[n + 2])); return v; };
+  const before = await bench.readGridVelocity();
+  const particles = await bench.readParticles();
+  const moved = new Float32Array(particles);
+  const SHIFT = 500; // metres in x, far beyond a stencil
+  for (let p = 0; p < golden.particles; p++) {
+    moved[p * 32] += SHIFT;
+    moved[p * 32 + 2] += t.sx * SHIFT; // the terrain is a plane: stay at the same height above it
+  }
+  bench.setParticles(moved);
+  bench.cfg.substepsPerRun = bench.cfg.substepsPerSubmit = 1;
+  await bench.run(false);
+  const after = await bench.readGridVelocity();
+  return {
+    particles: golden.particles,
+    massBefore: sum(before), massAfter: sum(after),
+    velocityWithoutMassBefore: staleVelocity(before), velocityWithoutMassAfter: staleVelocity(after),
+  };
+}
+
 async function main() {
   const golden = await (await fetch('./golden/substep_golden.json')).json();
   const { device, adapterInfo } = await requestDevice();
@@ -60,6 +87,7 @@ async function main() {
         done = target;
         errors[`after${target}`] = compare(await bench.readParticles(), entry[`after${target}`], golden.particles);
       }
+      if (scenario.name === 'free' && entry.material === 'stomakhin') result.grid = await checkGrid(bench, golden, t);
       result.scenarios[scenario.name][entry.material] = errors;
       log(`${scenario.name} ${entry.material}: ${JSON.stringify(errors)}`);
       bench.destroy();

@@ -23,13 +23,16 @@
 
 // Stage 2 of the MPM step: turn accumulated momentum into velocity, apply gravity and
 // resolve boundary conditions (terrain and domain walls). The velocity goes to grid_velocity
-// as plain floats for G2P; the fixed-point accumulators are zeroed on the way out, because
-// this pass is their last reader - the next P2G finds a clean grid without a clear pass.
+// as plain floats for G2P, with the node's mass in the fourth component; the fixed-point
+// accumulators are zeroed on the way out, because this pass is their last reader - the next P2G
+// finds a clean grid without a clear pass.
 //
 // One workgroup per TILE_SIZE x TILE_SIZE tile of columns, each thread walks its column's
 // layers. Tiles that no particle's stencil reached this substep (P2G flags them, see
 // mark_tiles() in mpm_common) return straight away: their accumulators are still zero and no
-// particle will read their velocities.
+// particle will read their velocities. The exception is a tile that was processed in the previous
+// substep: it runs once more, finds no mass and zeroes its nodes' velocity and mass, so the grid
+// never holds the values of a flow that has moved on (TILE_WAS_ACTIVE in mpm_common).
 //
 // References (sections, equations and pages as in the PDFs; full list in mpm-mls-doc/refs.md):
 //   Hu 2018         Y. Hu et al., "A moving least squares material point method with displacement
@@ -91,7 +94,7 @@ fn update_node(node_xy: vec2i, layer: i32, cell: u32, flow_depth: f32) -> vec2f 
     if node_xy.y >= res.y - 3 && velocity.y > 0.0 { velocity.y = 0.0; }
     if layer >= res.z - 3 && velocity.z > 0.0 { velocity.z = 0.0; }
 
-    grid_velocity[cell] = vec4f(velocity, 0.0);
+    grid_velocity[cell] = vec4f(velocity, mass);
     return vec2f(mass, mass * length(velocity));
 }
 
@@ -167,11 +170,14 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>, @builtin(workgroup_
         tile_active = atomicLoad(&tile_flags[tile]);
     }
     // Barrier included: every thread has the flag before thread 0 resets it below.
-    if workgroupUniformLoad(&tile_active) == 0u {
+    let flags = workgroupUniformLoad(&tile_active);
+    if flags == 0u {
         return;
     }
     if local_index == 0u {
-        atomicStore(&tile_flags[tile], 0u); // the next P2G flags it again if still needed
+        // The next P2G flags the tile again if still needed; if it does not, the next pass
+        // clears the tile once and drops the flag.
+        atomicStore(&tile_flags[tile], select(0u, TILE_WAS_ACTIVE, (flags & TILE_FLAGGED) != 0u));
     }
 
     if any(id.xy >= settings.grid_res.xy) {

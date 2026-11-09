@@ -23,6 +23,7 @@ alp_add_unittest(unittests_webgpu_compute
     test_SimulationClock.cpp
     test_ReleaseResampling.cpp
     test_MpmGolden.cpp
+    test_VectorField.cpp
 )
 
 target_link_libraries(unittests_webgpu_compute PUBLIC webgpu_compute)

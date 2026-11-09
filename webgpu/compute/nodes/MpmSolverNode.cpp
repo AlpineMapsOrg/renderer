@@ -796,6 +796,25 @@ void MpmSolverNode::on_state_mapped(float time, float gravity, uint32_t substeps
         append_energy_sample(time, gravity);
 }
 
+RawSource MpmSolverNode::raw() const
+{
+    MpmRawView& view = m_raw_view;
+    view.particles = &m_particle_view;
+    view.grid_velocity = m_grid_velocity_buffer.get();
+    view.column_floor = m_column_floor_buffer.get();
+    view.grid_resolution = m_allocated_grid_res;
+    const auto& uniform = m_settings_uniform.data;
+    view.snow_density = uniform.snow_density;
+    // The real volume of a particle is only known once the diagnostics have been read back; the
+    // grid's mass is in units of the normalised particle mass (settings.particle_mass).
+    view.kg_per_mass_unit = float(m_last_state.particle_volume * double(uniform.snow_density) / double(std::max(uniform.particle_mass, 1e-12f)));
+    view.interpolation = m_particle_view.interpolation;
+    view.simulated_time = m_simulated_time;
+    view.generation = m_field_generation;
+    view.resource_generation = m_resource_generation;
+    return &view;
+}
+
 double MpmSolverNode::particle_volume_from(const std::vector<uint32_t>& state) const
 {
     // As seeded_particle_volume() in mpm_common.wgsl: the release volume shared out.
@@ -1114,6 +1133,7 @@ void MpmSolverNode::submit_chunk(uint32_t substeps, bool last_chunk)
         if (keep)
             m_particle_buffer->copy_to_buffer(encoder.handle(), *m_previous_particles);
         m_particle_view.previous_particles = keep ? m_previous_particles.get() : nullptr;
+        m_field_generation++;
     }
 
     // Cleared outside the compute pass; the density raster only accumulates once per run.
@@ -1124,6 +1144,9 @@ void MpmSolverNode::submit_chunk(uint32_t substeps, bool last_chunk)
     // in case a previous run was abandoned half way (graph replaced, device hiccup).
     if (m_run_first_chunk && m_run_is_reset) {
         m_grid_buffer->clear(encoder.handle());
+        // The tiles of the previous flow are not flagged any more, so the grid update would never
+        // clear their velocities (see TILE_WAS_ACTIVE in mpm_common.wgsl).
+        m_grid_velocity_buffer->clear(encoder.handle());
         m_tile_flag_buffer->clear(encoder.handle());
         m_column_peak_buffer->clear(encoder.handle());
     }

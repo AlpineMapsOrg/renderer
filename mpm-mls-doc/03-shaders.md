@@ -9,7 +9,7 @@ which is why one bind group layout and one bind group serve all of them.
 One node execution, all inside a **single compute pass**:
 
 ```
-[buffer clear] density_raster; on reset also grid, tile_flags (flags and sort data), column_stats   (outside the pass)
+[buffer clear] density_raster; on reset also grid, grid_velocity, tile_flags (flags and sort data), column_stats   (outside the pass)
 begin compute pass                                                  (one per chunk)
   if reset:  mpm_prepare  →  mpm_seed
   else if a stress parameter changed since the last run:  mpm_refresh_stress
@@ -214,15 +214,15 @@ workgroup. P2G went from ~70 % to ~45 % of the GPU time, about 3× faster
 Stage 2. Each thread owns one column and walks its layers (the band, not altitudes).
 
 ```
-thread 0: active = tile_flags[tile];  workgroupUniformLoad → all threads
-if !active: return                                     # no particle touched this tile this substep
-thread 0: tile_flags[tile] = 0                         # P2G of the next substep flags it again
+thread 0: flags = tile_flags[tile];  workgroupUniformLoad → all threads
+if flags == 0: return                                  # no particle touched this tile, and it was not processed last substep
+thread 0: tile_flags[tile] = (flags & FLAGGED) ? WAS_ACTIVE : 0   # P2G of the next substep flags it again
 if Voellmy:                                            # uniform branch
     flow_depth = Σ_layers node_mass · seeded_particle_volume() / dx²   # local depth of the column
 for layer in 0 .. res.z:
     cell = layer · res.x · res.y + column(x, y)
     read mass (lo/hi) and momentum; zero them unless already zero   # replaces the clear pass
-    if mass <= 0:  grid_velocity[cell] = 0; continue
+    if mass <= 0:  grid_velocity[cell] = 0 (xyz and mass); continue
     v = momentum / mass
 v.z −= gravity · dt
 
@@ -231,10 +231,18 @@ if world.z < terrain_height(world.xy):
     v = resolve_terrain_collision(v, terrain_normal(world.xy), true, flow_depth)   # basal drag applied here
 
     clamp at domain walls (2-node margin, only blocks outflow)
-    grid_velocity[cell] = v                            # plain floats for G2P
+    grid_velocity[cell] = (v, mass)                    # plain floats for G2P (xyz); the mass is for the vector field
 ```
 
-Nodes outside flagged tiles are never visited: their accumulators are still zero from the
+A tile's flag word has two bits: `FLAGGED` (P2G reached the tile in this substep) and `WAS_ACTIVE`
+(the grid update processed it in the previous substep). A tile with only the second bit has lost
+its flow: the grid update runs on it once more, finds no mass and zeroes the velocity and mass of
+its nodes, then drops the flag. So `grid_velocity` never holds the values of a flow that has moved
+on, which matters to anything that reads the whole grid, such as the vector field
+([16-vector-field.md](16-vector-field.md)). G2P never reads those nodes, so the physics does not
+depend on it.
+
+Nodes in tiles with neither bit are never visited: their accumulators are still zero from the
 last time they were consumed, and no particle's stencil reads their velocity this substep.
 
 **Peaks (2026-10-10, AvaFrame comparison).** After the layer loop the thread updates its
