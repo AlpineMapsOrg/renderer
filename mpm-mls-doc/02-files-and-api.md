@@ -156,7 +156,7 @@ Async callbacks (work done, buffer maps) never capture `this`: they carry a copy
 `m_alive`, a `shared_ptr<MpmSolverNode*>` the destructor sets to null, so a callback that
 fires after the graph was replaced returns instead of touching a destroyed node.
 
-> **Gotcha, learned the hard way (SIGSEGV).** An output socket returning `unique_ptr::get()`
+> **Pitfall (it crashes with SIGSEGV).** An output socket returning `unique_ptr::get()`
 > is **null until its node has run**. `is_socket_connected()` returning true does *not* mean
 > there is data. `rerun()` re-runs only one node using the last buffered context, so any UI
 > control that calls it before a full graph run will dereference null. Always gate on

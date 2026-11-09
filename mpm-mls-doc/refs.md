@@ -1,6 +1,6 @@
 # References
 
-Numbering matches the Notion proposal so the report can reuse it.
+Numbering matches the project proposal.
 
 These notes cite and paraphrase; they don't reproduce text from the papers. Pull actual
 wording from the sources.
@@ -84,8 +84,8 @@ https://doi.org/10.5194/gmd-15-2423-2022
 → **com4FlowPy**, the data-driven comparison model (AvaFrame's implementation, default
 parameters). Its zδ is the height of the energy line above the terrain, a kinetic-energy
 height. The comparison turns it into a velocity, √(2g·zδ), the same conversion weBIGeo's
-trajectory shader uses (`avalanche_trajectories_compute.wgsl`). That conversion is ours: check it
-against the paper before quoting it.
+trajectory shader uses (`avalanche_trajectories_compute.wgsl`). The conversion is this
+project's, not taken from the paper.
 
 **AvaFrame** — open-source avalanche modelling framework (BFW, Univ. Innsbruck). Version 2.1
 (tag `2.1`, commit `9c3cefb`) for the test data and AIMEC; benchmarks computed with v1.11.

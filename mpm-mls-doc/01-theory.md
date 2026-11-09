@@ -167,7 +167,7 @@ through the dispatcher in `mpm_material.wgsl` (see [03-shaders.md](03-shaders.md
 **Paper parameter values** (Stomakhin et al. [5], Table 2) are the defaults in the code:
 E = 1.4e5 Pa, ν = 0.2, ξ = 10, θ_c = 2.5e-2, θ_s = 7.5e-3, ρ = 400 kg/m³.
 
-> Caveat worth putting in the report: those values were tuned for metre-scale snow in a
+> Caveat: those values were tuned for metre-scale snow in a
 > film-VFX context. At the default 12.5 m grid cells they are not obviously the right numbers,
 > and the result behaves more like a viscous flow than a fracturing slab. This is a resolution
 > limitation, not a bug in the model.

@@ -56,16 +56,16 @@ in the last run whose stencil touched the band ceiling or the domain walls, wher
 stops outward flow. It should stay at 0 %. If it doesn't, the runout and deposit are partly
 the box's doing: raise Grid layers (ceiling) or enlarge / move the domain (walls).
 
-Two traps from the Li papers, already baked in so they aren't rediscovered: **warm plug has
+Two points from the Li papers that the presets follow: **warm plug has
 the lowest M with the highest β**, and **ξ, not Mβ, is what separates sliding slab from
 warm plug**. Also: in 3D on real terrain, Li's Cases II and III did *not* reproduce their 2D
-regimes — expect re-tuning and say so in the report.
+regimes, so the presets may need re-tuning on real terrain.
 
 **Switching the material model reseeds.** The per-particle plastic state means different
 things per model (Jp / plastic strain / α); particles seeded under one model are garbage
 under another. Both panels force a reset on a model change.
 
-## The two relationships to keep in your head
+## The two relationships that set everything else
 
 **1. Grid spacing.** `dx = domain_size / grid_resolution_xy`. Everything else follows:
 the band above the terrain is `dx × grid_layers` (needs to cover piles, *not* the relief —

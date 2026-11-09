@@ -5,7 +5,7 @@ and compared on. That covers the DEM, the release thickness, the com1DFA referen
 path. For real datasets it also writes PNG overlays for weBIGeo's Overlays panel. Those put
 the com1DFA result on the map at its true location.
 
-This is phase 1 of the AvaFrame comparison plan (Notion: "AvaFrame comparison"). Later phases:
+This is phase 1 of the AvaFrame comparison. Later phases:
 2. a sandbox terrain node in the app;
 3. peak rasters from the MPM solver;
 4. display;

@@ -1,9 +1,6 @@
 # 12 — Rendering the avalanche in 3D
 
-How the MPM avalanche is drawn on the map, and where each part lives. The background research
-with sources is
-[Avalanche Particle Rendering](https://claude.ai/artifact/PWiuxTHUn9LvobGEQpksXj) (claude.ai,
-private), linked from the Notion page "Rendering MPM Particles and Avalanche Surfaces".
+How the MPM avalanche is drawn on the map, and where each part lives.
 
 **Scope:** map mode only. Only the map graph (`mpm_avalanche_simulation.json`) has the
 "Particles 3D" node, so the 3D controls appear only there. The sandbox keeps its 2D density
@@ -266,5 +263,4 @@ The settings live in `AvalancheRenderer::Settings` and are serialised by `Partic
 - **Screen-space triangulation:** noisy on a moving cloud.
 - **Screen-space fluid rendering:** looks liquid and is view-dependent. Still an option for
   smoothing.
-- **Further ideas** (a ray-marched grid volume for powder, and others): the Notion page
-  "Rendering — future work".
+- **A ray-marched grid volume for powder:** a further option, not tried.

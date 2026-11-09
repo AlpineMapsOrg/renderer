@@ -94,7 +94,7 @@ material, not a performance fallback for Cam Clay: both cost the same per subste
 lands on the cone to `|y| < 1.5e-10` over 500 random gradients; `test_mpm.py` with
 `MPM_MODEL=drucker_prager` shows the qualitative signature (spreads instead of piling).
 
-**One bug caught by the test, worth remembering:** the first draft sent *pure hydrostatic
+**One bug the test caught:** the first draft sent *pure hydrostatic
 compression* to the cone apex because it guarded Case II with `‖ε̂‖ = 0 OR tr > 0`.
 Hydrostatic compression has `ε̂ = 0` but sits *inside* the cone on its axis and must stay
 elastic. With `tr ≤ 0` the second term of δγ is ≤ 0, so `δγ > 0` already implies
@@ -384,7 +384,7 @@ Table 1 (the regime cases were designed for the same slope):
 | VdlS 2003 (verification) | CCC | 0.7 | 0.2 | 0.002 | 3 | 200 | 3 MPa | 0.3 | 0.49 |
 | Stomakhin 2013 | Stomakhin | — | — | 10 | — | 400 | 1.4e5 | 0.2 | 0.47 |
 
-Two traps from the paper summaries, now baked into the table so they aren't rediscovered:
+Two points from Li 2021 that the table follows:
 **warm plug has the lowest M with the highest β** (counter-intuitive but correct), and **ξ is
 what separates sliding slab from warm plug**, not Mβ. Also: Cases II and III did *not*
 reproduce their 2D regimes on real terrain in Li 2021, so the presets may need re-tuning on
@@ -403,4 +403,3 @@ Numbering per the proposal. Full entries in [refs.md](refs.md).
 - [13] Li, Sovilla, Jiang, Gaume 2021 — 3D real terrain + Table 1, *Landslides* 18, 3393
 - Klár et al. 2016 — Drucker–Prager, *ACM TOG* 35(4)
 - Tonnel et al. 2023 — com1DFA (Coulomb/Voellmy/samosAT, energy line test), *GMD* 16, 7013
-- Full paper notes: Notion → *Snow/Avalanche Sim Paper Summaries*

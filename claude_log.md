@@ -13,6 +13,19 @@ capture of the terminal.
 
 ---
 
+## 2026-11-09
+
+### 1. Notes to self and private links removed from the docs
+
+Living docs only (dated reports and audits unchanged). "For the report" asides removed or
+turned into plain statements (01, 04, 05, 06, refs); private claude.ai artifact links and
+Notion pointers removed, since outside readers cannot open them (07, 12, 15, avaframe/README;
+06 keeps the shader verification report's title without "Notion"); author-directed wording
+("traps baked in so they aren't rediscovered", "keep in your head", "learned the hard way")
+rephrased (02, 05, 07).
+
+---
+
 ## 2026-11-08
 
 ### 2. Documentation pass for outside readers

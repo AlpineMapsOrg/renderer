@@ -7,7 +7,7 @@ The verification has four layers, from the formulas to the running app:
 
 | Layer | What it shows | Where |
 |---|---|---|
-| Formulas against the papers | every formula of the shaders matches its source, deviations stated | the shader verification report (Notion, "Verification of the MLS-MPM snow solver shaders") |
+| Formulas against the papers | every formula of the shaders matches its source, deviations stated | the separate shader verification report, "Verification of the MLS-MPM snow solver shaders" |
 | Python ports of the shader functions | the formulas have the properties the papers state (yield surfaces, closed-form slope mechanics, energy line) | §2–§4i, `scripts/` |
 | GPU golden tests and the whole-kernel substep test | the WGSL on the GPU computes what the ports compute, the functions alone and the kernels together | §4o, §4p |
 | Runs on the device and on real terrain | the app does what the parts promise: diagnostics, playback, AvaFrame comparison | §4f–§4n, §5 |
@@ -491,8 +491,7 @@ Runs end to end on the Schneeberg DEM: seeds, flows downhill, deposits, animates
 domain-centre readout matches the intended coordinates.
 
 **Not quantitatively validated.** No comparison against a real avalanche, a reference
-implementation, or measured runout. The proposal is explicit that this is educational, and
-that should stay explicit in the report.
+implementation, or measured runout. The proposal is explicit that this is educational.
 
 *Since 2026-10-11* there is a comparison against a reference implementation: AvaFrame's
 com1DFA on five real avalanches, rated with AIMEC ([11-avaframe-comparison.md](11-avaframe-comparison.md)).
@@ -572,7 +571,7 @@ Worth keeping — they are the interesting part of the implementation story.
    low-weight node, and APIC feeds it back. Fixed by rounding both accumulators and moving
    the mass to a 64-bit `u32` pair at 2⁻²⁰ (§4h). On device afterwards: max speed 21–26 m/s
    for the whole run, `μ_eff` 0.58 → 0.49 against a basal 0.47, flow stops at 340–380 m.
-   Lesson for the report: **verify the numerics at the production scale, including the
+   The lesson: **verify the numerics at the production scale, including the
    integer arithmetic** — the maths port had passed everything.
 
    Detours that were ruled out along the way, so nobody repeats them: particle-level speed

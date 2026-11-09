@@ -1,8 +1,6 @@
 # 15 — Entrainment
 
-How the avalanche picks up snow along its path, and where each part lives. Research and the
-earlier particle-cover idea: Notion "Entrainment with a particle snow cover — research and
-feasibility (12.10.2026)"; this page is what was built.
+How the avalanche picks up snow along its path, and where each part lives.
 
 **Scope:** everywhere the solver runs.
 
@@ -92,8 +90,6 @@ cover in the domain, the entrained volume (as cover) and mass, and a warning whe
 ran out.
 
 ## Validation against com1DFA with entrainment (2026-10-27)
-
-Report with chart: [Avalanche Entrainment](https://claude.ai/artifact/3j7VDeZNRUf3mF3sE9TpNc) (claude.ai, private).
 
 **Setup.** com1DFA 2.1 computed locally (`avaframe/run_com1dfa.py`) on the five avalanches in
 three modes (null, erosion, plowing), with the null-test benchmarks' settings (samosAT,

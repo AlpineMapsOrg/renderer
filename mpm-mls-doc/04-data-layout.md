@@ -128,8 +128,6 @@ physical. A very dense seeding is the one way to hit it; see [05-tuning.md](05-t
 
 ### The mass normalisation trick
 
-This is the part worth explaining in the report.
-
 Real avalanche masses are large — a grid node can easily see ~10⁶ kg. At scale 1e4 that
 overflows i32 immediately. Choosing a scale factor that works for all scenarios is not
 possible if masses vary by orders of magnitude.
