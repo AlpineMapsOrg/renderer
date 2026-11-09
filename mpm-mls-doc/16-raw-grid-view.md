@@ -22,7 +22,7 @@ The entry point is `MpmSolverNode::raw_view()`, which returns an `MpmRawView`
 | `simulated_time` | Simulated time since the last reset [s] |
 | `generation` | Counts the chunks that advanced the simulation; changes whenever `grid_velocity` does |
 | `resource_generation` | Changes when the solver reallocates its buffers: rebuild bind groups |
-| `layout_version` | Bumped whenever the grid or particle layout changes (`MpmRawView::LAYOUT_VERSION`) |
+| `layout_version` | `MPM_LAYOUT_VERSION`: bumped whenever the layout of the particles, the column stats, the grid velocity or the column floors changes. `MpmParticleView` carries it too |
 
 The velocity is in the solver's metre frame, with z up; the linear part of
 `particles->world_from_metres` turns its direction into the map's.
@@ -75,7 +75,8 @@ G2P reads only nodes in flagged tiles, so none of this changes the physics.
   diagnostics readback (`kg_per_mass_unit`); depth is `w`-sum · `kg_per_mass_unit` /
   (`snow_density` · `dx²`).
 - **The layout is versioned.** It changes with solver optimisations (a fused G2P2G would need a
-  double-buffered grid); `layout_version` tells a reader when to update.
+  double-buffered grid); `layout_version` tells a reader when to update. The renderer's copy of the
+  layout is guarded at compile time ([04-data-layout.md](04-data-layout.md), layout version).
 
 ## Verification
 

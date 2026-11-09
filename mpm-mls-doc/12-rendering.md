@@ -68,7 +68,10 @@ own after compose.
 ## From the solver to the renderer
 
 - **The particle view.** `MpmSolverNode` exposes `MpmParticleView` and keeps it current
-  across buffer reallocations.
+  across buffer reallocations. The renderer's shaders copy the layout of the solver's buffers
+  (`PARTICLE_STRIDE_VEC4`, `COLUMN_STATS_STRIDE_U32`); `ParticleRenderNode.cpp` `static_assert`s
+  that `AvalancheRenderer::SOLVER_LAYOUT_VERSION` equals the solver's `MPM_LAYOUT_VERSION`, so a
+  layout change fails the build until the shaders are updated.
 - **The source callback.** `ParticleRenderNode` sets an owner-tagged `Source` on the renderer.
   The callback reads the node's input socket every frame, so a reallocated buffer, or a solver
   that is disconnected or removed, is picked up at once. `clear_source(owner)` only clears its

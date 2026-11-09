@@ -140,6 +140,8 @@ const COVER_UNIFORM: u32 = 2u;
 // and P2G of the next substep only reads it - one SVD per particle and substep instead of two.
 // The particle volume is not stored: it is the same for every particle (settings.particle_volume,
 // mass is normalised to 1).
+// Read by code outside the solver (the avalanche renderer copies this layout): a change here bumps
+// MPM_LAYOUT_VERSION in MpmSolverNode.h and updates mpm-mls-doc/04-data-layout.md.
 struct Particle {
     position: vec3f,
     mass: f32, // 0 marks an inactive particle
@@ -291,6 +293,7 @@ struct PlasticReturn {
 // grid update, which owns each column in one thread, turns the sums into the column's mean
 // particle speed and zeroes them. Without that pass (on the map) the sums stay zero and only
 // the depth is tracked.
+// Read by the avalanche renderer, which copies this layout: see struct Particle.
 struct ColumnStats {
     peak_depth: f32, // [m], vertical: the column's (B-spline) mass as snow volume per area
     peak_speed: f32, // [m/s], mean speed of the particles in the column

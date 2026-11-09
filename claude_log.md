@@ -46,6 +46,11 @@ hers. Documented in `mpm-mls-doc/16-raw-grid-view.md`.
   the clearing switched off (mutation); the previous shaders fail the check. Benchmark A/B against
   `HEAD`, three runs at 131072 particles: 0.96-1.05x, centre-of-mass trace identical. The app ran the
   avaHit map scenario for 48 s with no errors in the log (prefs and imgui.ini restored).
+- **Layout version.** `MPM_LAYOUT_VERSION` (MpmSolverNode.h) versions the layout of `struct Particle`,
+  `struct ColumnStats`, `grid_velocity` and `column_floor`; `MpmParticleView` and `MpmRawView`
+  carry it. The renderer's copy of the layout is guarded at compile time: `ParticleRenderNode.cpp`
+  `static_assert`s `AvalancheRenderer::SOLVER_LAYOUT_VERSION` against it (checked: bumping the version
+  to 2 fails the build there). Procedure in `04-data-layout.md`.
 - **Not verified.** A reader of the raw view in a running app (none exists); a solver grid resize
   with a reader attached; the cost of the tile clearing on a long run-out (a 300-run benchmark was
   started and stopped); other GPUs than the M5.

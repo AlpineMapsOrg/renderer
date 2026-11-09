@@ -25,6 +25,11 @@
 
 namespace webgpu_compute::nodes {
 
+// The renderer's shaders copy the layout of the solver's buffers. When this fails, the layout has
+// changed: update the shaders' constants (PARTICLE_STRIDE_VEC4, COLUMN_STATS_STRIDE_U32 and what
+// they index) and AvalancheRenderer::SOLVER_LAYOUT_VERSION.
+static_assert(MPM_LAYOUT_VERSION == webgpu_engine::AvalancheRenderer::SOLVER_LAYOUT_VERSION, "the solver's data layout changed: see AvalancheRenderer::SOLVER_LAYOUT_VERSION");
+
 ParticleRenderNode::ParticleRenderNode(webgpu_engine::Context& context)
     : Node({ InputSocket(*this, "particle view", data_type<const MpmParticleView*>()) }, {})
     , m_context(&context)

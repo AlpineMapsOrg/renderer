@@ -52,6 +52,13 @@ namespace webgpu_engine {
 /// mpm-mls-doc/12-rendering.md.
 class AvalancheRenderer {
 public:
+    /// The solver layout these shaders were written for: struct Particle and struct ColumnStats
+    /// of mpm_common.wgsl, whose constants (PARTICLE_STRIDE_VEC4, COLUMN_STATS_STRIDE_U32, ...)
+    /// the shaders here copy. ParticleRenderNode.cpp static_asserts that it equals the solver's
+    /// MPM_LAYOUT_VERSION, so a layout change fails the build there until the shaders are
+    /// updated and this number is raised.
+    static constexpr uint32_t SOLVER_LAYOUT_VERSION = 1;
+
     enum class ColourMode : uint32_t { Snow = 0, Speed = 1 };
     /// Spheres, or ellipsoids stretched along the particle's current strain rate: the
     /// symmetric part of its velocity gradient (the APIC matrix C), integrated over a short

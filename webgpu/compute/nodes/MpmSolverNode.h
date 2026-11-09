@@ -63,11 +63,19 @@ struct SandboxTerrain;
 /// through its clock: advance() runs (accuracy) or advance_frame() chunks (real time, with the
 /// particles before each chunk kept for interpolation). A plain rerun() uses `substeps_per_run`
 /// and `substeps_per_submit` from the settings.
+/// The version of the solver's data layout that code outside the solver reads from the GPU
+/// buffers: struct Particle and struct ColumnStats of mpm_common.wgsl, grid_velocity and
+/// column_floor. Bump it whenever one of them changes. Readers that copy the layout compare it with
+/// the version they were written for: the renderer does so at compile time (ParticleRenderNode.cpp),
+/// others at run time through MpmParticleView::layout_version or MpmRawView::layout_version.
+constexpr uint32_t MPM_LAYOUT_VERSION = 1;
+
 /// What a renderer needs to draw the particles where they are, read straight from the GPU
 /// buffer (layout: struct Particle in mpm_common.wgsl, PARTICLE_STRIDE_U32 words each). Owned
 /// by the solver and kept current across reallocations, so a renderer can hold the pointer for
 /// the solver's lifetime and read it every frame.
 struct MpmParticleView {
+    uint32_t layout_version = MPM_LAYOUT_VERSION;
     const webgpu::raii::RawBuffer<uint32_t>* particles = nullptr; // nullptr before the first run
     uint32_t particle_count = 0; // allocated; inactive ones have mass 0
     /* Real-time playback with interpolation (SimulationClock): the particles as they were before
@@ -99,10 +107,9 @@ struct MpmParticleView {
 
 /// The solver's raw data for code that builds something from the flow field, such as a
 /// visualisation (MpmSolverNode::raw_view()). Documented and versioned: a change to the grid or
-/// particle layout bumps LAYOUT_VERSION. See mpm-mls-doc/16-raw-grid-view.md.
+/// particle layout bumps MPM_LAYOUT_VERSION. See mpm-mls-doc/16-raw-grid-view.md.
 struct MpmRawView {
-    static constexpr uint32_t LAYOUT_VERSION = 1;
-    uint32_t layout_version = LAYOUT_VERSION;
+    uint32_t layout_version = MPM_LAYOUT_VERSION;
 
     /* The particles, the grid geometry (domain_origin, dx, columns) and the placement on the map
      * (world_from_metres): the same view the 3D renderer reads. */

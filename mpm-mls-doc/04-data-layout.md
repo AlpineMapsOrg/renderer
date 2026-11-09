@@ -32,6 +32,24 @@ boundaries — the same normalized value lands on different ground. Geographic a
 converted where the region bounds are known, so tile snapping cannot move a scenario
 relative to the terrain.
 
+## Layout version
+
+Code outside the solver reads its buffers with a copy of their layout: the avalanche renderer's
+shaders (`PARTICLE_STRIDE_VEC4`, `COLUMN_STATS_STRIDE_U32`) and, through the raw view, anything that
+reads the grid velocity ([16-raw-grid-view.md](16-raw-grid-view.md)). `MPM_LAYOUT_VERSION` in
+`MpmSolverNode.h` versions what they read: `struct Particle` and `struct ColumnStats`
+(`mpm_common.wgsl`), `grid_velocity` and `column_floor`. `MpmParticleView` and `MpmRawView` carry
+it as `layout_version`.
+
+Changing one of those layouts means:
+
+1. Bump `MPM_LAYOUT_VERSION`.
+2. The build then fails in `ParticleRenderNode.cpp` (a `static_assert` against
+   `AvalancheRenderer::SOLVER_LAYOUT_VERSION`): update the renderer's shader constants and raise
+   `SOLVER_LAYOUT_VERSION`.
+3. Describe the change here and in `16-raw-grid-view.md`. Other readers see the new
+   `layout_version` at run time.
+
 ## `Particle` — 128 bytes
 
 ```wgsl
