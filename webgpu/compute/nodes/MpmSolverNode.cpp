@@ -796,7 +796,7 @@ void MpmSolverNode::on_state_mapped(float time, float gravity, uint32_t substeps
         append_energy_sample(time, gravity);
 }
 
-RawSource MpmSolverNode::raw() const
+const MpmRawView& MpmSolverNode::raw_view() const
 {
     MpmRawView& view = m_raw_view;
     view.particles = &m_particle_view;
@@ -812,7 +812,7 @@ RawSource MpmSolverNode::raw() const
     view.simulated_time = m_simulated_time;
     view.generation = m_field_generation;
     view.resource_generation = m_resource_generation;
-    return &view;
+    return view;
 }
 
 double MpmSolverNode::particle_volume_from(const std::vector<uint32_t>& state) const

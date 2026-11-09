@@ -37,7 +37,6 @@ export const DEFAULTS = {
     warmupRuns: 3,
     runs: 20,
     timing: 'stages', // 'stages' = one compute pass per stage with timestamps, 'pass' = one pass per chunk (as the app)
-    vectorField: 0, // 1: also run the baseline vector field builder (MpmBaselineFieldBuilder) once per run, as stage 'vector_field'
 };
 
 const MATERIALS = {
@@ -89,7 +88,7 @@ export async function loadKernelSources(shaderBase) {
         return out.join('\n');
     };
 
-    const names = ['mpm_prepare', 'mpm_seed', 'mpm_sort_count', 'mpm_sort_scan', 'mpm_sort_scatter', 'mpm_clear_grid', 'mpm_p2g', 'mpm_grid_update', 'mpm_g2p', 'mpm_refresh_stress', 'mpm_splat', 'mpm_rasterize', 'mpm_vector_field'];
+    const names = ['mpm_prepare', 'mpm_seed', 'mpm_sort_count', 'mpm_sort_scan', 'mpm_sort_scatter', 'mpm_clear_grid', 'mpm_p2g', 'mpm_grid_update', 'mpm_g2p', 'mpm_refresh_stress', 'mpm_splat', 'mpm_rasterize'];
     const kernels = {};
     for (const name of names) {
         if ((await read(name)) === null) continue; // a revision may not have every kernel
@@ -159,10 +158,7 @@ export class MpmBench {
         // negative or NaN chunk (e.g. from an empty form field) would never terminate.
         for (const k of ['substepsPerRun', 'substepsPerSubmit', 'particles', 'gridLayers', 'runs'])
             if (!Number.isInteger(this.cfg[k]) || this.cfg[k] < 1) throw new Error(`${k} must be a positive integer, got ${this.cfg[k]}`);
-        // The vector field kernel has its own bind group layout, so it is not one of the solver's.
-        const { mpm_vector_field: fieldKernel, ...solverKernels } = sources.kernels;
-        this.kernels = solverKernels;
-        this.fieldKernel = this.cfg.vectorField ? fieldKernel : undefined;
+        this.kernels = sources.kernels;
         this.schedule = detectSchedule(sources.common);
         // Entrainment (2026-10-27) grew the uniform to 240 B and the column stats to 24 B, and
         // split the particles into the release and a pool (left empty here).
@@ -202,7 +198,6 @@ export class MpmBench {
         this.resources = this.allocate();
         this.writeTerrain();
         this.packSettings();
-        if (this.fieldKernel) await this.initVectorField();
         this.bindGroup = d.createBindGroup({
             layout,
             entries: this.bindings.map(({ binding, name }) => {
@@ -222,32 +217,6 @@ export class MpmBench {
 
         const error = await d.popErrorScope();
         if (error) throw new Error(`validation: ${error.message}`);
-    }
-
-    // The baseline vector field (webgpu/compute/shaders/mpm_vector_field.wgsl, MpmBaselineFieldBuilder):
-    // its own pipeline and bind group; it only reads grid_velocity.
-    async initVectorField() {
-        const d = this.device;
-        const c = this.cfg;
-        const layout = d.createBindGroupLayout({ entries: [
-            { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'uniform' } },
-            { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
-            { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } },
-        ] });
-        const module = d.createShaderModule({ code: this.fieldKernel, label: 'mpm_vector_field' });
-        this.fieldPipeline = await d.createComputePipelineAsync({ layout: d.createPipelineLayout({ bindGroupLayouts: [layout] }), compute: { module, entryPoint: 'computeMain' }, label: 'mpm_vector_field' });
-        const params = this.buffer('field_params', 32, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-        const output = this.buffer('field', c.gridRes * c.gridRes * 32);
-        const data = new ArrayBuffer(32);
-        new Uint32Array(data, 0, 3).set([c.gridRes, c.gridRes, c.gridLayers]);
-        new Float32Array(data, 12, 4).set([c.domainSize / c.gridRes, 2.5, c.density, 0.5]); // dx, kg per mass unit, density, min mass
-        d.queue.writeBuffer(params, 0, data);
-        this.fieldBindGroup = d.createBindGroup({ layout, entries: [
-            { binding: 0, resource: { buffer: params } },
-            { binding: 1, resource: { buffer: this.resources.grid_velocity } },
-            { binding: 2, resource: { buffer: output } },
-        ] });
-        this.fieldWorkgroups = [Math.ceil(c.gridRes / 8), Math.ceil(c.gridRes / 8), 1];
     }
 
     buffer(name, size, usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC) {
@@ -496,14 +465,6 @@ export class MpmBench {
                     pass.setPipeline(this.pipelines[pipeline]);
                     pass.dispatchWorkgroups(...groups);
                 }
-                pass.end();
-            }
-            if (left === 0 && this.fieldPipeline) {
-                const pass = encoder.beginComputePass(perStage ? { timestampWrites: timestamps(queryIndex) } : {});
-                if (perStage) { labels.push('vector_field'); queryIndex += 2; }
-                pass.setPipeline(this.fieldPipeline);
-                pass.setBindGroup(0, this.fieldBindGroup);
-                pass.dispatchWorkgroups(...this.fieldWorkgroups);
                 pass.end();
             }
             if (left === 0) encoder.copyBufferToBuffer(this.resources.state, 0, this.stateRead, 0, SIM_STATE_BYTES);

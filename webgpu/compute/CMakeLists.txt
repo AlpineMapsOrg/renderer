@@ -26,7 +26,6 @@ set(SOURCES
     NodeGraphSerialization.h NodeGraphSerialization.cpp
     NodeRegistry.h NodeRegistry.cpp
     TimeSteppedSimulation.h
-    VectorField.h
     SimulationClock.h SimulationClock.cpp
     SimulationDriver.h SimulationDriver.cpp
 
@@ -44,7 +43,6 @@ set(SOURCES
     nodes/HeightDecodeNode.h nodes/HeightDecodeNode.cpp
     nodes/IterativeSimulationNode.h nodes/IterativeSimulationNode.cpp
     nodes/MpmSolverNode.h nodes/MpmSolverNode.cpp
-    nodes/MpmVectorFieldBuilder.h nodes/MpmVectorFieldBuilder.cpp
     nodes/GeoRegionNode.h nodes/GeoRegionNode.cpp
     nodes/LoadTextureNode.h nodes/LoadTextureNode.cpp
     nodes/AvaFrameSandboxNode.h nodes/AvaFrameSandboxNode.cpp
@@ -114,8 +112,6 @@ qt_add_resources(webgpu_compute "webgpu_compute_shaders"
         "${SHADER_BASE_DIR}/mpm_material_drucker_prager.wgsl"
         "${SHADER_BASE_DIR}/mpm_material_ccc.wgsl"
         "${SHADER_BASE_DIR}/mpm_friction.wgsl"
-        "${SHADER_BASE_DIR}/vector_field.wgsl"
-        "${SHADER_BASE_DIR}/mpm_vector_field.wgsl"
 
         "${SHADER_BASE_DIR}/tile_hashmap.wgsl"
         "${SHADER_BASE_DIR}/color_mapping.wgsl"

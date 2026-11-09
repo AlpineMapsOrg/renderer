@@ -20,7 +20,6 @@
 
 #include "Node.h"
 #include "../TimeSteppedSimulation.h"
-#include "../VectorField.h"
 
 #include <webgpu/base/Buffer.h>
 #include <webgpu/base/Context.h>
@@ -98,9 +97,9 @@ struct MpmParticleView {
     uint32_t reset_count = 0; // changes when the particles are released anew (Reset), so per-run memory can be cleared
 };
 
-/// What a field builder reads from the solver (VectorFieldSource::raw()). Documented and
-/// versioned: a change to the grid or particle layout bumps LAYOUT_VERSION, and the baseline
-/// builder (MpmBaselineFieldBuilder) is updated with it.
+/// The solver's raw data for code that builds something from the flow field, such as a
+/// visualisation (MpmSolverNode::raw_view()). Documented and versioned: a change to the grid or
+/// particle layout bumps LAYOUT_VERSION. See mpm-mls-doc/16-raw-grid-view.md.
 struct MpmRawView {
     static constexpr uint32_t LAYOUT_VERSION = 1;
     uint32_t layout_version = LAYOUT_VERSION;
@@ -122,14 +121,15 @@ struct MpmRawView {
      * readback of a run has told the volume. */
     float kg_per_mass_unit = 0.0f;
     float snow_density = 0.0f;
-    /* Real-time playback: 0..1 from the field before the last chunk to the one after it. */
+    /* Real-time playback: 0..1 from the particles before the last chunk (particles->previous_particles)
+     * to the ones after it. The grid keeps no previous state. */
     float interpolation = 1.0f;
     float simulated_time = 0.0f; // [s]
     uint64_t generation = 0; // counts chunks that advanced the simulation; changes whenever grid_velocity does
     uint64_t resource_generation = 0; // changes when the buffers are reallocated
 };
 
-class MpmSolverNode : public Node, public TimeSteppedSimulation, public VectorFieldSource {
+class MpmSolverNode : public Node, public TimeSteppedSimulation {
     Q_OBJECT
 
 public:
@@ -514,8 +514,9 @@ public:
     float gpu_ms_per_step() const override { return m_perf.gpu_ms_per_substep; }
     void reset() override { request_reset(); }
 
-    /* VectorFieldSource: the grid velocity and what a builder needs to read it. */
-    RawSource raw() const override;
+    /* The grid velocity and what is needed to read it. The reference stays valid as long as the
+     * node lives; the buffers in it are null while the solver has not run. */
+    const MpmRawView& raw_view() const;
 
     void serialize_settings(QJsonObject& out) const override;
     void deserialize_settings(const QJsonObject& in) override;
@@ -667,7 +668,7 @@ private:
     bool m_readback_copied = false; // the last chunk of the current run copied the state
     uint32_t m_reset_count = 0; // tags readbacks, so one issued before a reset is dropped
     uint64_t m_field_generation = 0; // chunks that advanced the simulation (MpmRawView::generation)
-    mutable MpmRawView m_raw_view; // refreshed by raw()
+    mutable MpmRawView m_raw_view; // refreshed by raw_view()
 
     /* GPU timing of the chunks: two query pairs, one per chunk in flight, each resolved into
      * its own MapRead buffer. A slot whose buffer is still mapped is simply not timed. */

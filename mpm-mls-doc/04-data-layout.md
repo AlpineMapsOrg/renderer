@@ -73,8 +73,8 @@ struct GridNode {
 grid update reads them, **zeroes them** (there is no separate clear pass any more) and writes
 the node velocity to a separate `grid_velocity: array<vec4f>` (16 B per node), which G2P reads
 with plain loads: `xyz` is the velocity [m/s], `w` the node's mass in units of the normalised
-particle mass (`settings.particle_mass`). Nodes without mass hold zero. The vector field reads
-the buffer this way ([16-vector-field.md](16-vector-field.md)).
+particle mass (`settings.particle_mass`). Nodes without mass hold zero. Readers of the grid (visualisations) use
+the buffer this way ([16-raw-grid-view.md](16-raw-grid-view.md)).
 
 Next to it, `tile_flags: array<atomic<u32>>` holds one word per tile of 8 × 8 columns with two
 bits: `FLAGGED`, set by P2G for the tiles its stencil touches, and `WAS_ACTIVE`, set by the grid

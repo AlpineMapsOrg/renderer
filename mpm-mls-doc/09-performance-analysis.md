@@ -147,27 +147,15 @@ benchmark's: the flow on real terrain spreads over more tiles than the slab on t
 slope, and the terrain is rendered at the same time. The sorted P2G halves the benchmark's
 GPU time per substep at this configuration.
 
-### 3.5 The vector field
+### 3.5 The raw grid view
 
-The baseline builder of the vector field ([16-vector-field.md](16-vector-field.md)) reads the whole
-grid velocity once per update and writes one 32-byte record per column. Cam Clay, 20 runs of 24
-substeps, GPU ms per update, `vectorField=1` in the kernel benchmark:
-
-| Configuration | Builder | Run without the builder |
-|---|---|---|
-| 65 536 particles, 320² × 12 (graph preset) | 0.35–0.36 ms | 6.9 ms |
-| 131 072 particles, 320² × 16 | 0.58–0.59 ms | 12.7 ms |
-
-It is memory-bound (26 MB read at 320² × 16); workgroups of 8 × 8, 32 × 4, 64 × 2 and 16 × 16
-columns take 0.48–0.60 ms. In real-time playback it runs once per frame while a reader is
-attached, outside the solver's pass, so the pacing does not count it. Restricting it to the tiles
-that hold flow would reduce it.
-
-The change to the grid update that makes the grid readable (the node mass in `grid_velocity.w`,
-and one more pass over tiles the flow has left) does not show in the total: three A/B runs against
-the previous kernels at 131 072 particles gave 0.96–1.05× on the GPU time per run, with an
-identical centre-of-mass trace; the grid update stage itself is 0.51–0.64 ms against 0.54–0.56 ms.
-The benchmark's flow moves only 34 m, so few tiles are left behind; a long run-out has more.
+Handing out the grid velocity to readers ([16-raw-grid-view.md](16-raw-grid-view.md)) needed two
+small changes in the solver's grid update, both always on: the node mass is written into
+`grid_velocity.w`, and tiles the flow has left are processed once more so their nodes are zeroed.
+Neither shows in the total: three A/B runs against the previous kernels at 131 072 particles gave
+0.96–1.05× on the GPU time per run, with an identical centre-of-mass trace; the grid update stage
+itself is 0.51–0.64 ms against 0.54–0.56 ms. The benchmark's flow moves only 34 m, so few tiles
+are left behind; a long run-out leaves more, which has not been measured.
 
 ## 4. GPU memory and device limits
 
@@ -183,8 +171,6 @@ The benchmark's flow moves only 34 m, so few tiles are left behind; a long run-o
 
 (N particles, R grid columns per side, L layers, S raster edge, 1024 here.) The panel shows the
 live figure (`perf_stats().gpu_bytes`).
-The vector field's output buffers belong to the builder, not the solver, and are not in the total: two of
-32 B × R², 6.3 MiB at 320² columns ([16-vector-field.md](16-vector-field.md)).
 
 **Capacity is not the limit** on any device that runs weBIGeo: 4 and 8 GB discrete GPUs and
 8 GB unified-memory Macs alike. What differs between devices is memory bandwidth and atomic

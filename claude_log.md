@@ -24,38 +24,31 @@ Notion pointers removed, since outside readers cannot open them (07, 12, 15, ava
 ("traps baked in so they aren't rediscovered", "keep in your head", "learned the hard way")
 rephrased (02, 05, 07).
 
-### 2. Vector field, option C of the streamline proposal (branch `vector-field`)
+### 2. Raw grid view for the streamline project (branch `vector-field`)
 
-Our side of the interface for Elena Jochum's streamline project, not the streamlines. The
-proposal is the claude.ai page "Avalanche Vector Field Interface" (questions: Notion, Meeting
-Notes). Documented in `mpm-mls-doc/16-vector-field.md`.
+Our side of the hand-over to Elena Jochum's streamline project (proposal: the claude.ai page
+"Avalanche Vector Field Interface"; questions: Notion, Meeting Notes). First built as option C of
+the proposal, with a neutral 2D field format, a baseline builder for MPM and a test (commit
+cf09d698, PR #18). Then cut down on Manuel's decision: we hand over the raw MPM data, the rest is
+hers. Documented in `mpm-mls-doc/16-raw-grid-view.md`.
 
-- **Built.** `VectorField.h` (`VectorField`, `FieldBuilder`, `VectorFieldSource`, `FieldChannel`),
-  `shaders/vector_field.wgsl` (the 32-byte `FieldRecord`), `MpmRawView` in `MpmSolverNode.h`
-  (`MpmSolverNode` implements `VectorFieldSource`), `MpmBaselineFieldBuilder` with
-  `mpm_vector_field.wgsl` (grid velocity averaged over depth, own bind group). Solver changes: the
-  node mass in `grid_velocity.w`; a second tile-flag bit (`WAS_ACTIVE`) so tiles the flow has left
-  are cleared once; a reset clears `grid_velocity`.
-- **Deviations from the proposal page.** The page said the MPM baseline provides velocity, depth,
-  mass and pressure: pressure and coherence are not provided (flags unset), pressure needs the
-  terrain normal, which the builder's own bind group does not have. `VectorField` gained
-  `origin_metres` (cell sampling point). No `mpm_layout.wgsl` split: the builder needs only the
-  layer stride of the grid, so it includes nothing from `mpm_common`. The page's cost estimate of
-  0.1-0.2 ms for the builder was too low: measured 0.35 ms (graph preset size) and 0.58 ms
-  (320^2 x 16). The real volume per particle comes from the diagnostics readback, so `depth` and
-  `mass` are valid only after the first one; the velocity is valid at once.
+- **What stays.** `MpmRawView` and `MpmSolverNode::raw_view()` (the grid velocity, column floors,
+  grid resolution, mass-to-kg factor, interpolation and generation counters, a layout version).
+  Solver changes: the node mass in `grid_velocity.w`; a second tile-flag bit (`WAS_ACTIVE`) so tiles
+  the flow has left are cleared once; a reset clears `grid_velocity`.
+- **What was removed again.** `VectorField.h` (`VectorField`, `FieldBuilder`, `VectorFieldSource`),
+  `vector_field.wgsl`, `mpm_vector_field.wgsl`, `MpmBaselineFieldBuilder`, `test_VectorField.cpp`,
+  the benchmark's `vectorField=1` stage. Reason: a baseline would be code and a contract for us to
+  own, and whether her project computes the field is still open (Notion question 1). While it
+  existed, the builder cost 0.35 ms per update at the preset size and 0.58 ms at 320^2 x 16.
 - **Verified.** Substep test: errors against the float64 reference unchanged to the digit; node
   mass in `w` sums to 300 for 300 particles; after moving the flow 500 m it is still 300, 600 with
-  the clearing switched off (mutation), and the previous shaders fail the check. GPU test
-  `test_VectorField.cpp` (3 cases, 15399 assertions): records against a float64 reference, the update
-  protocol; an unweighted average and a missing fringe threshold are both caught (mutations,
-  restored afterwards). Benchmark A/B against `HEAD`, three runs at 131072 particles: 0.96-1.05x,
-  centre-of-mass trace identical. The app ran the avaHit map scenario for 48 s with no errors in
-  the log (prefs and imgui.ini restored).
-- **Not verified.** The builder in a running app (no reader exists); the field's interpolation in
-  playback; a solver grid resize with a builder attached; other GPUs than the M5.
-- **Left out.** The trajectory model's direction accumulators and builder (`RawSource` has one
-  alternative so far), the adapter node and the streamline renderer. Nothing committed yet.
+  the clearing switched off (mutation); the previous shaders fail the check. Benchmark A/B against
+  `HEAD`, three runs at 131072 particles: 0.96-1.05x, centre-of-mass trace identical. The app ran the
+  avaHit map scenario for 48 s with no errors in the log (prefs and imgui.ini restored).
+- **Not verified.** A reader of the raw view in a running app (none exists); a solver grid resize
+  with a reader attached; the cost of the tile clearing on a long run-out (a 300-run benchmark was
+  started and stopped); other GPUs than the M5.
 
 ---
 

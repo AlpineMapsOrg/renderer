@@ -231,15 +231,15 @@ if world.z < terrain_height(world.xy):
     v = resolve_terrain_collision(v, terrain_normal(world.xy), true, flow_depth)   # basal drag applied here
 
     clamp at domain walls (2-node margin, only blocks outflow)
-    grid_velocity[cell] = (v, mass)                    # plain floats for G2P (xyz); the mass is for the vector field
+    grid_velocity[cell] = (v, mass)                    # plain floats for G2P (xyz); the mass is for readers of the grid
 ```
 
 A tile's flag word has two bits: `FLAGGED` (P2G reached the tile in this substep) and `WAS_ACTIVE`
 (the grid update processed it in the previous substep). A tile with only the second bit has lost
 its flow: the grid update runs on it once more, finds no mass and zeroes the velocity and mass of
 its nodes, then drops the flag. So `grid_velocity` never holds the values of a flow that has moved
-on, which matters to anything that reads the whole grid, such as the vector field
-([16-vector-field.md](16-vector-field.md)). G2P never reads those nodes, so the physics does not
+on, which matters to anything that reads the whole grid, such as a visualisation
+([16-raw-grid-view.md](16-raw-grid-view.md)). G2P never reads those nodes, so the physics does not
 depend on it.
 
 Nodes in tiles with neither bit are never visited: their accumulators are still zero from the
