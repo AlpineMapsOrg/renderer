@@ -35,7 +35,7 @@ function(alp_macos_deploy_bundle target)
             "$<TARGET_FILE:radix>"
             "$<TARGET_FILE:glm>"
             "$<TARGET_FILE:stb_slim>"
-            "$<TARGET_FILE:ktx>"
+            "$<TARGET_FILE:KTX::ktx>"
             "$<TARGET_BUNDLE_CONTENT_DIR:${target}>/Frameworks/"
         # idempotent: -add_rpath errors out if the rpath is already present
         # (true on every build after the first), so failure is swallowed here

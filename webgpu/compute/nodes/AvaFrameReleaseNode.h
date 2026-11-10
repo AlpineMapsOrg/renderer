@@ -21,7 +21,7 @@
 #include "Node.h"
 
 #include <memory>
-#include <nucleus/Raster.h>
+#include <radix/raster.h>
 #include <radix/geometry.h>
 #include <string>
 #include <webgpu/base/Context.h>
@@ -57,7 +57,7 @@ struct ReleaseArea {
 
 /// A sandbox terrain's release depth resampled onto a map region.
 struct ResampledRelease {
-    nucleus::Raster<float> depth; // [m] vertical; row 0 is the region's northern edge
+    radix::Raster<float> depth; // [m] vertical; row 0 is the region's northern edge
     glm::dvec2 texel_size = glm::dvec2(1.0); // [region metres]
     glm::dvec2 min = glm::dvec2(0.0); // bounds of the texels with depth [region metres]
     glm::dvec2 max = glm::dvec2(0.0);
@@ -77,7 +77,7 @@ struct ResampledRelease {
 ResampledRelease resample_release(const SandboxTerrain& terrain, const radix::geometry::Aabb<2, double>& region_world, double metres_per_world_unit,
     double texel_size_metres);
 /// The same for any depth raster on the dataset's grid, e.g. the entrainment depth.
-ResampledRelease resample_depth(const SandboxTerrain& terrain, const nucleus::Raster<float>& depth, const radix::geometry::Aabb<2, double>& region_world,
+ResampledRelease resample_depth(const SandboxTerrain& terrain, const radix::Raster<float>& depth, const radix::geometry::Aabb<2, double>& region_world,
     double metres_per_world_unit, double texel_size_metres);
 
 /// The release areas of a real AvaFrame dataset on the map (the five avalanches of the AvaFrame

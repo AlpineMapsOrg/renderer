@@ -241,7 +241,7 @@ MpmSolverNode::MpmSolverNode(webgpu::Context& ctx, const MpmSolverSettings& sett
         sampler_desc.lodMaxClamp = 1.0f;
         sampler_desc.maxAnisotropy = 1;
         m_no_cover_texture = std::make_unique<webgpu::raii::TextureWithSampler>(ctx.device(), texture_desc, sampler_desc);
-        m_no_cover_texture->texture().write(ctx.queue(), nucleus::Raster<float>(glm::uvec2(1), 0.0f));
+        m_no_cover_texture->texture().write(ctx.queue(), radix::Raster<float>(glm::uvec2(1), 0.0f));
     }
 
     // See PipelineRegistration: one factory per registry, shared by all solver instances.

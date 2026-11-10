@@ -21,7 +21,7 @@
 #include "MpmSolverNode.h"
 #include "Node.h"
 
-#include <nucleus/Raster.h>
+#include <radix/raster.h>
 #include <webgpu/base/Context.h>
 #include <webgpu/base/raii/TextureWithSampler.h>
 
@@ -46,9 +46,9 @@ struct SandboxTerrain {
     glm::dvec2 size_metres = glm::dvec2(0.0); // DEM extent
     glm::dvec2 source_origin = glm::dvec2(0.0); // xllcorner, yllcorner in the dataset's own CRS
 
-    nucleus::Raster<float> heights; // [m], NODATA filled from the nearest valid cell
-    nucleus::Raster<uint8_t> nodata; // 1 where the DEM had no data
-    nucleus::Raster<float> release_depth; // vertical release depth [m]: thickness / cos(slope)
+    radix::Raster<float> heights; // [m], NODATA filled from the nearest valid cell
+    radix::Raster<uint8_t> nodata; // 1 where the DEM had no data
+    radix::Raster<float> release_depth; // vertical release depth [m]: thickness / cos(slope)
 
     /* AvaFrame's thickness is perpendicular to the slope. Volume = sum of thickness times
      * surface area = sum of vertical depth times horizontal cell area. */
@@ -63,7 +63,7 @@ struct SandboxTerrain {
      * release cells - com1DFA removes the overlap with the release of each run. Empty when the
      * dataset has none (no ENT shapefile, or prepared before entrainment existed). */
     std::string entrainment_name; // e.g. entKot
-    nucleus::Raster<float> entrainment_depth;
+    radix::Raster<float> entrainment_depth;
     double entrainment_volume = 0.0; // [m^3], after removing the release overlap
     double entrainment_area = 0.0; // horizontal [m^2]
     float entrainment_max_depth = 0.0f; // [m], vertical
@@ -77,7 +77,7 @@ struct SandboxTerrain {
      * thickness [m], velocity [m/s], pressure [kPa], and the footprint pft > 0. All empty when
      * the dataset has no benchmark for the scenario. */
     std::string reference_name;
-    nucleus::Raster<uint8_t> reference_footprint;
+    radix::Raster<uint8_t> reference_footprint;
     std::vector<float> reference_pft;
     std::vector<float> reference_pfv;
     std::vector<float> reference_ppr;
@@ -129,7 +129,7 @@ glm::u8vec4 sandbox_colour(SandboxQuantity quantity, float value);
 /// A DEM-grid raster coloured with sandbox_colour. Cells whose flow thickness (thickness, same
 /// source) is below SANDBOX_FOOTPRINT_THICKNESS are drawn faint: for the MPM that is the
 /// sub-centimetre layer of single particles, which would otherwise dominate the picture.
-nucleus::Raster<glm::u8vec4> colour_sandbox_raster(
+radix::Raster<glm::u8vec4> colour_sandbox_raster(
     const SandboxTerrain& terrain, const std::vector<float>& values, const std::vector<float>& thickness, SandboxQuantity quantity);
 /// Flow thickness that counts as the footprint in the displays and the export summary [m].
 constexpr float SANDBOX_FOOTPRINT_THICKNESS = 0.1f;
@@ -189,7 +189,7 @@ public:
     const webgpu::raii::TextureWithSampler* preview_texture() const { return m_preview_texture.get(); }
 
     /// A DEM-sized RGBA layer for the 2D view (peak rasters), written by the caller.
-    void set_layer_image(const nucleus::Raster<glm::u8vec4>& image);
+    void set_layer_image(const radix::Raster<glm::u8vec4>& image);
     const webgpu::raii::TextureWithSampler* layer_texture() const { return m_layer_texture.get(); }
 
     /// Redraws the map overlay of a geolocated dataset: release (cyan), the MPM peak flow

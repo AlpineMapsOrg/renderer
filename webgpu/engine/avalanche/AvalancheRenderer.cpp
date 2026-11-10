@@ -83,8 +83,8 @@ void AvalancheRenderer::init(webgpu::Context& ctx)
     reg.register_shader("avalanche_surface_field", "webgpu_engine::avalanche_surface_field");
     reg.register_shader("render_avalanche_surface", "webgpu_engine::render_avalanche_surface");
 
-    const auto vertex_fragment = WGPUShaderStage(WGPUShaderStage_Vertex | WGPUShaderStage_Fragment);
-    reg.register_bind_group_layout("avalanche", [vertex_fragment](WGPUDevice device) {
+    constexpr auto vertex_fragment = WGPUShaderStage(WGPUShaderStage_Vertex | WGPUShaderStage_Fragment);
+    reg.register_bind_group_layout("avalanche", [](WGPUDevice device) {
         return std::make_unique<webgpu::raii::BindGroupLayout>(device,
             std::vector<WGPUBindGroupLayoutEntry> {
                 buffer_entry(0, WGPUShaderStage_Vertex, WGPUBufferBindingType_ReadOnlyStorage), // particles
@@ -116,7 +116,7 @@ void AvalancheRenderer::init(webgpu::Context& ctx)
             },
             "avalanche surface field bind group layout");
     });
-    reg.register_bind_group_layout("avalanche_surface", [vertex_fragment](WGPUDevice device) {
+    reg.register_bind_group_layout("avalanche_surface", [](WGPUDevice device) {
         return std::make_unique<webgpu::raii::BindGroupLayout>(device,
             std::vector<WGPUBindGroupLayoutEntry> {
                 buffer_entry(0, WGPUShaderStage_Vertex, WGPUBufferBindingType_ReadOnlyStorage), // field

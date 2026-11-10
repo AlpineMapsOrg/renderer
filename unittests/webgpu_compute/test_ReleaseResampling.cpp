@@ -38,7 +38,7 @@ SandboxTerrain test_terrain()
     t.grid_size = glm::uvec2(100, 80);
     t.cellsize = 5.0;
     t.size_metres = glm::dvec2(500.0, 400.0);
-    t.release_depth = nucleus::Raster<float>(t.grid_size, 0.0f);
+    t.release_depth = radix::Raster<float>(t.grid_size, 0.0f);
     for (uint32_t y = 30; y < 40; y++)
         for (uint32_t x = 20; x < 30; x++)
             t.release_depth.pixel(glm::uvec2(x, t.grid_size.y - 1 - y)) = 2.0f; // row 0 is north
@@ -126,7 +126,7 @@ TEST_CASE("webgpu_compute::resample_release")
     SECTION("any depth raster: the entrainment cover resamples like the release")
     {
         // A 0.4 m cover over cells 50-89 in x and 10-29 in y from the south: 200 m x 100 m.
-        nucleus::Raster<float> cover(terrain.grid_size, 0.0f);
+        radix::Raster<float> cover(terrain.grid_size, 0.0f);
         for (uint32_t y = 10; y < 30; y++)
             for (uint32_t x = 50; x < 90; x++)
                 cover.pixel(glm::uvec2(x, terrain.grid_size.y - 1 - y)) = 0.4f;

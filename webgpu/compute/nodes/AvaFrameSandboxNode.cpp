@@ -105,7 +105,7 @@ namespace {
     /// Fills NODATA cells with the value of the nearest valid cell (breadth-first, so nearest
     /// in steps). Outside AvaFrame's DEM outline the terrain then continues as a plateau at
     /// the edge height; the solver needs some height everywhere in its box.
-    void fill_nodata(nucleus::Raster<float>& heights, const nucleus::Raster<uint8_t>& nodata)
+    void fill_nodata(radix::Raster<float>& heights, const radix::Raster<uint8_t>& nodata)
     {
         const glm::ivec2 size(heights.size());
         std::deque<glm::ivec2> queue;
@@ -162,10 +162,10 @@ namespace {
 
     /// Hillshade (light from the north-west, 45 degrees up), NODATA dark, release cyan, com1DFA
     /// footprint outline green - the same colours as the Phase 1 preview images.
-    nucleus::Raster<glm::u8vec4> make_preview(const SandboxTerrain& t)
+    radix::Raster<glm::u8vec4> make_preview(const SandboxTerrain& t)
     {
         const glm::ivec2 size(t.grid_size);
-        nucleus::Raster<glm::u8vec4> image(t.grid_size);
+        radix::Raster<glm::u8vec4> image(t.grid_size);
         const auto h = [&](int x, int y) { return double(t.heights.pixel(glm::uvec2(std::clamp(x, 0, size.x - 1), std::clamp(y, 0, size.y - 1)))); };
         const glm::dvec3 light = glm::normalize(glm::dvec3(-1.0, 1.0, std::sqrt(2.0))); // x east, y north, z up
         const auto footprint = [&](int x, int y) {
@@ -297,10 +297,10 @@ glm::u8vec4 sandbox_colour(SandboxQuantity quantity, float value)
     return glm::u8vec4(glm::u8vec3(rgb * 255.0f), 220);
 }
 
-nucleus::Raster<glm::u8vec4> colour_sandbox_raster(
+radix::Raster<glm::u8vec4> colour_sandbox_raster(
     const SandboxTerrain& t, const std::vector<float>& values, const std::vector<float>& thickness, SandboxQuantity quantity)
 {
-    nucleus::Raster<glm::u8vec4> image(t.grid_size, glm::u8vec4(0));
+    radix::Raster<glm::u8vec4> image(t.grid_size, glm::u8vec4(0));
     for (size_t i = 0; i < values.size() && i < image.buffer().size(); i++) {
         glm::u8vec4 colour = sandbox_colour(quantity, values[i]);
         if (i < thickness.size() && thickness[i] < SANDBOX_FOOTPRINT_THICKNESS)
@@ -487,8 +487,8 @@ std::unique_ptr<SandboxTerrain> load_sandbox_terrain(const std::string& dataset_
     t->size_metres = glm::dvec2(dem->size) * dem->cellsize;
     t->source_origin = glm::dvec2(dem->xll, dem->yll);
 
-    t->heights = nucleus::Raster<float>(dem->size, 0.0f);
-    t->nodata = nucleus::Raster<uint8_t>(dem->size, uint8_t(0));
+    t->heights = radix::Raster<float>(dem->size, 0.0f);
+    t->nodata = radix::Raster<uint8_t>(dem->size, uint8_t(0));
     for (size_t i = 0; i < dem->values.size(); i++) {
         const bool missing = std::isnan(dem->values[i]);
         t->nodata.buffer()[i] = missing ? 1 : 0;
@@ -510,9 +510,9 @@ std::unique_ptr<SandboxTerrain> load_sandbox_terrain(const std::string& dataset_
         glm::dvec2 max = glm::dvec2(std::numeric_limits<double>::lowest());
     };
     // Vertical depth per cell from a slope-normal thickness raster; `skip` leaves cells out.
-    const auto vertical_depth = [&](const auto& thickness_grid, nucleus::Raster<float>& depth_out, const auto& skip) {
+    const auto vertical_depth = [&](const auto& thickness_grid, radix::Raster<float>& depth_out, const auto& skip) {
         DepthStats stats;
-        depth_out = nucleus::Raster<float>(dem->size, 0.0f);
+        depth_out = radix::Raster<float>(dem->size, 0.0f);
         for (int y = 0; y < size.y; y++) {
             for (int x = 0; x < size.x; x++) {
                 const float thickness = thickness_grid.at(uint32_t(x), uint32_t(y));
@@ -585,7 +585,7 @@ std::unique_ptr<SandboxTerrain> load_sandbox_terrain(const std::string& dataset_
             break;
         }
         t->reference_name = ref["benchmark"].toString().toStdString();
-        t->reference_footprint = nucleus::Raster<uint8_t>(dem->size, uint8_t(0));
+        t->reference_footprint = radix::Raster<uint8_t>(dem->size, uint8_t(0));
         const size_t cells = size_t(size.x) * size.y;
         t->reference_pft.assign(cells, 0.0f);
         t->reference_pfv.assign(cells, 0.0f);
@@ -674,7 +674,7 @@ void AvaFrameSandboxNode::run_impl()
     m_preview_texture = create_texture(m_ctx->device(), t->grid_size, WGPUTextureFormat_RGBA8Unorm, "avaframe sandbox preview");
     m_preview_texture->texture().write(m_ctx->queue(), make_preview(*t));
     // For models that take a release point mask (alpha > 0), like the trajectory model.
-    nucleus::Raster<glm::u8vec4> mask(t->grid_size, glm::u8vec4(0));
+    radix::Raster<glm::u8vec4> mask(t->grid_size, glm::u8vec4(0));
     for (size_t i = 0; i < mask.buffer().size(); i++)
         mask.buffer()[i] = t->release_depth.buffer()[i] > 0.0f ? glm::u8vec4(255) : glm::u8vec4(0);
     m_release_mask_texture = create_texture(m_ctx->device(), t->grid_size, WGPUTextureFormat_RGBA8Unorm, "avaframe sandbox release mask");
@@ -700,7 +700,7 @@ void AvaFrameSandboxNode::run_impl()
 
 AvaFrameSandboxNode::~AvaFrameSandboxNode() { *m_alive = false; }
 
-void AvaFrameSandboxNode::set_layer_image(const nucleus::Raster<glm::u8vec4>& image)
+void AvaFrameSandboxNode::set_layer_image(const radix::Raster<glm::u8vec4>& image)
 {
     if (!m_layer_texture || m_layer_texture->texture().width() != image.width() || m_layer_texture->texture().height() != image.height())
         m_layer_texture = create_texture(m_ctx->device(), image.size(), WGPUTextureFormat_RGBA8Unorm, "avaframe sandbox layer");
@@ -714,7 +714,7 @@ void AvaFrameSandboxNode::update_map_overlay(const std::vector<float>* mpm_pft)
         // Never null: the overlay node links the texture and the overlay asserts on it.
         if (!m_map_texture || m_map_texture->texture().width() != 1) {
             m_map_texture = create_texture(m_ctx->device(), glm::uvec2(1), WGPUTextureFormat_RGBA8Unorm, "avaframe sandbox map overlay");
-            m_map_texture->texture().write(m_ctx->queue(), nucleus::Raster<glm::u8vec4>(glm::uvec2(1), glm::u8vec4(0)));
+            m_map_texture->texture().write(m_ctx->queue(), radix::Raster<glm::u8vec4>(glm::uvec2(1), glm::u8vec4(0)));
         }
         m_map_aabb = { glm::dvec2(0.0), glm::dvec2(1.0) };
         return;
@@ -732,7 +732,7 @@ void AvaFrameSandboxNode::update_map_overlay(const std::vector<float>* mpm_pft)
     const glm::uvec2 size = glm::uvec2(glm::ceil((hi - lo) / texel));
     m_map_aabb = { lo, lo + glm::dvec2(size) * texel };
 
-    nucleus::Raster<glm::u8vec4> image(size, glm::u8vec4(0));
+    radix::Raster<glm::u8vec4> image(size, glm::u8vec4(0));
     const glm::ivec2 grid(t->grid_size);
     const auto cell_at = [&](int x, int y) { return x >= 0 && y >= 0 && x < grid.x && y < grid.y; };
     const auto footprint = [&](int x, int y) {

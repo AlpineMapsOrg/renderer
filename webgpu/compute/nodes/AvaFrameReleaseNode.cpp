@@ -38,14 +38,14 @@ ResampledRelease resample_release(const SandboxTerrain& terrain, const radix::ge
     return resample_depth(terrain, terrain.release_depth, region_world, metres_per_world_unit, texel_size_metres);
 }
 
-ResampledRelease resample_depth(const SandboxTerrain& terrain, const nucleus::Raster<float>& source, const radix::geometry::Aabb<2, double>& region_world,
+ResampledRelease resample_depth(const SandboxTerrain& terrain, const radix::Raster<float>& source, const radix::geometry::Aabb<2, double>& region_world,
     double metres_per_world_unit, double texel_size_metres)
 {
     ResampledRelease out;
     const glm::dvec2 region_metres = region_world.size() * metres_per_world_unit;
     const glm::uvec2 texels = glm::clamp(glm::uvec2(glm::ceil(region_metres / std::max(texel_size_metres, 0.01))), glm::uvec2(1u), glm::uvec2(MAX_TEXELS_PER_SIDE));
     out.texel_size = region_metres / glm::dvec2(texels);
-    out.depth = nucleus::Raster<float>(texels, 0.0f);
+    out.depth = radix::Raster<float>(texels, 0.0f);
     if (!terrain.sandbox_to_world || terrain.cellsize <= 0.0 || source.buffer().empty())
         return out;
 

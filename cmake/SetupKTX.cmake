@@ -54,6 +54,8 @@ function(alp_setup_ktx commitish)
         PATHS "${ALP_libktx_INSTALL_DIR}"
         NO_DEFAULT_PATH
         NO_CMAKE_FIND_ROOT_PATH)
+    # Global, so targets in other directories (the macOS bundle step of webgpu_app) can name it.
+    set_target_properties(KTX::ktx PROPERTIES IMPORTED_GLOBAL TRUE)
 
     if (EMSCRIPTEN AND ALP_ENABLE_THREADING)
         _alp_append_ktx_interface_property(KTX::ktx INTERFACE_COMPILE_OPTIONS -pthread)
