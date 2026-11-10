@@ -105,7 +105,7 @@ endif()
 if (ALP_WEBGPU_APP_ENABLE_COMPUTE)
     target_link_libraries(webgpu_app PUBLIC webgpu_compute)
     target_compile_definitions(webgpu_app PRIVATE ALP_WEBGPU_APP_ENABLE_COMPUTE)
-    if (NOT EMSCRIPTEN AND NOT IOS)
+    if (NOT EMSCRIPTEN)
         # The AvaFrame sandbox finds its datasets in <source>/extern/avaframe_sandbox by default.
         target_compile_definitions(webgpu_app PRIVATE ALP_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
     endif()
