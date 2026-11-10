@@ -24,7 +24,8 @@
 // domain, forming a snow slab on top of the terrain: settings.slab_thickness deep in a disc
 // on the map, the release depth of each cell in the sandbox (RELEASE_GRID).
 // Particles that fail to find a release point stay inactive (mass = 0) and are skipped
-// by every later stage.
+// by every later stage. So do the slots after the release particles, the pool entrainment
+// draws from (see entrain_column() in mpm_grid_update).
 //
 // References (sections, equations and pages as in the PDFs; full list in mpm-mls-doc/refs.md):
 //   Stomakhin 2013  A. Stomakhin et al., "A material point method for snow simulation",

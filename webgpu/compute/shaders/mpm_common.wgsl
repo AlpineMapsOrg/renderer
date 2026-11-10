@@ -123,8 +123,9 @@ const RELEASE_DISC: u32 = 0u;
 // Release depth per cell in the release texture (r, metres, vertical) - the AvaFrame sandbox.
 const RELEASE_GRID: u32 = 1u;
 
-// Entrainment law (com1DFA, Tonnel et al. 2023): plowing takes the whole cover at the front,
-// erosion at the rate tau_b |u| / e_b per area.
+// Entrainment law (com1DFA, Tonnel 2023 eq. 1 and 29, p. 3 and 7: a mass source q_ent; the
+// erosion and plowing laws themselves are in the com1DFA theory docs, not the paper): plowing
+// takes the whole cover at the front, erosion at the rate tau_b |u| / e_b per area.
 const ENTRAINMENT_OFF: u32 = 0u;
 const ENTRAINMENT_PLOWING: u32 = 1u;
 const ENTRAINMENT_EROSION: u32 = 2u;

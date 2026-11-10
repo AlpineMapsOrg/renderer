@@ -18,7 +18,6 @@
 
 #include "SandboxView.h"
 
-#include "ui/UiScale.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -120,7 +119,7 @@ void SandboxView::draw_legend(Layer layer)
     };
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     const ImVec2 origin = ImGui::GetCursorScreenPos();
-    const float width = 220.0f * ui::UI_SCALE;
+    const float width = 220.0f;
     const float height = ImGui::GetTextLineHeight();
     constexpr int STEPS = 32;
     for (int i = 0; i < STEPS; i++) {
@@ -145,8 +144,8 @@ void SandboxView::draw(nodes::AvaFrameSandboxNode& sandbox, nodes::MpmSolverNode
     const auto* preview = sandbox.preview_texture();
 
     const ImVec2 viewport = ImGui::GetMainViewport()->Size;
-    ImGui::SetNextWindowSize(ImVec2(620 * ui::UI_SCALE, 680 * ui::UI_SCALE), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowPos(ImVec2(viewport.x * 0.5f - 310 * ui::UI_SCALE, 60 * ui::UI_SCALE), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(620, 680), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(viewport.x * 0.5f - 310, 60), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("AvaFrame sandbox", &open)) {
         ImGui::End();
         return;
@@ -167,7 +166,7 @@ void SandboxView::draw(nodes::AvaFrameSandboxNode& sandbox, nodes::MpmSolverNode
     int layer = int(m_layer);
     if (!has_reference && is_reference(m_layer))
         layer = 0;
-    ImGui::SetNextItemWidth(220 * ui::UI_SCALE);
+    ImGui::SetNextItemWidth(220);
     if (ImGui::Combo("Layer", &layer, layer_names, has_reference ? 7 : 4))
         layer_changed = true;
     if (Layer(layer) != m_layer) {

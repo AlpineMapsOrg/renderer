@@ -98,7 +98,8 @@ fn update_node(node_xy: vec2i, layer: i32, cell: u32, flow_depth: f32) -> vec2f 
     return vec2f(mass, mass * length(velocity));
 }
 
-// Entrainment (com1DFA, Tonnel et al. 2023), per column like com1DFA's per cell: the flow over the
+// Entrainment (com1DFA, Tonnel 2023 eq. 1 and 29, p. 3 and 7; the erosion and plowing laws are
+// from the com1DFA theory docs), per column like com1DFA's per cell: the flow over the
 // column takes snow from its cover (column_stats.cover, set at the reset by mpm_prepare).
 //   Plowing: the front takes the whole cover, as soon as the flow is plowing_depth deep.
 //   Erosion: the flow erodes tau_b |u| / e_b of cover mass per area and second, tau_b the basal
@@ -126,6 +127,7 @@ fn entrain_column(node_xy: vec2i, column: u32, flow_depth: f32, speed: f32) {
     } else {
         var tau = settings.terrain_friction * settings.snow_density * settings.gravity * flow_depth * terrain_normal(world_xy).z;
         if settings.basal_friction_model == FRICTION_VOELLMY {
+            // Voellmy 1955 turbulent term
             tau += settings.snow_density * settings.gravity * speed * speed / settings.voellmy_xi;
         }
         let rate = tau * speed / settings.erosion_energy; // [kg/m^2/s]

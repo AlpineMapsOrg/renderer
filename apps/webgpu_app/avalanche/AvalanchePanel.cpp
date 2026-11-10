@@ -111,7 +111,7 @@ constexpr const char* SANDBOX_GRAPH_PRESET = ":/graphs/mpm_avaframe_sandbox.json
 constexpr const char* TRAJECTORIES_SANDBOX_GRAPH_PRESET = ":/graphs/trajectories_avaframe_sandbox.json";
 
 // Where prepare_dataset.py writes the sandbox datasets, in native builds from a source tree.
-// Elsewhere (web, iOS, an installed app) the download in the panel writes into the app's data
+// Elsewhere (web, an installed app) the download in the panel writes into the app's data
 // folder instead; in the web build that is browser memory, gone after a reload.
 #ifdef ALP_SOURCE_DIR
 constexpr const char* DEFAULT_SANDBOX_ROOT = ALP_SOURCE_DIR "/extern/avaframe_sandbox";
