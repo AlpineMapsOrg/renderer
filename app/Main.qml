@@ -18,6 +18,7 @@
  *****************************************************************************/
 
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import "components"
@@ -252,6 +253,94 @@ Item {
         target: map
         function onPlanner_point_picked(latitude, longitude, altitude) {
             _planner_model.add_point_at(latitude, longitude, altitude)
+        }
+        // the fly bar buttons must not keep the keyboard focus: the arrow
+        // keys steer the preview (left/right seek, up/down speed)
+        function onPreview_state_changed() {
+            // follow the actual preview speed wherever it came from
+            // (dropdown pick or arrow keys)
+            speed_combo.currentIndex = speed_combo.index_for(map.preview_speed)
+            if (map.preview_active)
+                map.forceActiveFocus()
+        }
+    }
+
+    // route preview controls, floating above the map while a fly-through runs.
+    // sized to also fit phone screens; controls take no focus so the arrow
+    // keys keep steering the preview
+    Rectangle {
+        id: preview_controls
+        visible: map.preview_active
+        color: Qt.alpha(Material.backgroundColor, 0.85)
+        radius: 8
+        height: 56
+        clip: true
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+            leftMargin: 8 + main.safeLeft
+            rightMargin: 8 + main.safeRight
+            bottomMargin: 12 + main.safeBottom
+        }
+        z: 150
+
+        RowLayout {
+            id: preview_row
+            anchors.fill: parent
+            anchors.margins: 6
+            spacing: 4
+
+            ToolButton {
+                focusPolicy: Qt.NoFocus
+                // shows Play at the route end (auto-paused), and Play while
+                // the user paused - pressing it resumes or restarts
+                text: map.preview_paused ? qsTr("Play") : qsTr("Pause")
+                onClicked: map.set_preview_paused(!map.preview_paused)
+                ToolTip.visible: hovered
+                ToolTip.text: map.preview_paused ? qsTr("Resume the preview") : qsTr("Pause the preview")
+            }
+            Slider {
+                id: preview_progress_slider
+                focusPolicy: Qt.NoFocus
+                from: 0
+                to: 1
+                value: map.preview_progress
+                onMoved: map.seek_preview(value)
+                Layout.fillWidth: true
+                Layout.minimumWidth: 100
+                ToolTip.visible: hovered
+                ToolTip.text: Math.round(value * 100) + " %"
+            }
+            ComboBox {
+                id: speed_combo
+                focusPolicy: Qt.NoFocus
+                model: [qsTr("Slow"), qsTr("Normal"), qsTr("Fast"), qsTr("Very fast")]
+                // sized to fit inside the bar (the default combo background
+                // is taller than the tool buttons and poked out below)
+                implicitHeight: 36
+                currentIndex: 1 // normal
+                onActivated: map.set_preview_speed(speed_combo.speed_for(index))
+                function speed_for(index) { return [12, 24, 48, 96][index]; }
+                function index_for(speed) {
+                    const speeds = [12, 24, 48, 96];
+                    let best = 1;
+                    for (let i = 0; i < speeds.length; ++i) {
+                        if (Math.abs(speeds[i] - speed) < Math.abs(speeds[best] - speed))
+                            best = i;
+                    }
+                    return best;
+                }
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Flight speed")
+            }
+            ToolButton {
+                focusPolicy: Qt.NoFocus
+                text: "×"
+                onClicked: map.stop_route_preview()
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("End the route preview")
+            }
         }
     }
 

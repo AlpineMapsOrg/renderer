@@ -37,6 +37,8 @@ Rectangle {
 
     // collapsed to a small status bar, so the map stays visible (phones)
     property bool minimized: false
+    property bool minimized_before_preview: false
+    property bool preview_running: false
 
     // optimisation weight sliders, collapsed behind the chevron by default
     property bool weights_visible: false
@@ -48,6 +50,27 @@ Rectangle {
     // start minimized on narrow screens (phone portrait), where the expanded
     // panel would cover the whole map
     Component.onCompleted: minimized = gpx_root.width < 500
+
+    // react to the camera fly-through preview: hide the whole widget once on
+    // start (not on every progress update), disable adding points, restore
+    // everything when the preview ends
+    Connections {
+        target: map
+        function onPreview_state_changed() {
+            if (map.preview_active && !gpx_root.preview_running) {
+                gpx_root.preview_running = true;
+                gpx_root.visible = false;
+                map.change_edit_mode(false);
+            } else if (!map.preview_active && gpx_root.preview_running) {
+                gpx_root.preview_running = false;
+                gpx_root.visible = true;
+                // only re-enable point picking if the editor page is still open
+                if (main.selectedPage === "gpxeditor") {
+                    map.change_edit_mode(true);
+                }
+            }
+        }
+    }
 
     FileDialog {
         id: export_dialog
@@ -175,6 +198,15 @@ Rectangle {
                         text: _planner_model.optimisation_running ? qsTr("Optimizing…") : qsTr("Optimize Route")
                         enabled: _planner_model.points.length >= 2 && !_planner_model.optimisation_running
                         onClicked: _planner_model.optimise_route()
+                        Layout.fillWidth: true
+                    }
+                    Button {
+                        text: qsTr("Fly Route")
+                        enabled: _planner_model.points.length >= 2
+                        onClicked: {
+                            _planner_model.fill_preview_route()
+                            map.start_route_preview()
+                        }
                         Layout.fillWidth: true
                     }
                     ToolButton {
@@ -342,15 +374,19 @@ Rectangle {
             }
         }
 
-        // keep the editable fields in sync with an imported track
-        Connections {
-            target: _planner_model
-            function onPointsChanged() {
-                if (!name_input.activeFocus)
-                    name_input.text = _planner_model.name;
-                if (!description_input.activeFocus)
-                    description_input.text = _planner_model.description;
-            }
+            // keep the editable fields in sync with an imported track
+            Connections {
+                target: _planner_model
+                function onPointsChanged() {
+                    // the preview follows a snapshot of the route; stop it when
+                    // the route changes
+                    if (map.preview_active)
+                        map.stop_route_preview();
+                    if (!name_input.activeFocus)
+                        name_input.text = _planner_model.name;
+                    if (!description_input.activeFocus)
+                        description_input.text = _planner_model.description;
+                }
             // fly to the start of an imported track, like the upload button does
             function onTrack_imported(position) {
                 if (position.x !== 0 && position.y !== 0)
@@ -376,6 +412,7 @@ Rectangle {
                 Layout.fillWidth: true
             }
             ToolButton {
+                focusPolicy: Qt.NoFocus
                 text: qsTr("Undo")
                 enabled: _planner_model.points.length > 0
                 onClicked: _planner_model.undo_last_point()
