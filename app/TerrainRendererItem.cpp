@@ -34,6 +34,7 @@
 #include <QQuickWindow>
 #include <QThread>
 #include <QTimer>
+#include <gl_engine/Context.h>
 #include <gl_engine/Window.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -124,6 +125,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::touch_made, r->controller(), &nucleus::camera::Controller::touch);
     connect(this, &TerrainRendererItem::mouse_pressed, r->controller(), &nucleus::camera::Controller::mouse_press);
     connect(this, &TerrainRendererItem::mouse_moved, r->controller(), &nucleus::camera::Controller::mouse_move);
+    connect(this, &TerrainRendererItem::mouse_released, r->controller(), &nucleus::camera::Controller::mouse_release);
     connect(this, &TerrainRendererItem::wheel_turned, r->controller(), &nucleus::camera::Controller::wheel_turn);
     connect(this, &TerrainRendererItem::key_pressed, r->controller(), &nucleus::camera::Controller::key_press);
     connect(this, &TerrainRendererItem::key_released, r->controller(), &nucleus::camera::Controller::key_release);
@@ -148,6 +150,31 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
                 emit planner_point_picked(lat_long_alt.x, lat_long_alt.y, lat_long_alt.z);
             });
     connect(this, &TerrainRendererItem::keyboard_focus_lost, r->controller(), &nucleus::camera::Controller::clear_keyboard_state);
+    connect(this, &TerrainRendererItem::route_preview_started, r->controller(), &nucleus::camera::Controller::start_route_preview);
+    connect(this, &TerrainRendererItem::route_preview_stopped, r->controller(), &nucleus::camera::Controller::stop_route_preview);
+    connect(this, &TerrainRendererItem::route_preview_pause_changed, r->controller(), &nucleus::camera::Controller::set_route_preview_paused);
+    connect(this, &TerrainRendererItem::route_preview_seek_requested, r->controller(), &nucleus::camera::Controller::seek_route_preview);
+    connect(this, &TerrainRendererItem::route_preview_speed_changed, r->controller(), &nucleus::camera::Controller::set_route_preview_speed);
+    // during the fly-through the route is painted onto the terrain texture
+    // (receiver = track manager lives on the render thread -> queued)
+    if (const auto engine_context = ctx->engine_context()) {
+        if (auto* track_manager = engine_context->track_manager()) {
+            connect(this, &TerrainRendererItem::route_preview_started, track_manager, [track_manager]() {
+                track_manager->set_route_overlay_active(true);
+            });
+            connect(this, &TerrainRendererItem::route_preview_stopped, track_manager, [track_manager]() {
+                track_manager->set_route_overlay_active(false);
+            });
+        }
+    }
+    connect(r->controller(), &nucleus::camera::Controller::route_preview_changed, this,
+            [item = const_cast<TerrainRendererItem*>(this)](double fraction, bool paused, bool active, double speed) {
+                item->m_preview_progress = fraction;
+                item->m_preview_paused = paused;
+                item->m_preview_active = active;
+                item->m_preview_speed = speed;
+                emit item->preview_state_changed();
+            });
 
     // Connect definition change to aquire camera position for sun angle calculation
     connect(r->controller(), &nucleus::camera::Controller::definition_changed, this, &TerrainRendererItem::camera_definition_changed);
@@ -485,6 +512,48 @@ void TerrainRendererItem::set_world_space_cursor_position(const glm::dvec3& new_
 void TerrainRendererItem::change_edit_mode(bool edit_mode)
 {
     emit edit_mode_changed(edit_mode);
+}
+
+void TerrainRendererItem::start_route_preview()
+{
+    const auto points = RenderingContext::instance()->preview_route_points();
+    if (points.size() < 2) {
+        return;
+    }
+    // keep the frame loop running while the preview flies
+    m_continuous_update_before_preview = m_continuous_update;
+    set_continuous_update(true);
+    emit route_preview_started(points);
+}
+
+void TerrainRendererItem::stop_route_preview()
+{
+    if (!m_preview_active) {
+        return;
+    }
+    emit route_preview_stopped();
+    set_continuous_update(m_continuous_update_before_preview);
+    m_preview_active = false;
+    m_preview_paused = false;
+    m_preview_progress = 0.0;
+    emit preview_state_changed();
+}
+
+void TerrainRendererItem::set_preview_paused(bool paused)
+{
+    emit route_preview_pause_changed(paused);
+}
+
+void TerrainRendererItem::seek_preview(double fraction)
+{
+    emit route_preview_seek_requested(fraction);
+}
+
+void TerrainRendererItem::set_preview_speed(double metres_per_second)
+{
+    m_preview_speed = metres_per_second;
+    emit route_preview_speed_changed(metres_per_second);
+    emit preview_state_changed();
 }
 
 const nucleus::picker::Feature& TerrainRendererItem::picked_feature() const { return m_picked_feature; }

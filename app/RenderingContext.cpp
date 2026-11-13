@@ -69,6 +69,7 @@ struct RenderingContext::Data {
     std::shared_ptr<nucleus::map_label::Filter> label_filter;
     std::shared_ptr<nucleus::picker::PickerManager> picker_manager;
     std::shared_ptr<nucleus::planner::PlannerManager> planner_manager;
+    std::vector<glm::dvec3> preview_route_points; // guarded by shared_ptr_mutex
     std::shared_ptr<nucleus::tile::utils::AabbDecorator> aabb_decorator;
     std::unique_ptr<nucleus::tile::SchedulerDirector> scheduler_director;
     std::shared_ptr<nucleus::avalanche::ReportLoadService> eaws_report_load_service;
@@ -283,6 +284,18 @@ std::shared_ptr<nucleus::planner::PlannerManager> RenderingContext::planner_mana
 {
     QMutexLocker locker(&m->shared_ptr_mutex);
     return m->planner_manager;
+}
+
+void RenderingContext::set_preview_route_points(const std::vector<glm::dvec3>& points)
+{
+    QMutexLocker locker(&m->shared_ptr_mutex);
+    m->preview_route_points = points;
+}
+
+std::vector<glm::dvec3> RenderingContext::preview_route_points() const
+{
+    QMutexLocker locker(&m->shared_ptr_mutex);
+    return m->preview_route_points;
 }
 
 std::shared_ptr<nucleus::map_label::Filter> RenderingContext::label_filter() const

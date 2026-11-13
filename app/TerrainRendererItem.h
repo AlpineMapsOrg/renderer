@@ -60,6 +60,11 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(bool continuous_update READ continuous_update WRITE set_continuous_update NOTIFY continuous_update_changed)
     Q_PROPERTY(nucleus::picker::Feature picked_feature READ picked_feature NOTIFY picked_feature_changed FINAL)
     Q_PROPERTY(QVector3D world_space_cursor_position READ world_space_cursor_position NOTIFY world_space_cursor_position_changed FINAL)
+    // camera fly-through preview state
+    Q_PROPERTY(bool preview_active READ preview_active NOTIFY preview_state_changed)
+    Q_PROPERTY(bool preview_paused READ preview_paused NOTIFY preview_state_changed)
+    Q_PROPERTY(double preview_progress READ preview_progress NOTIFY preview_state_changed)
+    Q_PROPERTY(double preview_speed READ preview_speed NOTIFY preview_state_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -117,6 +122,12 @@ signals:
     void edit_mode_changed(bool edit_mode) const;
     // emitted when the item loses keyboard focus (e.g. alt+tab away from the app)
     void keyboard_focus_lost() const;
+    void route_preview_started(const std::vector<glm::dvec3>& world_points) const;
+    void route_preview_stopped() const;
+    void route_preview_pause_changed(bool paused) const;
+    void route_preview_seek_requested(double fraction) const;
+    void route_preview_speed_changed(double metres_per_second) const;
+    void preview_state_changed();
 
     void eaws_report_date_changed(QDate newDate) const; // This is emitted after user picked a date for eaws avalanche report in the gui
 
@@ -142,6 +153,12 @@ public slots:
     void updateEawsReportDate(int day, int month, int year);
     // enables/disables click-to-place-route-point mode of the gpx editor
     void change_edit_mode(bool edit_mode);
+    // camera fly-through preview along the route stored in the RenderingContext
+    Q_INVOKABLE void start_route_preview();
+    Q_INVOKABLE void stop_route_preview();
+    Q_INVOKABLE void set_preview_paused(bool paused);
+    Q_INVOKABLE void seek_preview(double fraction);
+    Q_INVOKABLE void set_preview_speed(double metres_per_second);
 private slots:
     void schedule_update();
     void init_after_creation_slot();
@@ -199,6 +216,11 @@ public:
 
     const QVector3D& world_space_cursor_position() const;
 
+    bool preview_active() const { return m_preview_active; }
+    bool preview_paused() const { return m_preview_paused; }
+    double preview_progress() const { return m_preview_progress; }
+    double preview_speed() const { return m_preview_speed; }
+
 private:
     void set_world_space_cursor_position(const glm::dvec3& new_world_space_cursor_position);
     void set_picked_feature(const nucleus::picker::Feature& new_picked_feature);
@@ -237,4 +259,11 @@ private:
     // with the multi-thread nature of this app. So far the url modifier is
     // only necessary in this class and on this thread, so we'll use it here.
     std::shared_ptr<nucleus::utils::UrlModifier> m_url_modifier;
+
+    // camera fly-through preview state (updated from the render thread)
+    bool m_preview_active = false;
+    bool m_preview_paused = false;
+    double m_preview_progress = 0.0;
+    double m_preview_speed = 24.0; // matches the combo's default index
+    bool m_continuous_update_before_preview = false;
 };

@@ -27,6 +27,8 @@
 #include <gl_engine/Context.h>
 #include <nucleus/DataQuerier.h>
 #include <nucleus/planner/RouteOptimizer.h>
+#include <nucleus/tile/GeometryScheduler.h>
+#include <nucleus/tile/cache_quieries.h>
 #include <nucleus/srs.h>
 
 namespace {
@@ -64,6 +66,7 @@ PlannerModel::PlannerModel(QObject* parent)
         connect(this, &PlannerModel::user_position_changed, track_manager, &gl_engine::TrackManager::change_user_position);
         connect(this, &PlannerModel::user_position_changed, RenderThreadNotifier::instance(), &RenderThreadNotifier::redraw_requested);
         connect(this, &PlannerModel::user_position_cleared, track_manager, &gl_engine::TrackManager::clear_user_position);
+        connect(this, &PlannerModel::route_line_visible_changed, track_manager, &gl_engine::TrackManager::change_planned_line_visible);
         connect(this, &PlannerModel::user_position_cleared, RenderThreadNotifier::instance(), &RenderThreadNotifier::redraw_requested);
 
         m_data_querier = ctx->data_querier();
@@ -155,6 +158,17 @@ void PlannerModel::set_search_radius(int percent)
 }
 
 bool PlannerModel::optimisation_running() const { return m_optimisation_running; }
+
+bool PlannerModel::route_line_visible() const { return m_route_line_visible; }
+
+void PlannerModel::set_route_line_visible(bool visible)
+{
+    if (m_route_line_visible == visible) {
+        return;
+    }
+    m_route_line_visible = visible;
+    emit route_line_visible_changed(visible);
+}
 
 QString PlannerModel::optimisation_status() const { return m_optimisation_status; }
 
@@ -384,6 +398,23 @@ void PlannerModel::undo_last_point()
     emit points_changed();
 }
 
+void PlannerModel::fill_preview_route()
+{
+    if (m_render_line.point_count() < 2) {
+        return;
+    }
+    std::vector<glm::dvec3> world_points;
+    world_points.reserve(m_render_line.point_count());
+    for (const auto& segment : m_render_line.track) {
+        for (const auto& point : segment) {
+            // srs world z is the mercator-stretched altitude (metres/cos(lat))
+            world_points.push_back(nucleus::srs::lat_long_alt_to_world({ point.latitude, point.longitude, point.elevation }));
+        }
+    }
+
+    RenderingContext::instance()->set_preview_route_points(world_points);
+}
+
 void PlannerModel::optimisation_finished(const nucleus::planner::OptimisationResult& result)
 {
     m_optimisation_running = false;
@@ -521,11 +552,13 @@ void PlannerModel::update_render_data()
                     const double lon = a.longitude + (b.longitude - a.longitude) * t;
 
                     double alt = a.elevation + (b.elevation - a.elevation) * t;
-                    if (m_data_querier) {
-                        const std::expected<float, QString> dem_altitude = m_data_querier->get_altitude({ lat, lon });
-                        if (dem_altitude.has_value()) {
-                            alt = dem_altitude.value();
-                        }
+                    // sample the exact rendered surface (triangle mesh), so
+                    // the line matches the drawn terrain, also diagonal to
+                    // the grid
+                    const std::expected<float, QString> dem_altitude = nucleus::tile::cache_queries::query_mesh_altitude(
+                        &RenderingContext::instance()->geometry_scheduler()->ram_cache(), { lat, lon });
+                    if (dem_altitude.has_value()) {
+                        alt = dem_altitude.value();
                     }
                     straight_samples.push_back({ lat, lon, alt });
                 }

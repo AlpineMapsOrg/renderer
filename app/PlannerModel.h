@@ -55,6 +55,8 @@ class PlannerModel : public QObject {
     Q_PROPERTY(int search_radius READ search_radius WRITE set_search_radius NOTIFY optimisation_parameters_changed)
     Q_PROPERTY(bool optimisation_running READ optimisation_running NOTIFY optimisation_running_changed)
     Q_PROPERTY(QString optimisation_status READ optimisation_status NOTIFY optimisation_status_changed)
+    // hides the rendered route *line* between the points (markers stay)
+    Q_PROPERTY(bool route_line_visible READ route_line_visible WRITE set_route_line_visible NOTIFY route_line_visible_changed)
 public:
     explicit PlannerModel(QObject* parent = nullptr);
 
@@ -78,6 +80,8 @@ public:
     void set_search_radius(int percent);
     bool optimisation_running() const;
     QString optimisation_status() const;
+    bool route_line_visible() const;
+    void set_route_line_visible(bool visible);
 
 public slots:
     // geo coordinates in degrees/metres, as reported by the camera depth readback
@@ -98,6 +102,9 @@ public slots:
     void optimise_route();
     // removes the last route point (undo for the minimised bar button)
     void undo_last_point();
+    // converts the currently rendered route line into world coordinates and
+    // stores it for the camera fly-through preview (map.start_route_preview)
+    Q_INVOKABLE void fill_preview_route();
 
 signals:
     void points_changed();
@@ -110,6 +117,7 @@ signals:
     void optimisation_running_changed();
     void optimisation_status_changed();
     void optimisation_parameters_changed();
+    void route_line_visible_changed(bool visible);
 
 private slots:
     void optimisation_finished(const nucleus::planner::OptimisationResult& result);
@@ -149,5 +157,6 @@ private:
     int m_search_radius = 20; // percent of the route extent
     bool m_optimisation_running = false;
     QString m_optimisation_status;
+    bool m_route_line_visible = true;
     unsigned m_optimisation_generation = 0;
 };

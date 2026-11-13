@@ -19,6 +19,8 @@
 #pragma once
 
 #include <QQmlEngine>
+#include <glm/glm.hpp>
+#include <vector>
 // move to pimpl to avoid including all the stuff in the header.
 
 namespace gl_engine {
@@ -76,6 +78,10 @@ public:
 
     void initialise();
     void destroy();
+    // route polyline for the camera fly-through preview: the planner model
+    // fills it in, the qml map item reads it out when the preview starts
+    void set_preview_route_points(const std::vector<glm::dvec3>& points);
+    [[nodiscard]] std::vector<glm::dvec3> preview_route_points() const;
     [[nodiscard]] std::shared_ptr<gl_engine::Context> engine_context() const;
     [[nodiscard]] std::shared_ptr<nucleus::tile::utils::AabbDecorator> aabb_decorator() const;
     [[nodiscard]] std::shared_ptr<nucleus::DataQuerier> data_querier() const;
