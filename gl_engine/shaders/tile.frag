@@ -28,6 +28,12 @@
 uniform lowp sampler2DArray texture_sampler;
 uniform highp usampler2D instanced_texture_array_index_sampler;
 uniform highp usampler2D instanced_texture_zoom_sampler;
+// route painted onto the terrain (fly-through preview). route_params.xy is
+// the texture-world origin camera-relative (absolute web-mercator metres do
+// not fit fp32 precision), zw the reciprocal world size
+uniform lowp sampler2D texin_route;
+uniform highp vec4 route_params;
+uniform highp float route_overlay_strength;
 
 layout (location = 0) out lowp vec3 texout_albedo;
 layout (location = 1) out highp vec4 texout_position;
@@ -66,6 +72,17 @@ void main() {
 
     lowp vec3 fragColor = texture(texture_sampler, vec3(uv, texture_layer_f)).rgb;
     fragColor = mix(fragColor, conf.material_color.rgb, conf.material_color.a);
+
+    // blend the painted route into the albedo: as part of the surface it has
+    // no parallax against the terrain and cannot wiggle
+    if (route_overlay_strength > 0.0) {
+        highp vec2 route_uv = (var_pos_cws.xy - route_params.xy) * route_params.zw;
+        if (all(greaterThanEqual(route_uv, vec2(0.0))) && all(lessThan(route_uv, vec2(1.0)))) {
+            lowp vec4 route_color = texture(texin_route, route_uv);
+            fragColor = mix(fragColor, route_color.rgb, route_color.a * route_overlay_strength);
+        }
+    }
+
     texout_albedo = fragColor;
 
 

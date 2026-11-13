@@ -74,11 +74,27 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
     for (const std::vector<PolyLine>* track_list : { &m_tracks, &m_planned_tracks, &m_user_position }) {
         const bool planned = track_list != &m_tracks;
 
+        // while the terrain-texture overlay paints the route, the 3d capsules
+        // (line and markers) are suppressed - two representations at once
+        // would double-draw and reintroduce the wiggle
+        if (planned && m_route_overlay.active()) {
+            continue;
+        }
+
         if (!planned) {
             m_shader->set_uniform("width", m_display_width);
         }
+        // planned geometry hugs the terrain and gets the opacity tolerance
+        // band; recorded tracks may dip into valleys and keep the fade
+        m_shader->set_uniform("terrain_tolerance", planned ? 25.f : 0.f);
 
         for (const PolyLine& track : *track_list) {
+
+            // the planned line can be hidden via a ui switch; the point
+            // markers and the user position stay visible
+            if (planned && !m_planned_line_visible && !track.marker) {
+                continue;
+            }
 
             if (planned) {
                 // scale the width with the camera distance so that the line
@@ -256,7 +272,20 @@ void TrackManager::change_tracks(const QVector<nucleus::track::Gpx>& tracks)
 void TrackManager::change_planned_track(const nucleus::track::Gpx& line, const nucleus::track::Gpx& markers)
 {
     m_planned_tracks.resize(0);
-    add_track(line, true);
+    // paint the route onto the terrain texture as well (used during the
+    // fly-through preview, where the 3d capsules' parallax reads as wiggle)
+    m_route_overlay.rasterise(line);
+    // render the line a little above the terrain: the capsules follow the dem
+    // exactly, and wherever they dip centimetres below the interpolated
+    // surface the shader fades them out, which reads as a wiggle. the lift is
+    // render-only; the exported gpx keeps the exact altitudes
+    nucleus::track::Gpx lifted_line = line;
+    for (auto& segment : lifted_line.track) {
+        for (auto& point : segment) {
+            point.elevation += 2.0;
+        }
+    }
+    add_track(lifted_line, true);
     add_track(markers, true, true);
 }
 
@@ -277,6 +306,13 @@ void TrackManager::change_user_position(const nucleus::track::Gpx& marker)
 void TrackManager::clear_user_position()
 {
     m_user_position.resize(0);
+}
+
+void TrackManager::change_planned_line_visible(bool visible) { m_planned_line_visible = visible; }
+
+void TrackManager::set_route_overlay_active(bool active)
+{
+    m_route_overlay.set_active(active);
 }
 
 void TrackManager::change_display_width(float new_width) { m_display_width = new_width; }

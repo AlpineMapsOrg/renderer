@@ -50,7 +50,7 @@ void gl_engine::TextureLayer::init(ShaderRegistry* shader_registry)
 }
 
 void TextureLayer::draw(
-    const TileGeometry& tile_geometry, const nucleus::camera::Definition& camera, const std::vector<nucleus::tile::TileBounds>& draw_list) const
+    const TileGeometry& tile_geometry, const nucleus::camera::Definition& camera, const std::vector<nucleus::tile::TileBounds>& draw_list, const RouteOverlay* route_overlay) const
 {
     m_shader->bind();
     m_texture_array->bind(2);
@@ -70,6 +70,13 @@ void TextureLayer::draw(
 
     m_instanced_zoom->bind(8);
     m_shader->set_uniform("instanced_texture_zoom_sampler", 8);
+
+    // route painted onto the terrain (fly-through preview)
+    if (route_overlay && route_overlay->valid()) {
+        route_overlay->apply(m_shader.get(), camera);
+    } else {
+        m_shader->set_uniform("route_overlay_strength", 0.0f);
+    }
     m_instanced_zoom->upload(zoom_level_raster);
 
     tile_geometry.draw(m_shader.get(), camera, draw_list);
