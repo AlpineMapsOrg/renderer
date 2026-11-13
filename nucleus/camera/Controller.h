@@ -23,6 +23,7 @@
 #include "AnimationStyle.h"
 #include "Definition.h"
 #include "InteractionStyle.h"
+#include "RoutePreviewAnimation.h"
 #include "recording.h"
 #include <QObject>
 #include <glm/glm.hpp>
@@ -65,6 +66,7 @@ public slots:
 
     void mouse_press(const event_parameter::Mouse&);
     void mouse_move(const event_parameter::Mouse&);
+    void mouse_release(const event_parameter::Mouse&);
     void wheel_turn(const event_parameter::Wheel&);
     void key_press(const QKeyCombination&);
     void key_release(const QKeyCombination&);
@@ -78,10 +80,22 @@ public slots:
     // drop the tracked modifier/keyboard state (see InteractionStyle::clear_keyboard_state)
     void clear_keyboard_state();
 
+    // route fly-through preview: the camera descends along the given polyline,
+    // slightly above the terrain. while active, drags rotate around the
+    // current position and the wheel changes the height. remains until
+    // explicitly stopped
+    void start_route_preview(const std::vector<glm::dvec3>& world_points);
+    void stop_route_preview();
+    void set_route_preview_paused(bool paused);
+    void seek_route_preview(double fraction);
+    void set_route_preview_speed(double metres_per_second);
+
 signals:
     void definition_changed(const Definition& new_definition) const;
     void global_cursor_position_changed(glm::dvec3 pos) const;
     void world_position_queried(glm::dvec3 lat_long_alt) const;
+    // progress fraction (0..1), paused flag, active flag, speed (m/s)
+    void route_preview_changed(double progress_fraction, bool paused, bool active, double speed) const;
 
 private:
     void set_interaction_style(std::unique_ptr<InteractionStyle> new_style);
@@ -93,7 +107,14 @@ private:
     DataQuerier* m_data_querier;
     std::unique_ptr<InteractionStyle> m_interaction_style;
     std::unique_ptr<AnimationStyle> m_animation_style;
+    std::unique_ptr<RoutePreviewAnimation> m_route_preview;
+    Definition m_definition_before_preview;
     std::chrono::steady_clock::time_point m_last_frame_time;
+    double m_last_emitted_preview_fraction = -1.0;
+    double m_last_emitted_preview_speed = -1.0;
+    bool m_last_emitted_preview_paused = false;
+    bool m_last_emitted_preview_active = false;
+    void emit_preview_state_if_changed();
 };
 
 }

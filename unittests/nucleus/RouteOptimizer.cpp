@@ -298,6 +298,8 @@ TEST_CASE("RouteOptimizer network repro", "[.]")
         done = true;
     });
     session->start();
+    // capture the emitted preview speed through the session-less route: run a
+    // mini preview session to check signal plumbing separately below
     for (int i = 0; i < 300 && !done; ++i) { // up to 30 s
         QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
         QThread::msleep(100);

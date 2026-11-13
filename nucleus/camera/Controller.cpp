@@ -27,6 +27,7 @@
 #include "OrbitInteraction.h"
 #include "RecordedAnimation.h"
 #include "RotateNorthAnimation.h"
+#include "RoutePreviewAnimation.h"
 #include <QDebug>
 #include <glm/gtx/string_cast.hpp>
 #include <nucleus/DataQuerier.h>
@@ -114,6 +115,13 @@ void Controller::mouse_press(const event_parameter::Mouse& e)
     // Note: This function queries for the position a second time.
     report_global_cursor_position({ e.point.position.x, e.point.position.y });
 
+    if (m_route_preview) {
+        if (e.buttons & Qt::LeftButton) {
+            m_route_preview->set_dragging(true);
+        }
+        return; // the preview owns camera control while it is active
+    }
+
     if (m_animation_style) {
         m_animation_style.reset();
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
@@ -128,6 +136,16 @@ void Controller::mouse_press(const event_parameter::Mouse& e)
 
 void Controller::mouse_move(const event_parameter::Mouse& e)
 {
+    if (m_route_preview) {
+        if (e.buttons & Qt::LeftButton) {
+            const glm::vec2 delta = e.point.position - e.point.last_position;
+            m_route_preview->orbit(delta.x * 0.3, delta.y * 0.2);
+        } else {
+            m_route_preview->set_dragging(false);
+        }
+        return;
+    }
+
     if (m_animation_style) {
         if (e.button == Qt::NoButton)
             return;
@@ -143,8 +161,21 @@ void Controller::mouse_move(const event_parameter::Mouse& e)
     update();
 }
 
+void Controller::mouse_release(const event_parameter::Mouse&)
+{
+    if (m_route_preview) {
+        m_route_preview->set_dragging(false);
+        return;
+    }
+}
+
 void Controller::wheel_turn(const event_parameter::Wheel& e)
 {
+    if (m_route_preview) {
+        m_route_preview->change_height(-double(e.angle_delta.y()) * 0.05);
+        return;
+    }
+
     if (m_animation_style) {
         m_animation_style.reset();
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
@@ -159,6 +190,31 @@ void Controller::wheel_turn(const event_parameter::Wheel& e)
 
 void Controller::key_press(const QKeyCombination& e)
 {
+    if (m_route_preview) {
+        switch (e.key()) {
+        case Qt::Key_Left:
+            m_route_preview->seek(std::max(0.0, m_route_preview->progress_fraction() - 0.05));
+            break;
+        case Qt::Key_Right:
+            m_route_preview->seek(std::min(1.0, m_route_preview->progress_fraction() + 0.05));
+            break;
+        case Qt::Key_Up:
+            m_route_preview->set_speed(m_route_preview->speed() * 1.25);
+            break;
+        case Qt::Key_Down:
+            m_route_preview->set_speed(m_route_preview->speed() / 1.25);
+            break;
+        case Qt::Key_Escape:
+            stop_route_preview();
+            break;
+        default:
+            return;
+        }
+        emit_preview_state_if_changed();
+        update();
+        return;
+    }
+
     if (m_animation_style) {
         m_animation_style.reset();
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
@@ -208,6 +264,28 @@ void Controller::key_release(const QKeyCombination& e)
 
 void Controller::touch(const event_parameter::Touch& e)
 {
+    if (m_route_preview) {
+        if (e.points.size() == 1) {
+            const auto& point = e.points[0];
+            if (point.state == event_parameter::TouchPointPressed) {
+                m_route_preview->set_dragging(true);
+            } else if (point.state == event_parameter::TouchPointMoved && m_route_preview->paused()) {
+                const glm::vec2 delta = point.position - point.last_position;
+                m_route_preview->orbit(delta.x * 0.3, delta.y * 0.2);
+            } else if (point.state == event_parameter::TouchPointReleased) {
+                m_route_preview->set_dragging(false);
+            }
+        } else if (e.points.size() == 2) {
+            // two finger pan: adjust the height above the terrain
+            for (const auto& point : e.points) {
+                if (point.state == event_parameter::TouchPointMoved) {
+                    m_route_preview->change_height(-double(point.position.y - point.last_position.y) * 0.2);
+                }
+            }
+        }
+        return;
+    }
+
     if (m_animation_style) {
         m_animation_style.reset();
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
@@ -222,6 +300,16 @@ void Controller::touch(const event_parameter::Touch& e)
 
 void Controller::advance_camera()
 {
+    if (m_route_preview) {
+        const auto new_camera_definition = m_route_preview->update(m_definition, m_depth_tester);
+        if (new_camera_definition) {
+            m_definition = new_camera_definition.value();
+        }
+        update();
+        emit_preview_state_if_changed();
+        return;
+    }
+
     if (m_animation_style) {
         const auto new_camera_definition = m_animation_style->update(m_definition, m_depth_tester);
         if (!new_camera_definition) {
@@ -271,6 +359,83 @@ void Controller::query_world_position(const QPointF& screen_pos)
 void Controller::clear_keyboard_state()
 {
     m_interaction_style->clear_keyboard_state();
+}
+
+void Controller::emit_preview_state_if_changed()
+{
+    if (!m_route_preview) {
+        if (m_last_emitted_preview_active) {
+            m_last_emitted_preview_active = false;
+            emit route_preview_changed(0.0, false, false, 0.0);
+        }
+        return;
+    }
+    const double fraction = m_route_preview->progress_fraction();
+    const bool paused = m_route_preview->paused();
+    const double speed = m_route_preview->speed();
+    // throttle: only emit on meaningful changes (the state changes every frame)
+    if (m_last_emitted_preview_active && !paused && std::abs(fraction - m_last_emitted_preview_fraction) < 0.005
+        && paused == m_last_emitted_preview_paused && speed == m_last_emitted_preview_speed) {
+        return;
+    }
+    m_last_emitted_preview_fraction = fraction;
+    m_last_emitted_preview_paused = paused;
+    m_last_emitted_preview_speed = speed;
+    m_last_emitted_preview_active = true;
+    emit route_preview_changed(fraction, paused, true, speed);
+}
+
+void Controller::start_route_preview(const std::vector<glm::dvec3>& world_points)
+{
+    if (world_points.size() < 2) {
+        return;
+    }
+    m_definition_before_preview = m_definition;
+    m_route_preview = std::make_unique<RoutePreviewAnimation>(world_points);
+    m_animation_style.reset();
+    m_last_emitted_preview_fraction = -1.0;
+    m_last_emitted_preview_speed = -1.0;
+    update();
+    emit_preview_state_if_changed();
+}
+
+void Controller::stop_route_preview()
+{
+    if (!m_route_preview) {
+        return;
+    }
+    m_route_preview.reset();
+    // return the camera to where it was before the fly-through started
+    m_definition = m_definition_before_preview;
+    m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    emit_preview_state_if_changed();
+    update();
+}
+
+void Controller::set_route_preview_paused(bool paused)
+{
+    if (m_route_preview) {
+        m_route_preview->pause(paused);
+        emit_preview_state_if_changed();
+        update();
+    }
+}
+
+void Controller::seek_route_preview(double fraction)
+{
+    if (m_route_preview) {
+        m_route_preview->seek(fraction);
+        emit_preview_state_if_changed();
+        update();
+    }
+}
+
+void Controller::set_route_preview_speed(double metres_per_second)
+{
+    if (m_route_preview) {
+        m_route_preview->set_speed(metres_per_second);
+        update();
+    }
 }
 
 void Controller::set_pixel_error_threshold(float threshold)
