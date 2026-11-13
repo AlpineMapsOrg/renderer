@@ -89,9 +89,54 @@ std::optional<float> DemTile::sample(double world_x, double world_y) const
     }
     const double u = (world_x - min_x) / (max_x - min_x);
     const double v = (world_y - min_y) / (max_y - min_y);
-    const unsigned px = std::min(unsigned(u * double(width)), width - 1);
-    const unsigned py = std::min(unsigned((1.0 - v) * double(height)), height - 1); // row 0 = north
-    return heights[size_t(py) * width + px];
+    // bilinear between the texel centres (row 0 = north), matching how the
+    // rendered terrain interpolates the height texture
+    const double fx = u * double(width) - 0.5;
+    const double fy = (1.0 - v) * double(height) - 0.5;
+    const double x0 = std::clamp(std::floor(fx), 0.0, double(width) - 1.0);
+    const double y0 = std::clamp(std::floor(fy), 0.0, double(height) - 1.0);
+    const double x1 = std::min(x0 + 1.0, double(width) - 1.0);
+    const double y1 = std::min(y0 + 1.0, double(height) - 1.0);
+    const double tx = std::clamp(fx - x0, 0.0, 1.0);
+    const double ty = std::clamp(fy - y0, 0.0, 1.0);
+
+    const auto texel = [&](double px, double py) {
+        return heights[size_t(py) * width + size_t(px)];
+    };
+    const double top = texel(x0, y0) * (1.0 - tx) + texel(x1, y0) * tx;
+    const double bottom = texel(x0, y1) * (1.0 - tx) + texel(x1, y1) * tx;
+    return float(top * (1.0 - ty) + bottom * ty);
+}
+
+std::optional<float> DemTile::mesh_sample(double world_x, double world_y) const
+{
+    if (world_x < min_x || world_x > max_x || world_y < min_y || world_y > max_y) {
+        return std::nullopt;
+    }
+    const double u = (world_x - min_x) / (max_x - min_x);
+    const double v = (world_y - min_y) / (max_y - min_y);
+    // the rendered mesh places a vertex per texel, spanning the tile with
+    // (width-1) x (height-1) cells; row 0 is the north edge
+    const double fx = u * double(width - 1);
+    const double fy = (1.0 - v) * double(height - 1);
+    const double cx = std::clamp(std::floor(fx), 0.0, double(width) - 2.0);
+    const double cy = std::clamp(std::floor(fy), 0.0, double(height) - 2.0);
+    const double tx = std::clamp(fx - cx, 0.0, 1.0);
+    const double ty = std::clamp(fy - cy, 0.0, 1.0);
+
+    const auto texel = [&](double px, double py) {
+        return heights[size_t(py) * width + size_t(px)];
+    };
+    const double north_west = texel(cx, cy);
+    const double north_east = texel(cx + 1, cy);
+    const double south_west = texel(cx, cy + 1);
+    const double south_east = texel(cx + 1, cy + 1);
+
+    // triangle split along the south-west / north-east diagonal (u+v vs 1)
+    if (tx + ty <= 1.0) {
+        return float(north_west + (north_east - north_west) * tx + (south_west - north_west) * ty);
+    }
+    return float(south_east + (south_west - south_east) * (1.0 - tx) + (north_east - south_east) * (1.0 - ty));
 }
 
 std::optional<DemRaster> DemRaster::create(const std::vector<DemTile>& tiles,
@@ -610,9 +655,18 @@ void RouteOptimisationSession::compute()
             // altitude is already true metres - it must not go through
             // world_to_lat_long_alt, whose z is the mercator-stretched world
             // z (metres / cos(lat))
+            // altitudes from the exact rendered surface (triangle mesh), so
+            // the line sits on the terrain the gpu draws, also diagonal to
+            // the grid
             const auto add_world_point = [&](glm::dvec2 world) {
                 const glm::dvec2 lat_long = srs::world_to_lat_long(world);
-                const auto altitude = raster->altitude(world);
+                std::optional<float> altitude;
+                for (const DemTile& tile : decoded_tiles) {
+                    altitude = tile.mesh_sample(world.x, world.y);
+                    if (altitude) {
+                        break;
+                    }
+                }
                 segment.push_back({ lat_long.x, lat_long.y, altitude.value_or(0.0) });
             };
 

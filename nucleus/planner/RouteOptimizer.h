@@ -69,6 +69,13 @@ struct DemTile {
     std::vector<float> heights; // row-major, row 0 is the north edge
 
     std::optional<float> sample(double world_x, double world_y) const;
+    // altitude of the *rendered* terrain surface: the tile mesh is a triangle
+    // strip over the texel grid (diagonal from the south-western to the
+    // north-eastern cell corner, see terrain_mesh_index_generator), so the
+    // surface between four texels is two triangles, not a bilinear patch.
+    // sampling this instead of a bilinear patch removes the residual wiggle
+    // of the rendered line when travelling diagonal to the grid
+    std::optional<float> mesh_sample(double world_x, double world_y) const;
 };
 
 // local metric dem grid over the planning area, sampled from decoded tiles

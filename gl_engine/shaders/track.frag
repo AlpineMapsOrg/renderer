@@ -43,6 +43,11 @@ uniform int end_index;
 uniform bool use_color_override;
 uniform bool color_is_marker;
 uniform highp vec3 color_override;
+// the planned route line is meant to sit on the terrain. a tolerance band
+// keeps it fully opaque through sub-metre sampling and lod-streaming noise;
+// without it the capsule distance test flips between the opaque and the
+// half-transparent below-terrain branch, which reads as a wiggle
+uniform highp float terrain_tolerance;
 
 
 uniform highp vec2 resolution;
@@ -471,8 +476,8 @@ void main() {
 
                 color = phong_lighting(color, normal, vec3(0, 0, 0), point);
 
-                if (t < dist) {
-                    // geometry is above terrain
+                if (t < dist + terrain_tolerance) {
+                    // geometry is above terrain (or within the tolerance band)
                     out_color = vec4(color, 1.0);
 
                 } else {
