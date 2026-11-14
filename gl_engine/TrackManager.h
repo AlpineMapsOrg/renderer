@@ -36,12 +36,19 @@ namespace gl_engine {
 class ShaderProgram;
 class ShaderRegistry;
 
+// which list a track is added to; this decides both the destination of the
+// gpu resources and the rendering behaviour (smoothing, colour, width)
+enum class TrackList {
+    Recorded,     // uploaded/recorded tracks: smoothed, speed shaded, constant width
+    Planned,      // the route planner's line and point markers
+    UserPosition, // the user's current gnss position dot
+};
+
 struct PolyLine {
     GLsizei point_count;
     std::unique_ptr<QOpenGLVertexArrayObject> vao = nullptr;
     std::unique_ptr<QOpenGLBuffer> vbo = nullptr;
     std::unique_ptr<QOpenGLTexture> texture = nullptr;
-    bool planned = false;
     // route point markers (dots) get a slightly different colour than the line
     bool marker = false;
     // the user position indicator
@@ -82,7 +89,7 @@ public slots:
     void set_flight_mode(bool active);
 
 protected:
-    void add_track(const nucleus::track::Gpx& gpx, bool planned = false, bool markers = false);
+    void add_track(const nucleus::track::Gpx& gpx, TrackList destination, bool markers = false);
 
 private:
     unsigned int m_shading_method = 0U;

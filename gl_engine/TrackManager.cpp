@@ -143,10 +143,14 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
     f->glEnable(GL_CULL_FACE);
 }
 
-void TrackManager::add_track(const nucleus::track::Gpx& gpx, bool planned, bool markers)
+void TrackManager::add_track(const nucleus::track::Gpx& gpx, const TrackList destination, const bool markers)
 {
     using namespace nucleus::track;
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+
+    // recorded tracks get smoothed and feed the speed shading; planned routes
+    // and the user position are already densely interpolated
+    const bool recorded = destination == TrackList::Recorded;
 
     for (const Segment& segment : gpx.track) {
 
@@ -159,7 +163,7 @@ void TrackManager::add_track(const nucleus::track::Gpx& gpx, bool planned, bool 
 
         // data cleanup (not for planned tracks, the points are already densely
         // interpolated and smoothing would blur the point markers)
-        if (!planned) {
+        if (recorded) {
             apply_gaussian_filter(points, 1.0f);
 
             for (size_t i = 0; i < points.size() - 1; ++i) {
@@ -180,7 +184,6 @@ void TrackManager::add_track(const nucleus::track::Gpx& gpx, bool planned, bool 
         std::vector<glm::vec3> basic_ribbon = triangles_ribbon(points, 0.0f, 0);
 
         PolyLine polyline = {};
-        polyline.planned = planned;
         polyline.marker = markers;
         // average of the world-space points, for distance-based width scaling
         glm::vec3 center_sum(0.f);
@@ -249,10 +252,17 @@ void TrackManager::add_track(const nucleus::track::Gpx& gpx, bool planned, bool 
 
         polyline.vao->release();
 
-        if (planned) {
-            m_planned_tracks.push_back(std::move(polyline));
-        } else {
+        switch (destination) {
+        case TrackList::Recorded:
             m_tracks.push_back(std::move(polyline));
+            break;
+        case TrackList::Planned:
+            m_planned_tracks.push_back(std::move(polyline));
+            break;
+        case TrackList::UserPosition:
+            polyline.user_position = true;
+            m_user_position.push_back(std::move(polyline));
+            break;
         }
     }
 }
@@ -263,7 +273,7 @@ void TrackManager::change_tracks(const QVector<nucleus::track::Gpx>& tracks)
 {
     m_tracks.resize(0);
     for (const auto& t : tracks) {
-        add_track(t);
+        add_track(t, TrackList::Recorded);
     }
 }
 
@@ -280,8 +290,8 @@ void TrackManager::change_planned_track(const nucleus::track::Gpx& line, const n
             point.elevation += 2.0;
         }
     }
-    add_track(lifted_line, true);
-    add_track(markers, true, true);
+    add_track(lifted_line, TrackList::Planned);
+    add_track(markers, TrackList::Planned, true);
 }
 
 void TrackManager::clear_planned_track()
@@ -292,10 +302,7 @@ void TrackManager::clear_planned_track()
 void TrackManager::change_user_position(const nucleus::track::Gpx& marker)
 {
     m_user_position.resize(0);
-    add_track(marker, true, true);
-    for (PolyLine& polyline : m_user_position) {
-        polyline.user_position = true;
-    }
+    add_track(marker, TrackList::UserPosition, true);
 }
 
 void TrackManager::clear_user_position()
