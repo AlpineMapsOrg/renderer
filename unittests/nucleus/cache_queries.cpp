@@ -75,3 +75,37 @@ TEST_CASE("cache_queries")
     CHECK(cache_queries::query_altitude(&cache, {-47.5587933, -12.3450985}) == 3000);
     CHECK(cache_queries::query_altitude(&cache, {47.5587933, 12.3450985}) == 2000);
 }
+
+TEST_CASE("cache_queries DemMeshSampler")
+{
+    // the cache visit descends from the root and only steps through cached
+    // quads, so the ancestor chain up to the zoom 4 tile must be present
+    MemoryCache cache;
+    cache.insert(example_tile_quad_for(Id { 0, { 0, 0 } }, 2000.0f));
+    cache.insert(example_tile_quad_for(Id { 1, { 1, 1 } }, 2000.0f));
+    cache.insert(example_tile_quad_for(Id { 2, { 2, 2 } }, 2000.0f));
+    cache.insert(example_tile_quad_for(Id { 3, { 4, 5 } }, 2000.0f));
+    cache.insert(example_tile_quad_for(Id { 4, { 8, 10 } }, 2000.0f));
+
+    const glm::dvec2 inside = {47.5587933, 12.3450985};
+
+    cache_queries::DemMeshSampler sampler(&cache);
+    const auto altitude = sampler.altitude(inside);
+    REQUIRE(altitude.has_value());
+    CHECK(altitude.value() == 2000.f);
+    // identical semantics to the single-query variant
+    CHECK(sampler.altitude(inside) == cache_queries::query_mesh_altitude(&cache, inside));
+    // repeated queries exercise the last-tile shortcut and the decode map
+    CHECK(sampler.altitude(inside).value() == 2000.f);
+
+    // the deepest selectable tile is a zoom 5 child of the deepest cached
+    // quad (a quad holds its four children's data), so one cell of the
+    // 64x64 tile at zoom 5
+    CHECK(sampler.cell_size(inside).value() == nucleus::srs::tile_width(5) / 64.0);
+
+    // an empty cache has no tiles at all
+    MemoryCache empty_cache;
+    cache_queries::DemMeshSampler empty_sampler(&empty_cache);
+    CHECK(!empty_sampler.altitude(inside).has_value());
+    CHECK(!empty_sampler.cell_size(inside).has_value());
+}

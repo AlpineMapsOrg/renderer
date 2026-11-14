@@ -44,9 +44,9 @@ class PlannerModel : public QObject {
     Q_PROPERTY(double ascent READ ascent NOTIFY points_changed)
     Q_PROPERTY(double descent READ descent NOTIFY points_changed)
     // average / maximum steepness of the planned route, in degrees, computed
-    // from the dem-interpolated line
-    Q_PROPERTY(double avg_steepness READ avg_steepness NOTIFY points_changed)
-    Q_PROPERTY(double max_steepness READ max_steepness NOTIFY points_changed)
+    // from the dem-interpolated line (asynchronously, see render_data_changed)
+    Q_PROPERTY(double avg_steepness READ avg_steepness NOTIFY render_data_changed)
+    Q_PROPERTY(double max_steepness READ max_steepness NOTIFY render_data_changed)
     // least-cost path optimisation (steep ski descent planning)
     Q_PROPERTY(int steepness_weight READ steepness_weight WRITE set_steepness_weight NOTIFY optimisation_parameters_changed)
     Q_PROPERTY(int distance_weight READ distance_weight WRITE set_distance_weight NOTIFY optimisation_parameters_changed)
@@ -59,7 +59,8 @@ class PlannerModel : public QObject {
     Q_PROPERTY(bool route_line_visible READ route_line_visible WRITE set_route_line_visible NOTIFY route_line_visible_changed)
     // dense elevation profile of the rendered route line: entries are
     // { x: metres along the route, y: elevation (m), slope: degrees }
-    Q_PROPERTY(QVariantList elevation_profile READ elevation_profile NOTIFY points_changed)
+    // (asynchronously computed, see render_data_changed)
+    Q_PROPERTY(QVariantList elevation_profile READ elevation_profile NOTIFY render_data_changed)
 public:
     explicit PlannerModel(QObject* parent = nullptr);
 
@@ -112,6 +113,10 @@ public slots:
 
 signals:
     void points_changed();
+    // the dem-interpolated render line, the point markers and the
+    // steepness/profile values changed; computed asynchronously after every
+    // plan edit, so it arrives shortly after points_changed
+    void render_data_changed();
     void planned_track_changed(const nucleus::track::Gpx& line, const nucleus::track::Gpx& markers);
     // emitted after a gpx import, with the lat/long of the first route point,
     // so the ui can move the camera to the imported track
@@ -166,4 +171,7 @@ private:
     QString m_optimisation_status;
     bool m_route_line_visible = true;
     unsigned m_optimisation_generation = 0;
+    // discards results of superseded render-data computations (async, one
+    // generation per update_render_data call)
+    unsigned m_render_data_generation = 0;
 };

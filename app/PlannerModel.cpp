@@ -32,13 +32,10 @@
 #include <nucleus/srs.h>
 
 namespace {
-// The dem tiles are 65x65 samples; at the zoom levels the scheduler keeps
-// cached when close to the terrain this resolves to roughly 20-40 m per
-// sample. sampling at 5 m oversamples the dem (so the steepness colouring
-// changes gradually), a moving average over the sampled elevations removes
-// the dem cell staircase. very long segments are coarsened automatically
-// (see update_render_data).
-constexpr double k_sample_distance = 5.0;
+// dem cell size fallback (metres) for interpolation steps when no dem tile
+// is cached for a segment: normally the samples are spaced at one cell of
+// the tile the renderer displays there (see compute_render_data)
+constexpr double k_fallback_cell_size = 20.0;
 // upper bound of interpolation steps per segment, so that a segment across
 // whole austria does not produce tens of thousands of samples
 constexpr int k_max_steps_per_segment = 500;
@@ -554,12 +551,24 @@ void PlannerModel::clear_user_position()
     emit user_position_cleared();
 }
 
-void PlannerModel::update_render_data()
+namespace {
+
+struct RenderData {
+    nucleus::track::Gpx line;
+    nucleus::track::Gpx markers;
+    double avg_steepness = 0;
+    double max_steepness = 0;
+};
+
+// builds the dense, dem-interpolated render line of the plan. runs on a
+// thread pool (see update_render_data) and touches only its arguments: the
+// plan/optimised-segment copies and the tile cache, which is internally
+// synchronised
+RenderData compute_render_data(const nucleus::track::Gpx& plan,
+                               const std::vector<std::vector<nucleus::track::Point>>& optimised_segments,
+                               nucleus::tile::MemoryCache* cache)
 {
-    m_render_line = {};
-    m_render_markers = {};
-    m_avg_steepness = 0;
-    m_max_steepness = 0;
+    RenderData result;
 
     // accumulates steepness statistics along the rendered line. called for
     // every point appended to the line, in order; the chain restarts at each
@@ -570,29 +579,31 @@ void PlannerModel::update_render_data()
     nucleus::track::Point chain_previous {};
     const auto add_line_point = [&](const nucleus::track::Point& point) {
         if (chain_started) {
-            const double dist = m_plan.haversine_distance(chain_previous, point);
+            const double dist = plan.haversine_distance(chain_previous, point);
             if (dist > 0) {
                 const double elevation_change = std::abs(point.elevation - chain_previous.elevation);
                 total_abs_elevation_change += elevation_change;
                 total_distance += dist;
-                m_max_steepness = std::max(m_max_steepness, glm::degrees(std::atan(elevation_change / dist)));
+                result.max_steepness = std::max(result.max_steepness, glm::degrees(std::atan(elevation_change / dist)));
             }
         } else {
             chain_started = true;
         }
         chain_previous = point;
-        m_render_line.add_new_point(point);
+        result.line.add_new_point(point);
     };
     const auto restart_chain = [&chain_started]() { chain_started = false; };
 
+    // decodes each touched dem tile once instead of once per sample
+    nucleus::tile::cache_queries::DemMeshSampler sampler(cache);
+
     size_t pair_index = 0; // consecutive waypoint pair counter across plan segments
 
-    for (const auto& segment : m_plan.track) {
+    for (const auto& segment : plan.track) {
         restart_chain();
 
         // collect the interpolated samples of this plan segment, then smooth
         // their elevations, so that the rendered steepness changes gradually
-        // (the dem cells are much coarser than the sample distance)
         std::vector<nucleus::track::Point> line_points;
         line_points.reserve(segment.size() * 8);
         for (size_t i = 0; i < segment.size(); ++i) {
@@ -602,9 +613,9 @@ void PlannerModel::update_render_data()
             // point marker: ~1 m segment that the capsule shader renders as a
             // round dot sitting on the route point
             const double lat_offset = k_marker_length / k_metres_per_degree_latitude;
-            m_render_markers.add_new_segment();
-            m_render_markers.add_new_point({ a.latitude - lat_offset / 2.0, a.longitude, a.elevation });
-            m_render_markers.add_new_point({ a.latitude + lat_offset / 2.0, a.longitude, a.elevation });
+            result.markers.add_new_segment();
+            result.markers.add_new_point({ a.latitude - lat_offset / 2.0, a.longitude, a.elevation });
+            result.markers.add_new_point({ a.latitude + lat_offset / 2.0, a.longitude, a.elevation });
 
             if (i + 1 >= segment.size()) {
                 continue;
@@ -616,14 +627,23 @@ void PlannerModel::update_render_data()
             // the dem for the elevation
             std::vector<nucleus::track::Point> straight_samples;
             const std::vector<nucleus::track::Point>* path = &straight_samples;
-            if (pair_index < m_optimised_segments.size() && !m_optimised_segments[pair_index].empty()) {
-                path = &m_optimised_segments[pair_index];
+            if (pair_index < optimised_segments.size() && !optimised_segments[pair_index].empty()) {
+                path = &optimised_segments[pair_index];
             } else {
                 const glm::dvec2 world_a = nucleus::srs::lat_long_to_world({ a.latitude, a.longitude });
                 const glm::dvec2 world_b = nucleus::srs::lat_long_to_world({ b.latitude, b.longitude });
                 const double dist = glm::distance(world_a, world_b);
+
+                // one interpolation step spans roughly one dem cell of the
+                // terrain displayed there, so the rendered line matches the
+                // resolution of the drawn tiles without oversampling; the
+                // tile at the segment midpoint decides the cell size
+                double cell_size = k_fallback_cell_size;
+                if (const auto dem_cell_size = sampler.cell_size({ (a.latitude + b.latitude) / 2.0, (a.longitude + b.longitude) / 2.0 })) {
+                    cell_size = dem_cell_size.value();
+                }
                 const int steps = std::min(k_max_steps_per_segment,
-                    std::max(1, int(std::ceil(dist / k_sample_distance))));
+                    std::max(1, int(std::ceil(dist / cell_size))));
 
                 for (int s = 1; s < steps; ++s) {
                     const double t = double(s) / double(steps);
@@ -634,8 +654,7 @@ void PlannerModel::update_render_data()
                     // sample the exact rendered surface (triangle mesh), so
                     // the line matches the drawn terrain, also diagonal to
                     // the grid
-                    const std::expected<float, QString> dem_altitude = nucleus::tile::cache_queries::query_mesh_altitude(
-                        &RenderingContext::instance()->geometry_scheduler()->ram_cache(), { lat, lon });
+                    const std::expected<float, QString> dem_altitude = sampler.altitude({ lat, lon });
                     if (dem_altitude.has_value()) {
                         alt = dem_altitude.value();
                     }
@@ -669,8 +688,52 @@ void PlannerModel::update_render_data()
 
     // average steepness: atan of the mean absolute slope along the whole route
     if (total_distance > 0) {
-        m_avg_steepness = glm::degrees(std::atan(total_abs_elevation_change / total_distance));
+        result.avg_steepness = glm::degrees(std::atan(total_abs_elevation_change / total_distance));
+    }
+    return result;
+}
+
+} // namespace
+
+void PlannerModel::update_render_data()
+{
+    if (m_plan.point_count() == 0) {
+        m_render_data_generation += 1; // discard an in-flight computation
+        m_render_line = {};
+        m_render_markers = {};
+        m_avg_steepness = 0;
+        m_max_steepness = 0;
+        emit planned_track_changed(m_render_line, m_render_markers);
+        emit render_data_changed();
+        return;
     }
 
-    emit planned_track_changed(m_render_line, m_render_markers);
+    // the dem sampling runs on a thread pool: snapshot the inputs on the gui
+    // thread, the worker touches only the copies (and the tile cache, which
+    // is internally synchronised and lives for the app's lifetime). the
+    // generation discards results of superseded snapshots when the plan
+    // changes again while a computation is in flight
+    const unsigned generation = ++m_render_data_generation;
+    nucleus::track::Gpx plan = m_plan;
+    auto optimised_segments = m_optimised_segments;
+    nucleus::tile::MemoryCache* cache = &RenderingContext::instance()->geometry_scheduler()->ram_cache();
+
+    auto* watcher = new QFutureWatcher<RenderData>(this);
+    connect(watcher, &QFutureWatcher<RenderData>::finished, this,
+        [this, generation, watcher]() {
+            watcher->deleteLater();
+            if (generation != m_render_data_generation) {
+                return; // the plan changed while computing
+            }
+            const RenderData& result = watcher->result();
+            m_render_line = result.line;
+            m_render_markers = result.markers;
+            m_avg_steepness = result.avg_steepness;
+            m_max_steepness = result.max_steepness;
+            emit planned_track_changed(m_render_line, m_render_markers);
+            emit render_data_changed();
+        });
+    watcher->setFuture(QtConcurrent::run([plan = std::move(plan), optimised = std::move(optimised_segments), cache]() {
+        return compute_render_data(plan, optimised, cache);
+    }));
 }
