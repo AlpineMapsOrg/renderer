@@ -19,6 +19,7 @@
 #pragma once
 
 #include <QObject>
+#include <QTimer>
 #include <QUrl>
 #include <QVariantList>
 #include <glm/glm.hpp>
@@ -150,6 +151,10 @@ private:
     // bump the generation so an in-flight optimisation result is discarded
     void drop_inflight_result();
     void clear_status();
+    // rebuilds the user position dot from the stored coordinates, re-sampling
+    // the dem altitude from the currently cached tiles (connected to the
+    // refresh timer, so the dot follows tile refinement)
+    void place_user_position();
     // flattened waypoint list (lat, lon) of the whole plan
     std::vector<glm::dvec2> waypoint_sequence() const;
 
@@ -164,6 +169,13 @@ private:
     double m_avg_steepness = 0;
     double m_max_steepness = 0;
     std::shared_ptr<nucleus::DataQuerier> m_data_querier;
+
+    // the user position dot: the last gnss coordinates, re-placed once per
+    // interval so the dot keeps following the displayed terrain
+    double m_user_position_latitude = 0;
+    double m_user_position_longitude = 0;
+    double m_user_position_altitude = 0;
+    QTimer m_user_position_timer;
 
     // optimised least-cost descent path per consecutive waypoint pair, kept
     // aligned with the pair numbering of update_render_data after every

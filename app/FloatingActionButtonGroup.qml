@@ -483,16 +483,16 @@ ColumnLayout {
     }
 
 
+    // a map press cancels the presets fab; the location fab is a toggle and
+    // stays active, so the position dot survives camera navigation
     Connections {
-        enabled: fab_location.checked || fab_presets.checked
+        enabled: fab_presets.checked
         target: map
         function onMouse_pressed() {
-            fab_location.checked = false;
             fab_presets.checked = false;
         }
 
         function onTouch_made() {
-            fab_location.checked = false;
             fab_presets.checked = false;
         }
     }
@@ -505,8 +505,14 @@ ColumnLayout {
             _planner_model.set_user_position(gnss.latitude, gnss.longitude, gnss.altitude)
         }
         onEnabled_changed: {
-            if (!gnss.enabled)
+            if (gnss.enabled) {
+                // show the dot right away when re-activated (set_user_position
+                // ignores the call while no fix has arrived yet), don't wait
+                // for the next gnss fix
+                _planner_model.set_user_position(gnss.latitude, gnss.longitude, gnss.altitude)
+            } else {
                 _planner_model.clear_user_position()
+            }
         }
     }
 

@@ -50,6 +50,9 @@ constexpr double k_metres_per_degree_latitude = 111320.0;
 // the user position dot floats this many metres above the dem, so that it is
 // not swallowed by the terrain
 constexpr double k_user_position_z_offset = 3.0;
+// the user position dot is re-placed at this interval, so its dem altitude
+// follows the currently displayed terrain while it is active
+constexpr int k_user_position_refresh_interval_ms = 1000;
 } // namespace
 
 PlannerModel::PlannerModel(QObject* parent)
@@ -68,6 +71,9 @@ PlannerModel::PlannerModel(QObject* parent)
 
         m_data_querier = ctx->data_querier();
     });
+
+    m_user_position_timer.setInterval(k_user_position_refresh_interval_ms);
+    connect(&m_user_position_timer, &QTimer::timeout, this, &PlannerModel::place_user_position);
 }
 
 QVariantList PlannerModel::points() const
@@ -550,12 +556,26 @@ void PlannerModel::set_user_position(double latitude, double longitude, double a
     if (latitude == 0.0 && longitude == 0.0) {
         return;
     }
+    m_user_position_latitude = latitude;
+    m_user_position_longitude = longitude;
+    m_user_position_altitude = altitude;
+    m_user_position_timer.start();
+    place_user_position();
+}
 
+void PlannerModel::clear_user_position()
+{
+    m_user_position_timer.stop();
+    emit user_position_cleared();
+}
+
+void PlannerModel::place_user_position()
+{
     // place the dot on the terrain: the dem altitude is more reliable than
     // the gnss altitude; the gnss altitude is only the fallback
-    double dem_altitude = altitude;
+    double dem_altitude = m_user_position_altitude;
     if (m_data_querier) {
-        const std::expected<float, QString> queried = m_data_querier->get_altitude({ latitude, longitude });
+        const std::expected<float, QString> queried = m_data_querier->get_altitude({ m_user_position_latitude, m_user_position_longitude });
         if (queried.has_value()) {
             dem_altitude = queried.value();
         }
@@ -566,14 +586,9 @@ void PlannerModel::set_user_position(double latitude, double longitude, double a
     // lifted above the terrain so it is not swallowed by the dem
     const double lat_offset = k_marker_length / k_metres_per_degree_latitude;
     nucleus::track::Gpx marker;
-    marker.add_new_point({ latitude - lat_offset / 2.0, longitude, dem_altitude + k_user_position_z_offset });
-    marker.add_new_point({ latitude + lat_offset / 2.0, longitude, dem_altitude + k_user_position_z_offset });
+    marker.add_new_point({ m_user_position_latitude - lat_offset / 2.0, m_user_position_longitude, dem_altitude + k_user_position_z_offset });
+    marker.add_new_point({ m_user_position_latitude + lat_offset / 2.0, m_user_position_longitude, dem_altitude + k_user_position_z_offset });
     emit user_position_changed(marker);
-}
-
-void PlannerModel::clear_user_position()
-{
-    emit user_position_cleared();
 }
 
 namespace {
