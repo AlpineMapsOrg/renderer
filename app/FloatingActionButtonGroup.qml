@@ -54,17 +54,13 @@ ColumnLayout {
         size: parent.width
         // activates the position dot once and stays on; every press jumps to
         // the (last known) position, the gnss updates never move the camera.
-        // the first jump flies into the canonical position view, later jumps
-        // only pan there and keep the current camera rotation
+        // every press pans to the (last known) position and keeps the
+        // current camera rotation
         onClicked: {
-            const first_activation = !checked;
             checked = true;
             if (gnss.latitude !== 0 || gnss.longitude !== 0) {
-                if (first_activation) {
-                    map.set_position(gnss.latitude, gnss.longitude)
-                } else {
-                    map.move_position(gnss.latitude, gnss.longitude)
-                }
+                // always pan: keeps the camera rotation the user had chosen
+                map.move_position(gnss.latitude, gnss.longitude)
             } else {
                 fab_group.jump_to_position_pending = true
             }
@@ -523,10 +519,10 @@ ColumnLayout {
         onInformation_updated: {
             _planner_model.set_user_position(gnss.latitude, gnss.longitude, gnss.altitude)
             if (fab_group.jump_to_position_pending) {
-                // jump once when the position becomes known, then leave the
+                // pan once when the position becomes known, then leave the
                 // camera to the user
                 fab_group.jump_to_position_pending = false
-                map.set_position(gnss.latitude, gnss.longitude)
+                map.move_position(gnss.latitude, gnss.longitude)
             }
         }
         onEnabled_changed: {
