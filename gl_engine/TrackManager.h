@@ -106,7 +106,6 @@ private:
     std::shared_ptr<ShaderProgram> m_shader;
     float m_max_speed = 0.0f;
     float m_max_vertical_speed = 0.0f;
-    size_t m_total_point_count = 0;
     std::vector<PolyLine> m_tracks;
     std::vector<PolyLine> m_planned_tracks;
     std::vector<PolyLine> m_user_position;

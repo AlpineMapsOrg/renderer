@@ -38,7 +38,6 @@ Rectangle {
 
     // collapsed to a small status bar, so the map stays visible (phones)
     property bool minimized: false
-    property bool minimized_before_preview: false
     property bool preview_running: false
 
     // optimisation weight sliders, collapsed behind the chevron by default

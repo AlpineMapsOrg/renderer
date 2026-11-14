@@ -193,35 +193,30 @@ void TrackManager::add_track(const nucleus::track::Gpx& gpx, const TrackList des
         polyline.center = center_sum / float(points.size());
 
 
-        if (polyline.texture == nullptr) {
+        int max_texture_size;
+        f->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
 
-            int max_texture_size;
-            f->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+        if (max_texture_size < int(point_count)) {
+            qDebug() << "Unable to add track with " << point_count << "points, maximum is " << max_texture_size;
+            return;
+        }
 
-            if (max_texture_size < int(point_count)) {
-                qDebug() << "Unable to add track with " << point_count << "points, maximum is " << max_texture_size;
-                return;
-            }
+        // create texture to hold the point data
+        polyline.texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
+        polyline.texture->setFormat(QOpenGLTexture::TextureFormat::RGBA32F);
+        polyline.texture->setSize(point_count, 1);
+        polyline.texture->setAutoMipMapGenerationEnabled(false);
+        polyline.texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
+        polyline.texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+        polyline.texture->allocateStorage();
 
-            // create texture to hold the point data
-            polyline.texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
-            polyline.texture->setFormat(QOpenGLTexture::TextureFormat::RGBA32F);
-            polyline.texture->setSize(point_count, 1);
-            polyline.texture->setAutoMipMapGenerationEnabled(false);
-            polyline.texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
-            polyline.texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
-            polyline.texture->allocateStorage();
-
-            if (!polyline.texture->isStorageAllocated()) {
-                qDebug() << "Could not allocate texture storage!";
-                return;
-            }
+        if (!polyline.texture->isStorageAllocated()) {
+            qDebug() << "Could not allocate texture storage!";
+            return;
         }
 
         polyline.texture->bind();
         polyline.texture->setData(0, 0, 0, point_count, 1, 0, QOpenGLTexture::RGBA, QOpenGLTexture::Float32, points.data());
-
-        m_total_point_count += point_count;
 
         polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
         polyline.point_count = point_count;
