@@ -24,6 +24,7 @@
 #include <QtConcurrent/QtConcurrentRun>
 
 #include <nucleus/srs.h>
+#include <nucleus/tile/constants.h>
 #include <nucleus/tile/TileLoadService.h>
 #include <nucleus/tile/types.h>
 #include <nucleus/utils/image_loader.h>
@@ -551,7 +552,7 @@ void RouteOptimisationSession::start()
     m_bounds_max = srs::tile_bounds(max_id).max;
     m_world_waypoints = world_waypoints;
 
-    m_service = std::make_unique<tile::TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/at_dtm_alpinemaps/",
+    m_service = std::make_unique<tile::TileLoadService>(tile::constants::dem_tile_server_url,
                                                         tile::TileLoadService::UrlPattern::ZXY, ".png");
     connect(m_service.get(), &tile::TileLoadService::load_finished, this, &RouteOptimisationSession::tile_loaded);
 

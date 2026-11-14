@@ -41,6 +41,7 @@
 #include <nucleus/map_label/setup.h>
 #include <nucleus/picker/PickerManager.h>
 #include <nucleus/planner/PlannerManager.h>
+#include <nucleus/tile/constants.h>
 #include <nucleus/tile/GeometryScheduler.h>
 #include <nucleus/tile/SchedulerDirector.h>
 #include <nucleus/tile/TextureScheduler.h>
@@ -98,7 +99,7 @@ RenderingContext::RenderingContext(QObject* parent)
     m->aabb_decorator = nucleus::tile::setup::aabb_decorator();
     {
         // clang-format off
-        auto geometry_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/at_dtm_alpinemaps/", TilePattern::ZXY, ".png");
+        auto geometry_service = std::make_unique<TileLoadService>(nucleus::tile::constants::dem_tile_server_url, TilePattern::ZXY, ".png");
         m->geometry = nucleus::tile::setup::geometry_scheduler(std::move(geometry_service), m->aabb_decorator, m->scheduler_thread.get());
         m->scheduler_director->check_in("geometry", m->geometry.scheduler);
         m->data_querier = std::make_shared<DataQuerier>(&m->geometry.scheduler->ram_cache());
