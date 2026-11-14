@@ -135,9 +135,6 @@ private:
     // numbering of update_render_data, so they clear entries instead of
     // erasing them
     void clear_optimised_segment(unsigned pair_index);
-    // index of a point inside the last plan segment, counting all points of
-    // the preceding segments (the pair numbering in update_render_data)
-    unsigned flattened_index_of_last_segment_point(unsigned index_in_last_segment) const;
     void erase_optimised_segment(unsigned pair_index);
     // bump the generation so an in-flight optimisation result is discarded
     void drop_inflight_result();
@@ -145,6 +142,9 @@ private:
     // flattened waypoint list (lat, lon) of the whole plan
     std::vector<glm::dvec2> waypoint_sequence() const;
 
+    // the planned route: one continuous leg (imports are flattened into a
+    // single segment), so a ui point index is a flat waypoint index and
+    // matches the pair numbering of update_render_data
     nucleus::track::Gpx m_plan;
     // dense, dem-interpolated version of m_plan for rendering
     nucleus::track::Gpx m_render_line;

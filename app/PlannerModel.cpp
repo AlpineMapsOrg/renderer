@@ -225,15 +225,6 @@ void PlannerModel::clear_optimised_segment(unsigned pair_index)
     }
 }
 
-unsigned PlannerModel::flattened_index_of_last_segment_point(unsigned index_in_last_segment) const
-{
-    unsigned flat = 0;
-    for (size_t i = 0; i + 1 < m_plan.track.size(); ++i) {
-        flat += unsigned(m_plan.track[i].size());
-    }
-    return flat + index_in_last_segment;
-}
-
 void PlannerModel::erase_optimised_segment(unsigned pair_index)
 {
     if (pair_index < m_optimised_segments.size()) {
@@ -290,8 +281,10 @@ void PlannerModel::delete_point(int index)
     // the cached paths before w-1 and from w+1 on stay valid (from w+1 on
     // they shift one index down). when both neighbours exist, the merged
     // pair (w-1,w+1) is new and keeps an empty entry, so the vector stays
-    // aligned with the pair numbering of update_render_data
-    const unsigned w = flattened_index_of_last_segment_point(unsigned(index));
+    // aligned with the pair numbering of update_render_data. the plan is
+    // one continuous leg (imports are flattened), so the ui index is both
+    // the flat waypoint index and the pair numbering base
+    const unsigned w = unsigned(index);
     if (w > 0 && w + 1 < count_before) {
         // interior waypoint: erase the two dead neighbours (the second one
         // has shifted into the first one's place) and re-insert the empty
@@ -313,7 +306,7 @@ void PlannerModel::delete_point(int index)
 
 void PlannerModel::move_point_up(int index)
 {
-    const unsigned flat = flattened_index_of_last_segment_point(unsigned(index));
+    const unsigned flat = unsigned(index);
     if (m_plan.move_point(unsigned(index), -1) == unsigned(index)) {
         return; // boundary, the move was a no-op
     }
@@ -334,7 +327,7 @@ void PlannerModel::move_point_up(int index)
 
 void PlannerModel::move_point_down(int index)
 {
-    const unsigned flat = flattened_index_of_last_segment_point(unsigned(index));
+    const unsigned flat = unsigned(index);
     if (m_plan.move_point(unsigned(index), 1) == unsigned(index)) {
         return; // boundary, the move was a no-op
     }
@@ -399,8 +392,14 @@ void PlannerModel::import_gpx(const QUrl& file_url)
         return;
     }
 
-    // the imported track becomes the editable plan (replaces the current one)
+    // the imported track becomes the editable plan (replaces the current one).
+    // the planner edits one continuous leg and lists the points flat, so
+    // multi-segment tracks are merged into a single segment: that keeps the
+    // ui indices, the optimiser's pair numbering and the rendered line
+    // consistent (segments of a gpx file are not connected, but a planned
+    // route continues across former leg boundaries)
     m_plan = std::move(*gpx);
+    m_plan.flatten_segments();
     if (m_plan.name.isEmpty()) {
         m_plan.name = QFileInfo(path).completeBaseName();
     }
