@@ -38,8 +38,8 @@ class PlannerModel : public QObject {
     Q_OBJECT
     // list of QVariantMaps: index, latitude, longitude, elevation
     Q_PROPERTY(QVariantList points READ points NOTIFY points_changed)
-    Q_PROPERTY(QString name READ name WRITE set_name NOTIFY points_changed)
-    Q_PROPERTY(QString description READ description WRITE set_description NOTIFY points_changed)
+    Q_PROPERTY(QString name READ name WRITE set_name NOTIFY name_changed)
+    Q_PROPERTY(QString description READ description WRITE set_description NOTIFY description_changed)
     Q_PROPERTY(double distance READ distance NOTIFY points_changed)
     Q_PROPERTY(double ascent READ ascent NOTIFY points_changed)
     Q_PROPERTY(double descent READ descent NOTIFY points_changed)
@@ -113,6 +113,10 @@ public slots:
 
 signals:
     void points_changed();
+    // the plan metadata changed (ui text edit, import or reset); kept apart
+    // from points_changed so text edits do not churn the point list
+    void name_changed();
+    void description_changed();
     // the dem-interpolated render line, the point markers and the
     // steepness/profile values changed; computed asynchronously after every
     // plan edit, so it arrives shortly after points_changed

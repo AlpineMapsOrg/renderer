@@ -402,19 +402,25 @@ Rectangle {
             }
         }
 
-            // keep the editable fields in sync with an imported track
-            Connections {
-                target: _planner_model
-                function onPointsChanged() {
-                    // the preview follows a snapshot of the route; stop it when
-                    // the route changes
-                    if (map.preview_active)
-                        map.stop_route_preview();
-                    if (!name_input.activeFocus)
-                        name_input.text = _planner_model.name;
-                    if (!description_input.activeFocus)
-                        description_input.text = _planner_model.description;
-                }
+        // keep the editable fields in sync with an imported track
+        Connections {
+            target: _planner_model
+            function onPointsChanged() {
+                // the preview follows a snapshot of the route; stop it when
+                // the route changes
+                if (map.preview_active)
+                    map.stop_route_preview();
+            }
+            // metadata comes from imports and resets; never clobber a field
+            // the user is currently typing in
+            function onNameChanged() {
+                if (!name_input.activeFocus)
+                    name_input.text = _planner_model.name;
+            }
+            function onDescriptionChanged() {
+                if (!description_input.activeFocus)
+                    description_input.text = _planner_model.description;
+            }
             // fly to the start of an imported track, like the upload button does
             function onTrack_imported(position) {
                 if (position.x !== 0 && position.y !== 0)

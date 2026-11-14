@@ -91,16 +91,22 @@ QString PlannerModel::name() const { return m_plan.name; }
 
 void PlannerModel::set_name(const QString& new_name)
 {
+    if (m_plan.name == new_name) {
+        return;
+    }
     m_plan.name = new_name;
-    emit points_changed();
+    emit name_changed();
 }
 
 QString PlannerModel::description() const { return m_plan.description; }
 
 void PlannerModel::set_description(const QString& new_description)
 {
+    if (m_plan.description == new_description) {
+        return;
+    }
     m_plan.description = new_description;
-    emit points_changed();
+    emit description_changed();
 }
 
 double PlannerModel::distance() const { return m_plan.distance; }
@@ -349,6 +355,8 @@ void PlannerModel::reset()
     invalidate_optimisation();
     update_render_data();
     emit points_changed();
+    emit name_changed();
+    emit description_changed();
 }
 
 void PlannerModel::export_gpx(const QUrl& file_url)
@@ -404,6 +412,9 @@ void PlannerModel::import_gpx(const QUrl& file_url)
     invalidate_optimisation();
     update_render_data();
     emit points_changed();
+    // the imported metadata replaces the current one
+    emit name_changed();
+    emit description_changed();
 
     // move the camera to the start of the imported track, like the track
     // upload button does
