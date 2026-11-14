@@ -82,7 +82,9 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: ${{ env.QT_VERSION }}
-        host: linux
+        # Qt >= 6.8 for Android is only published under the host-independent
+        # "all_os" repository; "linux" stops at Qt 6.7.3.
+        host: all_os
         target: android
         arch: android_arm64_v8a
         dir: '${{github.workspace}}/qt'
@@ -97,7 +99,9 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: ${{ env.QT_VERSION }}
-        host: linux
+        # Qt >= 6.8 for Android is only published under the host-independent
+        # "all_os" repository; "linux" stops at Qt 6.7.3.
+        host: all_os
         target: android
         arch: android_armv7
         dir: '${{github.workspace}}/qt'
