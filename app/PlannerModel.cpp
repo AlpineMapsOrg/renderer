@@ -407,7 +407,13 @@ void PlannerModel::optimise_route()
             [this, generation, session](const nucleus::planner::OptimisationResult& result) {
                 session->deleteLater();
                 if (generation != m_optimisation_generation) {
-                    return; // waypoints changed while optimizing
+                    // the result is stale, but the optimisation itself did
+                    // finish: without resetting here the ui stays stuck in
+                    // the running state (edited a waypoint while optimizing)
+                    m_optimisation_running = false;
+                    emit optimisation_running_changed();
+                    clear_status();
+                    return;
                 }
                 optimisation_finished(result);
             });
