@@ -1,6 +1,8 @@
 /*****************************************************************************
  * AlpineMaps.org Renderer
- * Copyright (C) 2024 Adam Celarek
+ * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2026 Markus Rampp
+
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

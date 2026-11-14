@@ -32,3 +32,4 @@ TODO.md
 /release.keystore
 /signingkeybase64
 /build-android/*
+/build-wasm/

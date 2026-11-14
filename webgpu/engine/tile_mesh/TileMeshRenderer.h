@@ -1,6 +1,6 @@
 /*****************************************************************************
  * weBIGeo
- * Copyright (C) 2023 Adam Celerek
+ * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
  * Copyright (C) 2024 Patrick Komon
  *
