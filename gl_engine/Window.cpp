@@ -359,8 +359,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         m_context->surfaceshaded_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
         m_context->eaws_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
     } else {
-        m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list,
-            m_context->track_manager() ? &m_context->track_manager()->route_overlay() : nullptr);
+        m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
     }
     m_timer->stop_timer("tiles");
 

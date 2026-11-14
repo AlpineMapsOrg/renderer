@@ -42,7 +42,6 @@ qt_add_library(gl_engine STATIC
     GpuAsyncQueryTimer.h GpuAsyncQueryTimer.cpp
     Texture.h Texture.cpp
     TrackManager.h TrackManager.cpp
-    RouteOverlay.h RouteOverlay.cpp
     Context.h Context.cpp
     TileGeometry.h TileGeometry.cpp
     TextureLayer.h TextureLayer.cpp

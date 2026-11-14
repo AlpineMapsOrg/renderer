@@ -28,7 +28,6 @@
 #include <nucleus/camera/Definition.h>
 #include <nucleus/track/GPX.h>
 #include <nucleus/track/Manager.h>
-#include "RouteOverlay.h"
 
 class QOpenGLShaderProgram;
 
@@ -60,7 +59,6 @@ public:
     void draw(const nucleus::camera::Definition& camera) const;
 
     [[nodiscard]] ShaderProgram* shader() const;
-    [[nodiscard]] const RouteOverlay& route_overlay() const { return m_route_overlay; }
 
 public slots:
     void change_tracks(const QVector<nucleus::track::Gpx>& tracks) override;
@@ -80,9 +78,8 @@ public slots:
     // hides/shows the planned route *line* (the point markers stay)
     void change_planned_line_visible(bool visible);
 
-    // while the route preview flies, the route is painted onto the terrain
-    // texture (no parallax) instead of being drawn as 3d capsules
-    void set_route_overlay_active(bool active);
+    // during the camera fly-through no route is rendered at all
+    void set_flight_mode(bool active);
 
 protected:
     void add_track(const nucleus::track::Gpx& gpx, bool planned = false, bool markers = false);
@@ -107,6 +104,6 @@ private:
     std::vector<PolyLine> m_planned_tracks;
     std::vector<PolyLine> m_user_position;
     bool m_planned_line_visible = true;
-    RouteOverlay m_route_overlay;
+    bool m_flight_mode = false;
 };
 } // namespace gl_engine

@@ -74,10 +74,8 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
     for (const std::vector<PolyLine>* track_list : { &m_tracks, &m_planned_tracks, &m_user_position }) {
         const bool planned = track_list != &m_tracks;
 
-        // while the terrain-texture overlay paints the route, the 3d capsules
-        // (line and markers) are suppressed - two representations at once
-        // would double-draw and reintroduce the wiggle
-        if (planned && m_route_overlay.active()) {
+        // during the camera fly-through no route is rendered at all
+        if (planned && m_flight_mode) {
             continue;
         }
 
@@ -272,9 +270,6 @@ void TrackManager::change_tracks(const QVector<nucleus::track::Gpx>& tracks)
 void TrackManager::change_planned_track(const nucleus::track::Gpx& line, const nucleus::track::Gpx& markers)
 {
     m_planned_tracks.resize(0);
-    // paint the route onto the terrain texture as well (used during the
-    // fly-through preview, where the 3d capsules' parallax reads as wiggle)
-    m_route_overlay.rasterise(line);
     // render the line a little above the terrain: the capsules follow the dem
     // exactly, and wherever they dip centimetres below the interpolated
     // surface the shader fades them out, which reads as a wiggle. the lift is
@@ -310,10 +305,7 @@ void TrackManager::clear_user_position()
 
 void TrackManager::change_planned_line_visible(bool visible) { m_planned_line_visible = visible; }
 
-void TrackManager::set_route_overlay_active(bool active)
-{
-    m_route_overlay.set_active(active);
-}
+void TrackManager::set_flight_mode(bool active) { m_flight_mode = active; }
 
 void TrackManager::change_display_width(float new_width) { m_display_width = new_width; }
 

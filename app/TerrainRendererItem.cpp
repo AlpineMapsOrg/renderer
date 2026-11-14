@@ -155,15 +155,15 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::route_preview_pause_changed, r->controller(), &nucleus::camera::Controller::set_route_preview_paused);
     connect(this, &TerrainRendererItem::route_preview_seek_requested, r->controller(), &nucleus::camera::Controller::seek_route_preview);
     connect(this, &TerrainRendererItem::route_preview_speed_changed, r->controller(), &nucleus::camera::Controller::set_route_preview_speed);
-    // during the fly-through the route is painted onto the terrain texture
+    // during the camera fly-through no route is rendered
     // (receiver = track manager lives on the render thread -> queued)
     if (const auto engine_context = ctx->engine_context()) {
         if (auto* track_manager = engine_context->track_manager()) {
             connect(this, &TerrainRendererItem::route_preview_started, track_manager, [track_manager]() {
-                track_manager->set_route_overlay_active(true);
+                track_manager->set_flight_mode(true);
             });
             connect(this, &TerrainRendererItem::route_preview_stopped, track_manager, [track_manager]() {
-                track_manager->set_route_overlay_active(false);
+                track_manager->set_flight_mode(false);
             });
         }
     }
