@@ -298,8 +298,8 @@ Rectangle {
                 }
 
                 Label {
-                    visible: _planner_model.optimisation_status !== ""
-                    text: _planner_model.optimisation_status
+                    visible: _planner_model.status !== ""
+                    text: _planner_model.status
                     wrapMode: Label.Wrap
                     Layout.fillWidth: true
                     Layout.leftMargin: 10

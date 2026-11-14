@@ -54,7 +54,9 @@ class PlannerModel : public QObject {
     // search margin around the route, in percent of the route extent
     Q_PROPERTY(int search_radius READ search_radius WRITE set_search_radius NOTIFY optimisation_parameters_changed)
     Q_PROPERTY(bool optimisation_running READ optimisation_running NOTIFY optimisation_running_changed)
-    Q_PROPERTY(QString optimisation_status READ optimisation_status NOTIFY optimisation_status_changed)
+    // one-line status of the editor's long-running or failing operations
+    // (optimisation, gpx import/export); empty = nothing to report
+    Q_PROPERTY(QString status READ status NOTIFY status_changed)
     // hides the rendered route *line* between the points (markers stay)
     Q_PROPERTY(bool route_line_visible READ route_line_visible WRITE set_route_line_visible NOTIFY route_line_visible_changed)
     // dense elevation profile of the rendered route line: entries are
@@ -83,7 +85,7 @@ public:
     int search_radius() const;
     void set_search_radius(int percent);
     bool optimisation_running() const;
-    QString optimisation_status() const;
+    QString status() const;
     bool route_line_visible() const;
     void set_route_line_visible(bool visible);
     QVariantList elevation_profile() const;
@@ -128,7 +130,7 @@ signals:
     void user_position_changed(const nucleus::track::Gpx& marker);
     void user_position_cleared();
     void optimisation_running_changed();
-    void optimisation_status_changed();
+    void status_changed();
     void optimisation_parameters_changed();
     void route_line_visible_changed(bool visible);
 
@@ -172,7 +174,7 @@ private:
     int m_cross_slope_weight = 50;
     int m_search_radius = 20; // percent of the route extent
     bool m_optimisation_running = false;
-    QString m_optimisation_status;
+    QString m_status;
     bool m_route_line_visible = true;
     unsigned m_optimisation_generation = 0;
     // discards results of superseded render-data computations (async, one

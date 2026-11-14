@@ -207,15 +207,15 @@ void PlannerModel::set_route_line_visible(bool visible)
     emit route_line_visible_changed(visible);
 }
 
-QString PlannerModel::optimisation_status() const { return m_optimisation_status; }
+QString PlannerModel::status() const { return m_status; }
 
 void PlannerModel::invalidate_optimisation()
 {
     m_optimised_segments.clear();
     m_optimisation_generation += 1; // discards in-flight optimisation results
-    if (!m_optimisation_status.isEmpty()) {
-        m_optimisation_status.clear();
-        emit optimisation_status_changed();
+    if (!m_status.isEmpty()) {
+        m_status.clear();
+        emit status_changed();
     }
 }
 
@@ -242,9 +242,9 @@ void PlannerModel::drop_inflight_result()
 
 void PlannerModel::clear_status()
 {
-    if (!m_optimisation_status.isEmpty()) {
-        m_optimisation_status.clear();
-        emit optimisation_status_changed();
+    if (!m_status.isEmpty()) {
+        m_status.clear();
+        emit status_changed();
     }
 }
 
@@ -372,7 +372,10 @@ void PlannerModel::export_gpx(const QUrl& file_url)
     // android file dialogs return content:// uris, which QFile can open but
     // which have no local file path
     const QString path = file_url.isLocalFile() ? file_url.toLocalFile() : file_url.toString();
-    route.save(path);
+    if (!route.save(path)) {
+        m_status = tr("Could not write the GPX file");
+        emit status_changed();
+    }
 }
 
 void PlannerModel::import_gpx(const QUrl& file_url)
@@ -380,11 +383,15 @@ void PlannerModel::import_gpx(const QUrl& file_url)
     const QString path = file_url.isLocalFile() ? file_url.toLocalFile() : file_url.toString();
     if (path.isEmpty()) {
         qWarning() << "PlannerModel::import_gpx: not a local file" << file_url;
+        m_status = tr("Could not open the selected file");
+        emit status_changed();
         return;
     }
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
         qWarning() << "PlannerModel::import_gpx: failed to open file!" << path;
+        m_status = tr("Could not open the selected file");
+        emit status_changed();
         return;
     }
 
@@ -394,6 +401,13 @@ void PlannerModel::import_gpx(const QUrl& file_url)
 
     if (gpx == nullptr) {
         qWarning() << "PlannerModel::import_gpx: could not parse GPX file!" << path;
+        m_status = tr("Could not parse the GPX file");
+        emit status_changed();
+        return;
+    }
+    if (gpx->point_count() == 0) {
+        m_status = tr("The GPX file contains no track points");
+        emit status_changed();
         return;
     }
 
@@ -439,8 +453,8 @@ void PlannerModel::optimise_route()
 
     m_optimisation_running = true;
     emit optimisation_running_changed();
-    m_optimisation_status = tr("Optimizing…");
-    emit optimisation_status_changed();
+    m_status = tr("Optimizing…");
+    emit status_changed();
     const unsigned generation = ++m_optimisation_generation;
 
     nucleus::planner::OptimisationWeights weights;
@@ -506,8 +520,8 @@ void PlannerModel::optimisation_finished(const nucleus::planner::OptimisationRes
 {
     m_optimisation_running = false;
     emit optimisation_running_changed();
-    m_optimisation_status = result.status;
-    emit optimisation_status_changed();
+    m_status = result.status;
+    emit status_changed();
 
     if (!result.success) {
         m_optimised_segments.clear();

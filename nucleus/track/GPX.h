@@ -171,7 +171,8 @@ struct Gpx {
     double descent = 0;
     void recompute_stats();
 
-    void save(const QString& file_path) const;
+    // writes gpx 1.1; false when the file could not be opened or written
+    bool save(const QString& file_path) const;
     void save(QXmlStreamWriter& xml) const;
 
     Point& last_point()

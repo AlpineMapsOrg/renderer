@@ -154,17 +154,18 @@ void Gpx::recompute_stats()
     }
 }
 
-void Gpx::save(const QString& file_path) const
+bool Gpx::save(const QString& file_path) const
 {
     QFile file(file_path);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         qWarning() << "Cannot open file for writing:" << file_path << file.errorString();
-        return;
+        return false;
     }
 
     QXmlStreamWriter xml_writer(&file);
     save(xml_writer);
     file.close();
+    return !xml_writer.hasError();
 }
 
 void Gpx::save(QXmlStreamWriter& xml) const
