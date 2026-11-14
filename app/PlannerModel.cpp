@@ -216,15 +216,13 @@ void PlannerModel::invalidate_optimisation()
     }
 }
 
-void PlannerModel::invalidate_pairs_around(unsigned flattened_index)
+void PlannerModel::clear_optimised_segment(unsigned pair_index)
 {
-    // erase the higher index first so the lower one is not shifted
-    erase_optimised_segment(flattened_index);
-    if (flattened_index > 0) {
-        erase_optimised_segment(flattened_index - 1);
+    // clear (not erase): a move keeps the plan's pair count, and the vector
+    // must stay aligned with the pair numbering of update_render_data
+    if (pair_index < m_optimised_segments.size()) {
+        m_optimised_segments[pair_index].clear();
     }
-    drop_inflight_result();
-    clear_status();
 }
 
 unsigned PlannerModel::flattened_index_of_last_segment_point(unsigned index_in_last_segment) const
@@ -282,14 +280,30 @@ void PlannerModel::add_point_at(double latitude, double longitude, double altitu
 
 void PlannerModel::delete_point(int index)
 {
+    const unsigned count_before = m_plan.point_count();
     m_plan.delete_point(unsigned(index));
+    if (m_plan.point_count() == count_before) {
+        return; // index out of range, nothing was deleted
+    }
     m_plan.recompute_stats();
-    // deleting waypoint w merges the pairs (w-1,w) and (w,w+1); the optimised
-    // segments of the unaffected pairs are kept (shifted accordingly)
-    const unsigned flat = flattened_index_of_last_segment_point(unsigned(index));
-    erase_optimised_segment(flat);
-    if (flat > 0) {
-        erase_optimised_segment(flat - 1);
+    // deleting waypoint w destroys its adjacent pairs (w-1,w) and (w,w+1);
+    // the cached paths before w-1 and from w+1 on stay valid (from w+1 on
+    // they shift one index down). when both neighbours exist, the merged
+    // pair (w-1,w+1) is new and keeps an empty entry, so the vector stays
+    // aligned with the pair numbering of update_render_data
+    const unsigned w = flattened_index_of_last_segment_point(unsigned(index));
+    if (w > 0 && w + 1 < count_before) {
+        // interior waypoint: erase the two dead neighbours (the second one
+        // has shifted into the first one's place) and re-insert the empty
+        // placeholder of the merged pair
+        erase_optimised_segment(w - 1);
+        erase_optimised_segment(w - 1);
+        if (w - 1 < m_optimised_segments.size()) {
+            m_optimised_segments.insert(m_optimised_segments.begin() + long(w - 1), {});
+        }
+    } else {
+        // first or last waypoint: only the single adjacent pair dies
+        erase_optimised_segment(w > 0 ? w - 1 : 0);
     }
     drop_inflight_result();
     clear_status();
@@ -299,16 +313,42 @@ void PlannerModel::delete_point(int index)
 
 void PlannerModel::move_point_up(int index)
 {
-    m_plan.move_point(unsigned(index), -1);
-    invalidate_pairs_around(flattened_index_of_last_segment_point(unsigned(index)));
+    const unsigned flat = flattened_index_of_last_segment_point(unsigned(index));
+    if (m_plan.move_point(unsigned(index), -1) == unsigned(index)) {
+        return; // boundary, the move was a no-op
+    }
+    // the moved point (now at flat-1) and its former neighbour (now at flat)
+    // both changed partners: the pairs flat-2, flat-1 and flat have new
+    // geometry or reversed direction and fall back to the straight line
+    // until the next optimise
+    if (flat >= 2) {
+        clear_optimised_segment(flat - 2);
+    }
+    clear_optimised_segment(flat - 1);
+    clear_optimised_segment(flat);
+    drop_inflight_result();
+    clear_status();
     update_render_data();
     emit points_changed();
 }
 
 void PlannerModel::move_point_down(int index)
 {
-    m_plan.move_point(unsigned(index), 1);
-    invalidate_pairs_around(flattened_index_of_last_segment_point(unsigned(index)));
+    const unsigned flat = flattened_index_of_last_segment_point(unsigned(index));
+    if (m_plan.move_point(unsigned(index), 1) == unsigned(index)) {
+        return; // boundary, the move was a no-op
+    }
+    // the moved point (now at flat+1) and its former neighbour (now at flat)
+    // both changed partners: the pairs flat-1, flat and flat+1 have new
+    // geometry or reversed direction and fall back to the straight line
+    // until the next optimise
+    if (flat >= 1) {
+        clear_optimised_segment(flat - 1);
+    }
+    clear_optimised_segment(flat);
+    clear_optimised_segment(flat + 1);
+    drop_inflight_result();
+    clear_status();
     update_render_data();
     emit points_changed();
 }

@@ -129,10 +129,12 @@ private slots:
 private:
     void update_render_data();
     void invalidate_optimisation();
-    // clears the optimised path of the two waypoint pairs adjacent to the
-    // given flattened waypoint index (a moved point changed their geometry);
-    // the other optimised segments keep rendering
-    void invalidate_pairs_around(unsigned flattened_index);
+    // drops the cached optimised path of the given waypoint pair (an empty
+    // entry renders as the approximate straight line until the next
+    // optimise). waypoint edits must keep the vector aligned with the pair
+    // numbering of update_render_data, so they clear entries instead of
+    // erasing them
+    void clear_optimised_segment(unsigned pair_index);
     // index of a point inside the last plan segment, counting all points of
     // the preceding segments (the pair numbering in update_render_data)
     unsigned flattened_index_of_last_segment_point(unsigned index_in_last_segment) const;
@@ -152,8 +154,9 @@ private:
     double m_max_steepness = 0;
     std::shared_ptr<nucleus::DataQuerier> m_data_querier;
 
-    // optimised least-cost descent path per consecutive waypoint pair (empty
-    // entries = approximate straight interpolation)
+    // optimised least-cost descent path per consecutive waypoint pair, kept
+    // aligned with the pair numbering of update_render_data after every
+    // waypoint edit (empty entries = approximate straight interpolation)
     std::vector<std::vector<nucleus::track::Point>> m_optimised_segments;
     int m_steepness_weight = 60;
     int m_distance_weight = 40;
