@@ -29,6 +29,10 @@ ColumnLayout {
     width: 64
     spacing: 0
 
+    // set when the location fab was pressed but no gnss fix has arrived yet;
+    // the camera jumps once when the position becomes known, never after
+    property bool jump_to_position_pending: false
+
     FileDialog {
         id: track_import_dialog
         title: qsTr("Open GPX track")
@@ -47,8 +51,17 @@ ColumnLayout {
     FloatingActionButton {
         id: fab_location
         image: _r + "icons/material/" + (checked ? "my_location.png" : "location_searching.png")
-        checkable: true
         size: parent.width
+        // activates the position dot once and stays on; every press jumps to
+        // the (last known) position, the gnss updates never move the camera
+        onClicked: {
+            checked = true;
+            if (gnss.latitude !== 0 || gnss.longitude !== 0) {
+                map.set_position(gnss.latitude, gnss.longitude)
+            } else {
+                fab_group.jump_to_position_pending = true
+            }
+        }
     }
 
     FloatingActionButton {
@@ -501,17 +514,19 @@ ColumnLayout {
         id: gnss
         enabled: fab_location.checked
         onInformation_updated: {
-            map.set_position(gnss.latitude, gnss.longitude)
             _planner_model.set_user_position(gnss.latitude, gnss.longitude, gnss.altitude)
+            if (fab_group.jump_to_position_pending) {
+                // jump once when the position becomes known, then leave the
+                // camera to the user
+                fab_group.jump_to_position_pending = false
+                map.set_position(gnss.latitude, gnss.longitude)
+            }
         }
         onEnabled_changed: {
             if (gnss.enabled) {
-                // show the dot right away when re-activated (set_user_position
-                // ignores the call while no fix has arrived yet), don't wait
-                // for the next gnss fix
+                // show the dot right away when activated (set_user_position
+                // ignores the call while no fix has arrived yet)
                 _planner_model.set_user_position(gnss.latitude, gnss.longitude, gnss.altitude)
-            } else {
-                _planner_model.clear_user_position()
             }
         }
     }
