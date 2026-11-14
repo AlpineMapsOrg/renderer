@@ -180,7 +180,11 @@ endif()
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
 # Please keep Qt::Gui outside the nucleus. If you need it optional via a cmake based switch
-target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network Qt::Concurrent zppbits nucleus_version stb_slim goofy_tc cdt KTX::ktx)
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network zppbits nucleus_version stb_slim goofy_tc cdt KTX::ktx)
+if (NOT EMSCRIPTEN)
+    # the lite WebAssembly Qt is built without the future feature, so it has no Qt Concurrent
+    target_link_libraries(nucleus PUBLIC Qt::Concurrent)
+endif()
 
 qt_add_resources(nucleus "height_data"
     PREFIX "/map"

@@ -19,9 +19,12 @@
 
 #include "RouteOptimizer.h"
 
+#ifndef __EMSCRIPTEN__
+// the lite WebAssembly Qt is built without the future feature, so it has no QFutureWatcher / Qt Concurrent
 #include <QFutureWatcher>
-#include <QTimer>
 #include <QtConcurrent/QtConcurrentRun>
+#endif
+#include <QTimer>
 
 #include <nucleus/srs.h>
 #include <nucleus/tile/constants.h>
@@ -591,13 +594,6 @@ void RouteOptimisationSession::finish_fetching()
 
 void RouteOptimisationSession::compute()
 {
-    // runs on a thread pool: tile decoding and a* are too heavy for the gui thread
-    auto* watcher = new QFutureWatcher<OptimisationResult>(this);
-    connect(watcher, &QFutureWatcher<OptimisationResult>::finished, this, [this, watcher]() {
-        emit finished(watcher->result());
-        watcher->deleteLater();
-    });
-
     const auto waypoints = m_world_waypoints;
     const auto weights = m_weights;
     const double dem_resolution = m_dem_resolution;
@@ -605,8 +601,12 @@ void RouteOptimisationSession::compute()
     const glm::dvec2 bounds_max = m_bounds_max;
     auto tiles = std::move(m_received_tiles);
 
-    auto result_future = QtConcurrent::run([waypoints, weights, dem_resolution, bounds_min, bounds_max,
-                                            tiles = std::move(tiles)]() mutable -> OptimisationResult {
+    // tile decoding and a* are too heavy for the gui thread, so this runs on
+    // a thread pool where available. the lite WebAssembly Qt is built without
+    // the future feature, so it has no Qt Concurrent, and there the
+    // computation runs synchronously on the gui thread
+    auto compute_result = [waypoints, weights, dem_resolution, bounds_min, bounds_max,
+                           tiles = std::move(tiles)]() mutable -> OptimisationResult {
         OptimisationResult result;
 
         std::vector<DemTile> decoded_tiles;
@@ -703,9 +703,18 @@ void RouteOptimisationSession::compute()
         result.success = true;
         result.status = "Optimized";
         return result;
-    });
+    };
 
-    watcher->setFuture(result_future);
+#ifndef __EMSCRIPTEN__
+    auto* watcher = new QFutureWatcher<OptimisationResult>(this);
+    connect(watcher, &QFutureWatcher<OptimisationResult>::finished, this, [this, watcher]() {
+        emit finished(watcher->result());
+        watcher->deleteLater();
+    });
+    watcher->setFuture(QtConcurrent::run(std::move(compute_result)));
+#else
+    emit finished(compute_result());
+#endif
 }
 
 } // namespace nucleus::planner

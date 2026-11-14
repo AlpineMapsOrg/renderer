@@ -144,7 +144,11 @@ set_target_properties(alpineapp PROPERTIES
     QT_ANDROID_VERSION_NAME ${ALP_VERSION}
     QT_ANDROID_VERSION_CODE "${ALP_VERSION_INTEGER}"
 )
-target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2 Qt::Concurrent)
+target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
+if (NOT EMSCRIPTEN)
+    # the lite WebAssembly Qt is built without the future feature, so it has no Qt Concurrent
+    target_link_libraries(alpineapp PUBLIC Qt::Concurrent)
+endif()
 alp_configure_target(alpineapp)
 
 if (ALP_ENABLE_QML_HOT_RELOAD)

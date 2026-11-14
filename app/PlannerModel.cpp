@@ -21,10 +21,13 @@
 
 #include "RenderThreadNotifier.h"
 #include "RenderingContext.h"
+#ifndef __EMSCRIPTEN__
+// the lite WebAssembly Qt is built without the future feature, so it has no QFutureWatcher / Qt Concurrent
 #include <QFutureWatcher>
+#include <QtConcurrent/QtConcurrentRun>
+#endif
 #include <QFile>
 #include <QFileInfo>
-#include <QtConcurrent/QtConcurrentRun>
 #include <gl_engine/Context.h>
 #include <nucleus/DataQuerier.h>
 #include <nucleus/planner/RouteOptimizer.h>
@@ -749,16 +752,23 @@ void PlannerModel::update_render_data()
         return;
     }
 
-    // the dem sampling runs on a thread pool: snapshot the inputs on the gui
-    // thread, the worker touches only the copies (and the tile cache, which
-    // is internally synchronised and lives for the app's lifetime). the
-    // generation discards results of superseded snapshots when the plan
-    // changes again while a computation is in flight
+    // snapshot the inputs on the gui thread, the worker touches only the
+    // copies (and the tile cache, which is internally synchronised and lives
+    // for the app's lifetime). the generation discards results of superseded
+    // snapshots when the plan changes again while a computation is in flight
     const unsigned generation = ++m_render_data_generation;
     nucleus::track::Gpx plan = m_plan;
     auto optimised_segments = m_optimised_segments;
     nucleus::tile::MemoryCache* cache = &RenderingContext::instance()->geometry_scheduler()->ram_cache();
 
+    auto compute_job = [plan = std::move(plan), optimised = std::move(optimised_segments), cache]() {
+        return compute_render_data(plan, optimised, cache);
+    };
+
+#ifndef __EMSCRIPTEN__
+    // the dem sampling runs on a thread pool. the lite WebAssembly Qt is
+    // built without the future feature, so it has no Qt Concurrent, and
+    // there the computation runs synchronously on the gui thread
     auto* watcher = new QFutureWatcher<RenderData>(this);
     connect(watcher, &QFutureWatcher<RenderData>::finished, this,
         [this, generation, watcher]() {
@@ -774,7 +784,15 @@ void PlannerModel::update_render_data()
             emit planned_track_changed(m_render_line, m_render_markers);
             emit render_data_changed();
         });
-    watcher->setFuture(QtConcurrent::run([plan = std::move(plan), optimised = std::move(optimised_segments), cache]() {
-        return compute_render_data(plan, optimised, cache);
-    }));
+    watcher->setFuture(QtConcurrent::run(std::move(compute_job)));
+#else
+    Q_UNUSED(generation);
+    const RenderData result = compute_job();
+    m_render_line = result.line;
+    m_render_markers = result.markers;
+    m_avg_steepness = result.avg_steepness;
+    m_max_steepness = result.max_steepness;
+    emit planned_track_changed(m_render_line, m_render_markers);
+    emit render_data_changed();
+#endif
 }
