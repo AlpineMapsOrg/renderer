@@ -75,6 +75,37 @@ void Controller::fly_to_latitude_longitude(double latitude, double longitude)
     update();
 }
 
+void Controller::move_to_latitude_longitude(double latitude, double longitude)
+{
+    const glm::dvec2 target_xy = srs::lat_long_to_world({ latitude, longitude });
+    double target_altitude = 2000.0;
+    if (m_data_querier) {
+        target_altitude = m_data_querier->get_altitude({ latitude, longitude }).value_or(target_altitude);
+    }
+
+    // what the camera currently looks at: the terrain pixel at the screen
+    // centre. without a depth tester, fall back to the camera position itself
+    glm::dvec3 centre = m_definition.position();
+    if (m_depth_tester) {
+        const auto viewport = m_definition.viewport_size();
+        centre = m_depth_tester->position(m_definition.to_ndc({ viewport.x / 2.0, viewport.y / 2.0 }));
+    }
+
+    // the shift moves the looked-at point onto the requested position; the
+    // vertical component keeps the height above ground on sloped terrain
+    const glm::dvec3 shift = glm::dvec3(target_xy, target_altitude) - centre;
+    const glm::dvec3 new_position = m_definition.position() + shift;
+
+    // keep the orientation: look along the unchanged view direction from the
+    // shifted position (look_at derives the rotation from the direction only)
+    const glm::dvec3 forward = m_definition.ray_direction(glm::dvec2(0.0));
+    auto end_camera = m_definition;
+    end_camera.look_at(new_position, new_position + forward);
+
+    m_animation_style = std::make_unique<LinearCameraAnimation>(m_definition, end_camera);
+    update();
+}
+
 void Controller::rotate_north()
 {
     m_animation_style = std::make_unique<RotateNorthAnimation>(m_definition, m_depth_tester);

@@ -85,6 +85,7 @@ signals:
     void update_camera_requested() const;
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
     void position_set_by_user(double new_latitude, double new_longitude);
+    void position_move_requested(double new_latitude, double new_longitude);
     void camera_definition_set_by_user(const nucleus::camera::Definition&) const;
 
     void shared_config_changed(gl_engine::uboSharedConfig new_shared_config) const;
@@ -143,6 +144,8 @@ protected:
 
 public slots:
     void set_position(double latitude, double longitude);
+    // pans the camera to the position without changing the rotation
+    void move_position(double latitude, double longitude);
     void rotate_north();
     void set_gl_preset(const QString& preset_b64_string);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes

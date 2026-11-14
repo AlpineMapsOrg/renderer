@@ -131,6 +131,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::key_released, r->controller(), &nucleus::camera::Controller::key_release);
     connect(this, &TerrainRendererItem::update_camera_requested, r->controller(), &nucleus::camera::Controller::advance_camera);
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller(), &nucleus::camera::Controller::fly_to_latitude_longitude);
+    connect(this, &TerrainRendererItem::position_move_requested, r->controller(), &nucleus::camera::Controller::move_to_latitude_longitude);
     connect(this, &TerrainRendererItem::rotation_north_requested, r->controller(), &nucleus::camera::Controller::rotate_north);
 
     connect(this, &TerrainRendererItem::touch_made, ctx->picker_manager().get(), &nucleus::picker::PickerManager::touch_event);
@@ -289,6 +290,12 @@ void TerrainRendererItem::camera_definition_changed(const nucleus::camera::Defin
 void TerrainRendererItem::set_position(double latitude, double longitude)
 {
     emit position_set_by_user(latitude, longitude);
+    RenderThreadNotifier::instance()->notify();
+}
+
+void TerrainRendererItem::move_position(double latitude, double longitude)
+{
+    emit position_move_requested(latitude, longitude);
     RenderThreadNotifier::instance()->notify();
 }
 

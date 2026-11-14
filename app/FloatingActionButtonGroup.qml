@@ -53,11 +53,18 @@ ColumnLayout {
         image: _r + "icons/material/" + (checked ? "my_location.png" : "location_searching.png")
         size: parent.width
         // activates the position dot once and stays on; every press jumps to
-        // the (last known) position, the gnss updates never move the camera
+        // the (last known) position, the gnss updates never move the camera.
+        // the first jump flies into the canonical position view, later jumps
+        // only pan there and keep the current camera rotation
         onClicked: {
+            const first_activation = !checked;
             checked = true;
             if (gnss.latitude !== 0 || gnss.longitude !== 0) {
-                map.set_position(gnss.latitude, gnss.longitude)
+                if (first_activation) {
+                    map.set_position(gnss.latitude, gnss.longitude)
+                } else {
+                    map.move_position(gnss.latitude, gnss.longitude)
+                }
             } else {
                 fab_group.jump_to_position_pending = true
             }
