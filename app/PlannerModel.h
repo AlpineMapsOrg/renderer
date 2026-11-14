@@ -57,6 +57,9 @@ class PlannerModel : public QObject {
     Q_PROPERTY(QString optimisation_status READ optimisation_status NOTIFY optimisation_status_changed)
     // hides the rendered route *line* between the points (markers stay)
     Q_PROPERTY(bool route_line_visible READ route_line_visible WRITE set_route_line_visible NOTIFY route_line_visible_changed)
+    // dense elevation profile of the rendered route line: entries are
+    // { x: metres along the route, y: elevation (m), slope: degrees }
+    Q_PROPERTY(QVariantList elevation_profile READ elevation_profile NOTIFY points_changed)
 public:
     explicit PlannerModel(QObject* parent = nullptr);
 
@@ -82,6 +85,7 @@ public:
     QString optimisation_status() const;
     bool route_line_visible() const;
     void set_route_line_visible(bool visible);
+    QVariantList elevation_profile() const;
 
 public slots:
     // geo coordinates in degrees/metres, as reported by the camera depth readback

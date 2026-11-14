@@ -24,6 +24,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtCore
 
+import app
 import "components"
 
 // the root is transparent and handles no mouse events, so clicks that miss
@@ -187,6 +188,33 @@ Rectangle {
                     Layout.fillWidth: true
                     Layout.leftMargin: 10
                     Layout.rightMargin: 10
+                }
+
+                ElevationProfile {
+                    id: elevation_chart
+                    profile: _planner_model.elevation_profile
+                    // follow the flight through the profile
+                    progress: map.preview_active ? map.preview_progress : -1
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 120
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
+
+                    Label {
+                        text: qsTr("Slope angle overlay")
+                        Layout.fillWidth: true
+                    }
+                    Switch {
+                        // steepness terrain overlay, same mode as the fab button
+                        checked: map.shared_config.overlay_mode === 101
+                        onToggled: map.shared_config.overlay_mode = checked ? 101 : 0
+                    }
                 }
 
                 RowLayout {

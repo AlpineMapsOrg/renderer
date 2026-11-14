@@ -161,6 +161,40 @@ bool PlannerModel::optimisation_running() const { return m_optimisation_running;
 
 bool PlannerModel::route_line_visible() const { return m_route_line_visible; }
 
+QVariantList PlannerModel::elevation_profile() const
+{
+    QVariantList profile;
+    double distance = 0.0;
+    const nucleus::track::Point* previous = nullptr;
+    for (const auto& segment : m_render_line.track) {
+        for (const auto& point : segment) {
+            double slope_degrees = 0.0;
+            if (previous) {
+                const nucleus::track::Point step = { previous->latitude, previous->longitude, 0.0 };
+                const nucleus::track::Point step_to = { point.latitude, point.longitude, 0.0 };
+                double horizontal = m_plan.haversine_distance(step, step_to);
+                const double dz = std::abs(point.elevation - previous->elevation);
+                if (horizontal <= 0.0) {
+                    horizontal = 0.001;
+                }
+                slope_degrees = glm::degrees(std::atan2(dz, horizontal));
+            }
+            profile.append(QVariantMap {
+                { "x", distance },
+                { "y", point.elevation },
+                { "slope", slope_degrees },
+            });
+            if (previous) {
+                const nucleus::track::Point from = { previous->latitude, previous->longitude, 0.0 };
+                const nucleus::track::Point to = { point.latitude, point.longitude, 0.0 };
+                distance += m_plan.haversine_distance(from, to);
+            }
+            previous = &point;
+        }
+    }
+    return profile;
+}
+
 void PlannerModel::set_route_line_visible(bool visible)
 {
     if (m_route_line_visible == visible) {
