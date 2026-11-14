@@ -23,8 +23,7 @@
 #include <nucleus/camera/RoutePreviewAnimation.h>
 
 #include <glm/glm.hpp>
-#include <chrono>
-#include <thread>
+#include <cmath>
 
 namespace {
 
@@ -34,12 +33,23 @@ std::vector<glm::dvec3> straight_route()
     return { { 0.0, 0.0, 1000.0 / 0.7 }, { 1000.0 / 0.7, 0.0, 1000.0 / 0.7 } };
 }
 
+// deterministic clock for the animation tests: tick() advances virtual time
+class FakeClock {
+public:
+    double seconds() const { return m_seconds; }
+    void tick(double seconds) { m_seconds += seconds; }
+
+private:
+    double m_seconds = 0;
+};
+
 } // namespace
 
 TEST_CASE("RoutePreview advances along the route")
 {
     using namespace nucleus::camera;
-    RoutePreviewAnimation preview(straight_route());
+    FakeClock clock;
+    RoutePreviewAnimation preview(straight_route(), [&clock] { return clock.seconds(); });
 
     Definition camera;
     const auto first = preview.update(camera, nullptr);
@@ -47,22 +57,18 @@ TEST_CASE("RoutePreview advances along the route")
     // starts at the route start, 30 m above
     CHECK(first->position().x < 10.0);
 
-    // advance: each update consumes the stopwatch time; a lap of dt was
-    // started by the previous update, so real time must pass between frames
+    // each update consumes the virtual time ticked since the previous one;
+    // 0.0625 s at the default 24 m/s advances exactly 1.5 m along +x
     double last_x = first->position().x;
-    bool moved = false;
     for (int i = 0; i < 20; ++i) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        clock.tick(0.0625);
         const auto frame = preview.update(camera, nullptr);
         REQUIRE(frame.has_value());
-        if (frame->position().x > last_x + 0.1) {
-            moved = true;
-        }
+        CHECK_THAT(frame->position().x, Catch::Matchers::WithinAbs(last_x + 1.5, 1e-9));
         last_x = frame->position().x;
     }
-    CHECK(moved);
     CHECK(preview.progress_fraction() > 0.0);
-    CHECK(preview.progress_fraction() < 1.0); // 1 km at 12 m/s: 20x30ms ~ 7 m
+    CHECK(preview.progress_fraction() < 1.0);
 }
 
 TEST_CASE("RoutePreview paused and dragging hold the position")
@@ -134,17 +140,19 @@ TEST_CASE("RoutePreview auto-pauses at the route end")
 TEST_CASE("RoutePreviewAnimation speed setting")
 {
     using namespace nucleus::camera;
-    RoutePreviewAnimation preview(straight_route());
+    FakeClock clock;
+    RoutePreviewAnimation preview(straight_route(), [&clock] { return clock.seconds(); });
     preview.set_speed(48.0);
     CHECK(preview.speed() == 48.0);
-    preview.update({}, nullptr);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    preview.update({}, nullptr); // consume the constructor time
+    clock.tick(0.0625);
     const auto frame_a = preview.update({}, nullptr);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    clock.tick(0.0625);
     const auto frame_b = preview.update({}, nullptr);
     const double advanced = std::abs(frame_b->position().x - frame_a->position().x);
-    // at 48 m/s a ~100 ms frame advances ~4.8 m along +x
-    CHECK(advanced > 3.0);
+    // at 48 m/s one 0.0625 s frame advances 3 m along +x
+    CHECK_THAT(advanced, Catch::Matchers::WithinAbs(3.0, 1e-9));
 }
 
 #ifdef QT_GUI_LIB

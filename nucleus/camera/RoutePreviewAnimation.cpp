@@ -22,12 +22,26 @@
 #include <nucleus/camera/Definition.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 
 namespace nucleus::camera {
 
+namespace {
+double steady_clock_seconds()
+{
+    return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+}
+
 RoutePreviewAnimation::RoutePreviewAnimation(const std::vector<glm::dvec3>& world_points)
+    : RoutePreviewAnimation(world_points, &steady_clock_seconds)
+{
+}
+
+RoutePreviewAnimation::RoutePreviewAnimation(const std::vector<glm::dvec3>& world_points, Clock clock)
     : m_points(world_points)
+    , m_clock(std::move(clock))
 {
     m_cumulative_length.reserve(m_points.size());
     double total = 0.0;
@@ -37,6 +51,8 @@ RoutePreviewAnimation::RoutePreviewAnimation(const std::vector<glm::dvec3>& worl
         }
         m_cumulative_length.push_back(total);
     }
+    // the first frame advances by the time since the animation was created
+    m_last_frame_time = m_clock();
 }
 
 glm::dvec3 RoutePreviewAnimation::route_point(double distance) const
@@ -68,7 +84,9 @@ std::optional<Definition> RoutePreviewAnimation::update(Definition camera, Abstr
         return camera;
     }
 
-    const double dt = std::min(m_stopwatch.lap().count() / 1000.0, 0.1); // seconds, clamp huge gaps
+    const double now = m_clock();
+    const double dt = std::min(now - m_last_frame_time, 0.1); // seconds, clamp huge gaps
+    m_last_frame_time = now;
 
     if (!m_paused && !m_dragging && !m_reached_end) {
         m_progress += m_speed * dt;
@@ -130,7 +148,7 @@ void RoutePreviewAnimation::pause(bool paused)
             m_pitch_offset = 0.0;
         }
         // do not jump forward by the paused time
-        m_stopwatch.lap();
+        m_last_frame_time = m_clock();
         m_reached_end = false;
     }
 }
@@ -144,7 +162,7 @@ void RoutePreviewAnimation::set_dragging(bool dragging)
 {
     m_dragging = dragging;
     if (!dragging) {
-        m_stopwatch.lap();
+        m_last_frame_time = m_clock();
     }
 }
 
@@ -152,7 +170,7 @@ void RoutePreviewAnimation::seek(double fraction)
 {
     m_progress = std::clamp(fraction, 0.0, 1.0) * route_length();
     m_reached_end = false;
-    m_stopwatch.lap();
+    m_last_frame_time = m_clock();
 }
 
 double RoutePreviewAnimation::progress_fraction() const

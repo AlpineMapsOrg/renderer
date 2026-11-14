@@ -20,8 +20,8 @@
 #pragma once
 
 #include "AnimationStyle.h"
-#include <nucleus/utils/Stopwatch.h>
 #include <glm/glm.hpp>
+#include <functional>
 #include <vector>
 
 namespace nucleus::camera {
@@ -33,9 +33,14 @@ namespace nucleus::camera {
 // Controller::stop_route_preview
 class RoutePreviewAnimation : public AnimationStyle {
 public:
+    // seconds from an arbitrary monotonic origin; the default clock is the
+    // system steady clock
+    using Clock = std::function<double()>;
     // world-space polyline (web-mercator metres, z = altitude in true metres
     // as delivered by srs::lat_long_alt_to_world)
     explicit RoutePreviewAnimation(const std::vector<glm::dvec3>& world_points);
+    // test seam: drive time deterministically instead of the real clock
+    RoutePreviewAnimation(const std::vector<glm::dvec3>& world_points, Clock clock);
 
     std::optional<Definition> update(Definition camera, AbstractDepthTester* depth_tester) override;
 
@@ -59,7 +64,8 @@ private:
     std::vector<glm::dvec3> m_points;
     std::vector<double> m_cumulative_length;
 
-    utils::Stopwatch m_stopwatch = {};
+    Clock m_clock;
+    double m_last_frame_time = 0; // each update consumes the gap to the previous one
     double m_progress = 0;     // metres along the route
     double m_yaw_offset = 0;   // user rotation around the current position
     double m_pitch_offset = 0;
