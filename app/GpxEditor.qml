@@ -60,7 +60,13 @@ Rectangle {
         minimized = gpx_root.width < 500;
     }
 
-    Component.onCompleted: map.change_edit_mode(false) // the routes view accepts no map clicks
+    // continue planning when re-opened with a route in progress; the routes
+    // overview (which accepts no map clicks) only shows for an empty plan
+    Component.onCompleted: {
+        show_routes = _planner_model.points.length === 0;
+        minimized = !show_routes && gpx_root.width < 500;
+        map.change_edit_mode(!show_routes);
+    }
 
     // react to the camera fly-through preview: hide the whole widget once on
     // start (not on every progress update), disable adding points, restore
