@@ -714,8 +714,17 @@ RenderData compute_render_data(const nucleus::track::Gpx& plan,
             }
         }
 
-        // moving average over the sampled elevations (route points keep their
-        // exact elevation at the segment ends)
+        // pin every line point to the displayed terrain: imported tracks carry
+        // elevations from a different height model and would float above or
+        // sink into the dem. re-sampling the interior points is idempotent
+        // (they were dem-sampled above); the waypoints pick up the dem as well
+        for (auto& point : line_points) {
+            if (const auto alt = sampler.altitude({ point.latitude, point.longitude })) {
+                point.elevation = alt.value();
+            }
+        }
+
+        // moving average over the sampled elevations
         const int radius = k_elevation_smoothing_radius;
         for (size_t i = radius; i + radius < line_points.size(); ++i) {
             double sum = 0;
