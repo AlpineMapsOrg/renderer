@@ -145,13 +145,8 @@ TEST_CASE("nucleus/tile/TileLoadService")
 
             const auto image = QImage::fromData(*tile.data);
             REQUIRE(image.sizeInBytes() > 0);
-            // the image on the server is only almost white. an exact byte sum
-            // is not stable here: the server updates the imagery, and jpeg
-            // decoding is not bit-exact across platforms and qt versions.
-            // compare the average brightness with a generous tolerance instead
-            const auto average = std::accumulate(image.constBits(), image.constBits() + image.sizeInBytes(), 0.0)
-                                 / double(image.sizeInBytes());
-            CHECK(average > 200.0);
+            // the image on the server is only almost white. this test will fail when the file changes.
+            CHECK(std::accumulate(image.constBits(), image.constBits() + image.sizeInBytes(), 0LLu) == 66'503'928LLu);
         }
         {
             QSignalSpy spy(&service, &TileLoadService::load_finished);
@@ -168,16 +163,10 @@ TEST_CASE("nucleus/tile/TileLoadService")
 
             const auto image = QImage::fromData(*tile.data);
             REQUIRE(image.sizeInBytes() > 0);
-            // the exact byte sum changes when the server updates the imagery,
-            // and jpeg decoding is not bit-exact across platforms and qt
-            // versions. compare the average brightness with a generous
-            // tolerance instead (the tile was checked manually, average ~141)
+            // manually checked. comparing the sum should find regressions. this test will fail when the file changes.
 //            image.save("/home/madam/Documents/work/tuw/alpinemaps/"
 //                       "build-alpine-renderer-Desktop_Qt_6_2_3_GCC_64bit-Debug/test.jpeg");
-            const auto average = std::accumulate(image.constBits(), image.constBits() + image.sizeInBytes(), 0.0)
-                                 / double(image.sizeInBytes());
-            CHECK(average > 100.0);
-            CHECK(average < 190.0);
+            CHECK(std::accumulate(image.constBits(), image.constBits() + image.sizeInBytes(), 0LLu) == 37'601'681LLu);
         }
     }
 #ifndef __EMSCRIPTEN__
