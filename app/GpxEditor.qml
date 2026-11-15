@@ -94,7 +94,7 @@ Rectangle {
     // continue planning when re-opened with a route in progress; the routes
     // overview (which accepts no map clicks) only shows for an empty plan
     Component.onCompleted: {
-        show_routes = _planner_model.points.length === 0;
+        show_routes = _planner_model.point_count === 0;
         minimized = !show_routes && gpx_root.width < 500;
         map.change_edit_mode(!show_routes);
     }
@@ -345,7 +345,7 @@ Rectangle {
                 }
 
                 Label {
-                    text: _planner_model.points.length + " points | "
+                    text: _planner_model.point_count + " points | "
                           + format_distance(_planner_model.distance) + " | ↑ "
                           + _planner_model.ascent.toFixed(0) + " m | ↓ "
                           + _planner_model.descent.toFixed(0) + " m"
@@ -397,13 +397,13 @@ Rectangle {
 
                     Button {
                         text: _planner_model.optimisation_running ? qsTr("Optimizing…") : qsTr("Optimize Route")
-                        enabled: _planner_model.points.length >= 2 && !_planner_model.optimisation_running
+                        enabled: _planner_model.point_count >= 2 && !_planner_model.optimisation_running
                         onClicked: _planner_model.optimise_route()
                         Layout.fillWidth: true
                     }
                     Button {
                         text: qsTr("Fly Route")
-                        enabled: _planner_model.points.length >= 2
+                        enabled: _planner_model.point_count >= 2
                         onClicked: {
                             _planner_model.fill_preview_route()
                             map.start_route_preview()
@@ -508,9 +508,12 @@ Rectangle {
 
                 ListView {
                     id: point_list
-                    model: _planner_model.points
+                    // recorded tracks carry thousands of points; the editable
+                    // point list is only shown for hand-planned routes
+                    visible: !_planner_model.route_imported
+                    model: visible ? _planner_model.points : 0
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Math.min(contentHeight, 220)
+                    Layout.preferredHeight: visible ? Math.min(contentHeight, 220) : 0
                     Layout.leftMargin: 10
                     Layout.rightMargin: 10
                     spacing: 2
@@ -536,7 +539,7 @@ Rectangle {
                         }
                         ToolButton {
                             text: "▼"
-                            enabled: index < _planner_model.points.length - 1
+                            enabled: index < _planner_model.point_count - 1
                             onClicked: _planner_model.move_point_down(index)
                             ToolTip.visible: hovered
                             ToolTip.text: qsTr("Move point down")
@@ -592,7 +595,7 @@ Rectangle {
                     }
                     Button {
                         text: qsTr("Export GPX")
-                        enabled: _planner_model.points.length > 0
+                        enabled: _planner_model.point_count > 0
                         onClicked: {
                             // suggest the route name (or "route") as file name
                             const base = _planner_model.name.trim();
@@ -650,14 +653,14 @@ Rectangle {
             ToolButton {
                 focusPolicy: Qt.NoFocus
                 text: qsTr("Undo")
-                enabled: _planner_model.points.length > 0
+                enabled: _planner_model.point_count > 0
                 onClicked: _planner_model.undo_last_point()
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("Delete the last route point")
             }
             ToolButton {
                 text: _planner_model.optimisation_running ? qsTr("…") : qsTr("Optimize")
-                enabled: _planner_model.points.length >= 2 && !_planner_model.optimisation_running
+                enabled: _planner_model.point_count >= 2 && !_planner_model.optimisation_running
                 onClicked: _planner_model.optimise_route()
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("Optimize the route")

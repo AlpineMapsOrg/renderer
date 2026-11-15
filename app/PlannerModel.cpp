@@ -71,10 +71,7 @@ constexpr double k_waypoint_insert_radius = 25.0;
 constexpr int k_point_hold_ms = 350;
 // recorded tracks carry thousands of points; the per-point markers are only
 // useful for hand-planned routes
-constexpr int k_marker_point_limit = 500;
-// imported (recorded) tracks are rendered as a skeleton of at most this many
-// points, evenly spaced along the route
-constexpr int k_imported_render_points = 50;
+constexpr int k_marker_point_limit = 50;
 
 // saved routes live in the app data directory, one gpx file per route
 QString routes_directory()
@@ -121,6 +118,8 @@ PlannerModel::PlannerModel(QObject* parent)
         }
     });
 }
+
+int PlannerModel::point_count() const { return int(m_plan.point_count()); }
 
 QVariantList PlannerModel::points() const
 {
@@ -242,9 +241,24 @@ bool PlannerModel::route_line_visible() const { return m_route_line_visible; }
 
 QVariantList PlannerModel::elevation_profile() const
 {
+    // the chart cannot display more entries than it has pixels: very long
+    // lines are resampled down (at most k_profile_max_entries variant maps
+    // are ever built, so the gui never churns through tens of thousands of
+    // them per update)
+    constexpr int k_profile_max_entries = 300;
     QVariantList profile;
     double distance = 0.0;
     const nucleus::track::Point* previous = nullptr;
+    int index = 0;
+    int next_sample = 0;
+    double resample_step = 0.0;
+    int total_points = 0;
+    for (const auto& segment : m_render_line.track) {
+        total_points += int(segment.size());
+    }
+    if (total_points > k_profile_max_entries) {
+        resample_step = double(total_points - 1) / double(k_profile_max_entries - 1);
+    }
     for (const auto& segment : m_render_line.track) {
         for (const auto& point : segment) {
             double slope_degrees = 0.0;
@@ -258,17 +272,21 @@ QVariantList PlannerModel::elevation_profile() const
                 }
                 slope_degrees = glm::degrees(std::atan2(dz, horizontal));
             }
-            profile.append(QVariantMap {
-                { "x", distance },
-                { "y", point.elevation },
-                { "slope", slope_degrees },
-            });
+            if (resample_step <= 0.0 || index >= next_sample || index + 1 == total_points) {
+                profile.append(QVariantMap {
+                    { "x", distance },
+                    { "y", point.elevation },
+                    { "slope", slope_degrees },
+                });
+                next_sample = int(std::round(double(profile.size()) * resample_step));
+            }
             if (previous) {
                 const nucleus::track::Point from = { previous->latitude, previous->longitude, 0.0 };
                 const nucleus::track::Point to = { point.latitude, point.longitude, 0.0 };
                 distance += m_plan.haversine_distance(from, to);
             }
             previous = &point;
+            index += 1;
         }
     }
     return profile;
@@ -938,7 +956,7 @@ struct RenderData {
 // synchronised
 RenderData compute_render_data(const nucleus::track::Gpx& plan,
                                const std::vector<std::vector<nucleus::track::Point>>& optimised_segments,
-                               nucleus::tile::MemoryCache* cache, bool imported)
+                               nucleus::tile::MemoryCache* cache)
 {
     RenderData result;
 
@@ -972,57 +990,6 @@ RenderData compute_render_data(const nucleus::track::Gpx& plan,
 
     // decodes each touched dem tile once instead of once per sample
     nucleus::tile::cache_queries::DemMeshSampler sampler(cache);
-
-    if (imported) {
-        // imported (recorded) routes carry far too many points to render and
-        // edit 1:1: draw a light skeleton of at most k_imported_render_points
-        // points, evenly spaced along the route and dem-sampled like the
-        // planned lines
-        std::vector<glm::dvec2> world_points;
-        std::vector<double> elevations;
-        world_points.reserve(plan.point_count());
-        elevations.reserve(plan.point_count());
-        for (const auto& segment : plan.track) {
-            for (const auto& point : segment) {
-                world_points.push_back(nucleus::srs::lat_long_to_world({ point.latitude, point.longitude }));
-                elevations.push_back(point.elevation);
-            }
-        }
-        std::vector<double> cumulative;
-        cumulative.reserve(world_points.size());
-        double total_length = 0.0;
-        for (size_t i = 0; i < world_points.size(); ++i) {
-            if (i > 0) {
-                total_length += glm::length(world_points[i] - world_points[i - 1]);
-            }
-            cumulative.push_back(total_length);
-        }
-
-        restart_chain();
-        const int render_points = std::min<int>(k_imported_render_points, int(world_points.size()));
-        if (render_points >= 2 && total_length > 0.0) {
-            size_t cursor = 0;
-            for (int i = 0; i < render_points; ++i) {
-                const double distance = total_length * double(i) / double(render_points - 1);
-                while (cursor + 2 < world_points.size() && cumulative[cursor + 1] < distance) {
-                    cursor += 1;
-                }
-                const double segment_length = cumulative[cursor + 1] - cumulative[cursor];
-                const double t = segment_length > 0.0
-                    ? std::clamp((distance - cumulative[cursor]) / segment_length, 0.0, 1.0)
-                    : 0.0;
-                const glm::dvec2 position = glm::mix(world_points[cursor], world_points[cursor + 1], t);
-                const double elevation = glm::mix(elevations[cursor], elevations[cursor + 1], t);
-                const glm::dvec2 lat_long = nucleus::srs::world_to_lat_long(position);
-                double final_elevation = elevation;
-                if (const auto dem_altitude = sampler.altitude(lat_long)) {
-                    final_elevation = dem_altitude.value();
-                }
-                add_line_point({ lat_long.x, lat_long.y, final_elevation });
-            }
-        }
-        return result;
-    }
 
     size_t pair_index = 0; // consecutive waypoint pair counter across plan segments
 
@@ -1155,9 +1122,8 @@ void PlannerModel::update_render_data()
     auto optimised_segments = m_optimised_segments;
     nucleus::tile::MemoryCache* cache = &RenderingContext::instance()->geometry_scheduler()->ram_cache();
 
-    const bool imported = m_route_imported;
-    auto compute_job = [plan = std::move(plan), optimised = std::move(optimised_segments), cache, imported]() {
-        return compute_render_data(plan, optimised, cache, imported);
+    auto compute_job = [plan = std::move(plan), optimised = std::move(optimised_segments), cache]() {
+        return compute_render_data(plan, optimised, cache);
     };
 
 #ifndef __EMSCRIPTEN__

@@ -65,6 +65,12 @@ class PlannerModel : public QObject {
     // the routes saved in the app data directory: entries are
     // { file, name, points, distance }
     Q_PROPERTY(QVariantList saved_routes READ saved_routes NOTIFY saved_routes_changed)
+    // number of waypoints in the plan (cheap: use this instead of points.length)
+    Q_PROPERTY(int point_count READ point_count NOTIFY points_changed)
+    // true while the current plan comes from an imported gpx: recorded
+    // tracks render without point markers and the editor hides the point
+    // list (thousands of entries would churn the gui)
+    Q_PROPERTY(bool route_imported READ route_imported NOTIFY points_changed)
     // true when the plan changed since the last save (or was never saved)
     Q_PROPERTY(bool route_dirty READ route_dirty NOTIFY route_dirty_changed)
     // hides the rendered route *line* between the points (markers stay)
@@ -77,6 +83,7 @@ public:
     explicit PlannerModel(QObject* parent = nullptr);
 
     QVariantList points() const;
+    int point_count() const;
     QString name() const;
     void set_name(const QString& new_name);
     QString description() const;
@@ -201,7 +208,7 @@ private:
     // parses a gpx file and makes it the current plan; false (with a status
     // message) on failure
     bool load_gpx_file(const QString& path, const QString& fallback_name);
-    // imported routes are rendered as a light skeleton (see compute_render_data)
+    // true while the current plan comes from an imported gpx file
     bool route_imported() const { return m_route_imported; }
     // distances (metres) from a position to the planned route: to the route
     // line and to the nearest route point (with its flat index)
