@@ -33,13 +33,37 @@ std::unique_ptr<Gpx> parse(QXmlStreamReader& xmlReader)
 {
     auto gpx = std::make_unique<Gpx>();
 
+    // gpx files may contain standalone waypoints (<wpt>, e.g. exported by
+    // gdal/skitourenguru) that the planner has no use for; their subtree is
+    // skipped, otherwise their <ele> would leak into the track points
+    bool skipping_subtree = false;
+    int skip_depth = 0;
+
     while (!xmlReader.atEnd() && !xmlReader.hasError()) {
         QXmlStreamReader::TokenType token = xmlReader.readNext();
+
+        if (skipping_subtree) {
+            if (token == QXmlStreamReader::StartElement) {
+                skip_depth += 1;
+            } else if (token == QXmlStreamReader::EndElement) {
+                skip_depth -= 1;
+                if (skip_depth == 0) {
+                    skipping_subtree = false;
+                }
+            }
+            continue;
+        }
 
         if (token == QXmlStreamReader::StartElement) {
             // Handle the start element
 
             QStringView name = xmlReader.name();
+
+            if (name == QString("wpt")) {
+                skipping_subtree = true;
+                skip_depth = 1;
+                continue;
+            }
 
             if (name == QString("trk")) {
                 // nothing to do here
@@ -79,9 +103,6 @@ std::unique_ptr<Gpx> parse(QXmlStreamReader& xmlReader)
             } else if (name == QString("trkseg")) {
                 gpx->add_new_segment();
 
-            } else if (name == QString("wpt")) {
-                qDebug() << "'wpt' NOT IMPLEMENTED!\n";
-                return nullptr;
 
             } else if (name == QString("rte")) {
                 gpx->add_new_segment();

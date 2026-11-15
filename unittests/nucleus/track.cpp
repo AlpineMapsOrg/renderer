@@ -20,6 +20,30 @@ TEST_CASE("GPX")
         CHECK(gpx->track[0].size() == 3); // there are three trackpoints in segment 1
         CHECK(gpx->track[1].size() == 2); // there are two trackpoints in segment 2
     }
+
+    SECTION("standalone waypoints are skipped, the track still parses")
+    {
+        // gdal/skitourenguru exports lead with <wpt> landmarks; their <ele>
+        // must not leak into the track points
+        QXmlStreamReader xml(QStringLiteral(
+            "<?xml version=\"1.0\"?>"
+            "<gpx version=\"1.1\" xmlns=\"http://www.topografix.com/GPX/1/1\">"
+            "<metadata><bounds minlat=\"47.1\" minlon=\"11.2\"/></metadata>"
+            "<wpt lat=\"47.20\" lon=\"11.26\"><ele>1701.0</ele></wpt>"
+            "<trk><name>Test Route</name><trkseg>"
+            "<trkpt lat=\"47.18\" lon=\"11.26\"><ele>1670.0</ele></trkpt>"
+            "<trkpt lat=\"47.19\" lon=\"11.27\"><ele>1700.0</ele></trkpt>"
+            "</trkseg></trk></gpx>"));
+
+        std::unique_ptr<Gpx> gpx = parse(xml);
+
+        REQUIRE(gpx != nullptr);
+        CHECK(gpx->name == "Test Route");
+        REQUIRE(gpx->point_count() == 2);
+        CHECK(gpx->track[0][0].latitude == 47.18);
+        CHECK(gpx->track[0][0].elevation == 1670.0);
+        CHECK(gpx->track[0][1].elevation == 1700.0);
+    }
 }
 
 // the route planner lists the points of all segments flat and passes those
