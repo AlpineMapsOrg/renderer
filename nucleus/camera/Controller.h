@@ -84,6 +84,11 @@ public slots:
     // drop the tracked modifier/keyboard state (see InteractionStyle::clear_keyboard_state)
     void clear_keyboard_state();
 
+    // while a route point is dragged, navigation input is withheld from the
+    // interaction style (presses, moves and touch updates are dropped;
+    // releases pass through so the gesture state machine stays consistent)
+    void set_route_point_dragging(bool active);
+
     // route fly-through preview: the camera descends along the given polyline,
     // slightly above the terrain. while active, drags rotate around the
     // current position and the wheel changes the height. remains until
@@ -118,6 +123,7 @@ private:
     double m_last_emitted_preview_speed = -1.0;
     bool m_last_emitted_preview_paused = false;
     bool m_last_emitted_preview_active = false;
+    bool m_route_point_dragging = false;
     void emit_preview_state_if_changed();
 };
 

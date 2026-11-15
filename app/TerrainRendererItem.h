@@ -293,7 +293,5 @@ private:
     enum class GeoQueryKind { Click, Press, Move };
     std::deque<GeoQueryKind> m_pending_geo_queries;
     bool m_planner_drag_active = false;
-    QMetaObject::Connection m_camera_mouse_move_connection;
-    QMetaObject::Connection m_camera_touch_connection;
     QPointer<nucleus::camera::Controller> m_planner_camera_controller;
 };

@@ -143,6 +143,9 @@ void Controller::update() const
 
 void Controller::mouse_press(const event_parameter::Mouse& e)
 {
+    if (m_route_point_dragging) {
+        return;
+    }
     // Note: This function queries for the position a second time.
     report_global_cursor_position({ e.point.position.x, e.point.position.y });
 
@@ -167,6 +170,9 @@ void Controller::mouse_press(const event_parameter::Mouse& e)
 
 void Controller::mouse_move(const event_parameter::Mouse& e)
 {
+    if (m_route_point_dragging) {
+        return;
+    }
     if (m_route_preview) {
         if (e.buttons & Qt::LeftButton) {
             const glm::vec2 delta = e.point.position - e.point.last_position;
@@ -295,6 +301,25 @@ void Controller::key_release(const QKeyCombination& e)
 
 void Controller::touch(const event_parameter::Touch& e)
 {
+    if (m_route_point_dragging) {
+        // during a route point drag only releases pass through: the gesture
+        // controller must see the end of every gesture it started, or its
+        // state sticks and later drags are misinterpreted (zoom instead of
+        // pan). updates and presses are dropped
+        event_parameter::Touch releases;
+        releases.is_end_event = true;
+        for (const auto& point : e.points) {
+            if (point.state == event_parameter::TouchPointReleased) {
+                releases.points.push_back(point);
+            }
+        }
+        if (releases.points.empty()) {
+            return;
+        }
+        m_interaction_style->touch_event(releases, m_definition, m_depth_tester);
+        return;
+    }
+
     if (m_route_preview) {
         if (e.points.size() == 1) {
             const auto& point = e.points[0];
@@ -390,6 +415,11 @@ void Controller::query_world_position(const QPointF& screen_pos)
 void Controller::clear_keyboard_state()
 {
     m_interaction_style->clear_keyboard_state();
+}
+
+void Controller::set_route_point_dragging(bool active)
+{
+    m_route_point_dragging = active;
 }
 
 void Controller::emit_preview_state_if_changed()
