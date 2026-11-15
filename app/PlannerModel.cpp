@@ -450,7 +450,11 @@ void PlannerModel::press_at(double latitude, double longitude)
 {
     m_drag_candidate = -1;
     const NearestRoute near = nearest_route_geometry(latitude, longitude);
-    if (near.point_distance <= k_point_grab_radius) {
+    // arming requires the point to be the nearest geometry: on dense
+    // imported tracks the nearest point is almost always within the grab
+    // radius, and the line-vs-point decision must agree with add_point_at,
+    // or a hold near the line would start dragging an arbitrary point
+    if (near.point_distance <= k_point_grab_radius && near.point_distance < near.line_distance) {
         m_drag_candidate = near.nearest_point;
         m_hold_timer.start();
     }
@@ -487,8 +491,12 @@ void PlannerModel::release_at()
 void PlannerModel::add_point_at(double latitude, double longitude, double altitude)
 {
     const NearestRoute near = nearest_route_geometry(latitude, longitude);
-    if (near.point_distance <= k_point_grab_radius) {
-        // clicked onto an existing point: hold to move it, a plain click
+    // a click counts as "onto a point" only when the point is the nearest
+    // geometry: on dense imported tracks every position near the line is
+    // also within the grab radius of some point, which would make the
+    // waypoint-insertion popup unreachable
+    if (near.point_distance <= k_point_grab_radius && near.point_distance < near.line_distance) {
+        // clicked onto an existing waypoint: hold to move it, a plain click
         // does nothing
         return;
     }
