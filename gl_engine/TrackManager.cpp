@@ -159,6 +159,13 @@ void TrackManager::add_track(const nucleus::track::Gpx& gpx, const TrackList des
     // and the user position are already densely interpolated
     const bool recorded = destination == TrackList::Recorded;
 
+    // a segment's points are uploaded into a 1d texture, so a long segment
+    // must be split into texture-sized chunks; adjacent chunks share their
+    // boundary point, which keeps the drawn line connected
+    int max_texture_size = 4096;
+    f->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+    const size_t chunk_point_limit = size_t(std::max(2, max_texture_size));
+
     for (const Segment& segment : gpx.track) {
 
         if (segment.size() < 2) {
@@ -186,92 +193,95 @@ void TrackManager::add_track(const nucleus::track::Gpx& gpx, const TrackList des
             }
         }
 
-        size_t point_count = points.size();
+        size_t chunk_start = 0;
+        while (chunk_start + 1 < points.size()) {
+            const size_t chunk_count = std::min(chunk_point_limit, points.size() - chunk_start);
+            const auto chunk_first = points.begin() + long(chunk_start);
+            const std::vector<glm::vec4> chunk(chunk_first, chunk_first + long(chunk_count));
 
-        std::vector<glm::vec3> basic_ribbon = triangles_ribbon(points, 0.0f, 0);
+            size_t point_count = chunk.size();
 
-        PolyLine polyline = {};
-        polyline.marker = markers;
-        // decimated points for the camera-distance width scaling (the width
-        // follows the nearest route point, see draw())
-        const size_t sample_stride = std::max<size_t>(1, points.size() / 512);
-        for (size_t i = 0; i < points.size(); i += sample_stride) {
-            polyline.width_samples.push_back(glm::vec3(points[i]));
-        }
-        polyline.width_samples.push_back(glm::vec3(points.back()));
-        // average of the world-space points, for distance-based width scaling
-        glm::vec3 center_sum(0.f);
-        for (const glm::vec4& point : points) {
-            center_sum += glm::vec3(point);
-        }
-        polyline.center = center_sum / float(points.size());
+            std::vector<glm::vec3> basic_ribbon = triangles_ribbon(chunk, 0.0f, 0);
 
+            PolyLine polyline = {};
+            polyline.marker = markers;
+            // decimated points for the camera-distance width scaling (the width
+            // follows the nearest route point, see draw())
+            const size_t sample_stride = std::max<size_t>(1, chunk.size() / 512);
+            for (size_t i = 0; i < chunk.size(); i += sample_stride) {
+                polyline.width_samples.push_back(glm::vec3(chunk[i]));
+            }
+            polyline.width_samples.push_back(glm::vec3(chunk.back()));
+            // average of the world-space points, for distance-based width scaling
+            glm::vec3 center_sum(0.f);
+            for (const glm::vec4& point : chunk) {
+                center_sum += glm::vec3(point);
+            }
+            polyline.center = center_sum / float(chunk.size());
 
-        int max_texture_size;
-        f->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+            // create texture to hold the point data
+            polyline.texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
+            polyline.texture->setFormat(QOpenGLTexture::TextureFormat::RGBA32F);
+            polyline.texture->setSize(int(point_count), 1);
+            polyline.texture->setAutoMipMapGenerationEnabled(false);
+            polyline.texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
+            polyline.texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+            polyline.texture->allocateStorage();
 
-        if (max_texture_size < int(point_count)) {
-            qDebug() << "Unable to add track with " << point_count << "points, maximum is " << max_texture_size;
-            return;
-        }
+            if (!polyline.texture->isStorageAllocated()) {
+                qDebug() << "Could not allocate texture storage!";
+                return;
+            }
 
-        // create texture to hold the point data
-        polyline.texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
-        polyline.texture->setFormat(QOpenGLTexture::TextureFormat::RGBA32F);
-        polyline.texture->setSize(point_count, 1);
-        polyline.texture->setAutoMipMapGenerationEnabled(false);
-        polyline.texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
-        polyline.texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
-        polyline.texture->allocateStorage();
+            polyline.texture->bind();
+            polyline.texture->setData(0, 0, 0, int(point_count), 1, 0, QOpenGLTexture::RGBA, QOpenGLTexture::Float32, chunk.data());
 
-        if (!polyline.texture->isStorageAllocated()) {
-            qDebug() << "Could not allocate texture storage!";
-            return;
-        }
+            polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
+            polyline.point_count = point_count;
+            polyline.vao->create();
+            polyline.vao->bind();
 
-        polyline.texture->bind();
-        polyline.texture->setData(0, 0, 0, point_count, 1, 0, QOpenGLTexture::RGBA, QOpenGLTexture::Float32, points.data());
+            polyline.vbo = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
+            polyline.vbo->create();
 
-        polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
-        polyline.point_count = point_count;
-        polyline.vao->create();
-        polyline.vao->bind();
+            polyline.vbo->bind();
+            polyline.vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
 
-        polyline.vbo = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
-        polyline.vbo->create();
+            polyline.vbo->allocate(basic_ribbon.data(), helpers::bufferLengthInBytes(basic_ribbon));
 
-        polyline.vbo->bind();
-        polyline.vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
+            GLsizei stride = 3 * sizeof(glm::vec3);
 
-        polyline.vbo->allocate(basic_ribbon.data(), helpers::bufferLengthInBytes(basic_ribbon));
+            const int position_attrib_location = m_shader->attribute_location("a_position");
+            f->glEnableVertexAttribArray(position_attrib_location);
+            f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
 
-        GLsizei stride = 3 * sizeof(glm::vec3);
+            const int direction_attrib_location = m_shader->attribute_location("a_direction");
+            f->glEnableVertexAttribArray(direction_attrib_location);
+            f->glVertexAttribPointer(direction_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(1 * sizeof(glm::vec3)));
 
-        const int position_attrib_location = m_shader->attribute_location("a_position");
-        f->glEnableVertexAttribArray(position_attrib_location);
-        f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
+            const int offset_attrib_location = m_shader->attribute_location("a_offset");
+            f->glEnableVertexAttribArray(offset_attrib_location);
+            f->glVertexAttribPointer(offset_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(2 * sizeof(glm::vec3)));
 
-        const int direction_attrib_location = m_shader->attribute_location("a_direction");
-        f->glEnableVertexAttribArray(direction_attrib_location);
-        f->glVertexAttribPointer(direction_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(1 * sizeof(glm::vec3)));
+            polyline.vao->release();
 
-        const int offset_attrib_location = m_shader->attribute_location("a_offset");
-        f->glEnableVertexAttribArray(offset_attrib_location);
-        f->glVertexAttribPointer(offset_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(2 * sizeof(glm::vec3)));
+            switch (destination) {
+            case TrackList::Recorded:
+                m_tracks.push_back(std::move(polyline));
+                break;
+            case TrackList::Planned:
+                m_planned_tracks.push_back(std::move(polyline));
+                break;
+            case TrackList::UserPosition:
+                polyline.user_position = true;
+                m_user_position.push_back(std::move(polyline));
+                break;
+            }
 
-        polyline.vao->release();
-
-        switch (destination) {
-        case TrackList::Recorded:
-            m_tracks.push_back(std::move(polyline));
-            break;
-        case TrackList::Planned:
-            m_planned_tracks.push_back(std::move(polyline));
-            break;
-        case TrackList::UserPosition:
-            polyline.user_position = true;
-            m_user_position.push_back(std::move(polyline));
-            break;
+            if (chunk_start + chunk_count >= points.size()) {
+                break;
+            }
+            chunk_start += chunk_count - 1; // share the boundary point
         }
     }
 }
