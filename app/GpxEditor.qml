@@ -40,6 +40,11 @@ Rectangle {
     property bool minimized: false
     property bool preview_running: false
 
+    // the editor opens on the saved-routes overview; the planner panel is
+    // shown for a new, imported or loaded route
+    property bool show_routes: true
+    onShow_routesChanged: map.change_edit_mode(!show_routes)
+
     // optimisation weight sliders, collapsed behind the chevron by default
     property bool weights_visible: false
 
@@ -47,9 +52,15 @@ Rectangle {
         return d < 1000 ? d.toFixed(0) + " m" : (d / 1000).toFixed(2) + " km";
     }
 
-    // start minimized on narrow screens (phone portrait), where the expanded
-    // panel would cover the whole map
-    Component.onCompleted: minimized = gpx_root.width < 500
+    // leave the overview and open the planner panel; start minimized on
+    // narrow screens (phone portrait), where the expanded panel would cover
+    // the whole map
+    function open_planner() {
+        show_routes = false;
+        minimized = gpx_root.width < 500;
+    }
+
+    Component.onCompleted: map.change_edit_mode(false) // the routes view accepts no map clicks
 
     // react to the camera fly-through preview: hide the whole widget once on
     // start (not on every progress update), disable adding points, restore
@@ -66,7 +77,7 @@ Rectangle {
                 gpx_root.visible = true;
                 // only re-enable point picking if the editor page is still open
                 if (main.selectedPage === "gpxeditor") {
-                    map.change_edit_mode(true);
+                    map.change_edit_mode(!gpx_root.show_routes);
                 }
             }
         }
@@ -87,7 +98,12 @@ Rectangle {
         title: qsTr("Import GPX track")
         nameFilters: ["GPX (*.gpx *.xml)"]
         fileMode: FileDialog.OpenFile
-        onAccepted: _planner_model.import_gpx(import_dialog.selectedFile)
+        onAccepted: {
+            _planner_model.import_gpx(import_dialog.selectedFile)
+            if (gpx_root.show_routes) {
+                gpx_root.open_planner()
+            }
+        }
     }
 
     Rectangle {
@@ -106,11 +122,120 @@ Rectangle {
 
         Behavior on height { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
+        // saved routes overview: the editor's entry view
+        ColumnLayout {
+            id: routes_view
+            visible: gpx_root.show_routes
+            anchors.fill: parent
+            spacing: 8
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.topMargin: 10
+                Layout.leftMargin: 10
+                Layout.rightMargin: 10
+
+                Label {
+                    text: qsTr("Saved Routes")
+                    font.bold: true
+                    font.pointSize: 16
+                    Layout.fillWidth: true
+                }
+                ToolButton {
+                    text: "×"
+                    onClicked: gpx_root.closeRequested()
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Close the route planner")
+                }
+            }
+
+            Label {
+                visible: _planner_model.saved_routes.length === 0
+                text: qsTr("No saved routes yet")
+                opacity: 0.7
+                Layout.fillWidth: true
+                Layout.leftMargin: 10
+                Layout.rightMargin: 10
+            }
+
+            ListView {
+                id: saved_routes_list
+                model: _planner_model.saved_routes
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                spacing: 2
+
+                delegate: RowLayout {
+                    width: saved_routes_list.width
+
+                    ItemDelegate {
+                        Layout.fillWidth: true
+                        onClicked: {
+                            if (_planner_model.load_route(modelData.file)) {
+                                gpx_root.open_planner()
+                            }
+                        }
+                        contentItem: ColumnLayout {
+                            spacing: 0
+                            Label {
+                                text: modelData.name
+                                font.bold: true
+                                elide: Text.ElideRight
+                            }
+                            Label {
+                                text: modelData.points + " points | " + format_distance(modelData.distance)
+                                font.pointSize: 11
+                                opacity: 0.7
+                                elide: Text.ElideRight
+                            }
+                        }
+                    }
+                    ToolButton {
+                        text: "×"
+                        onClicked: _planner_model.delete_route(modelData.file)
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Delete this route")
+                    }
+                }
+            }
+
+            Label {
+                visible: _planner_model.status !== ""
+                text: _planner_model.status
+                wrapMode: Label.Wrap
+                Layout.fillWidth: true
+                Layout.leftMargin: 10
+                Layout.rightMargin: 10
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.leftMargin: 10
+                Layout.rightMargin: 10
+                Layout.bottomMargin: 10
+
+                Button {
+                    text: qsTr("Create New")
+                    Layout.fillWidth: true
+                    onClicked: {
+                        _planner_model.reset()
+                        gpx_root.open_planner()
+                    }
+                }
+                Button {
+                    text: qsTr("Import GPX")
+                    Layout.fillWidth: true
+                    onClicked: import_dialog.open()
+                }
+            }
+        }
+
         // scrollable body: on small screens the content is taller than the
         // panel, and the buttons at the bottom must stay reachable
         Flickable {
             id: panel_scroll
-            visible: !gpx_root.minimized
+            visible: !gpx_root.show_routes && !gpx_root.minimized
             anchors.fill: parent
             contentHeight: content_column.implicitHeight
             clip: true
@@ -132,11 +257,23 @@ Rectangle {
                     Layout.leftMargin: 10
                     Layout.rightMargin: 10
 
+                    ToolButton {
+                        text: "‹"
+                        onClicked: gpx_root.show_routes = true
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Back to saved routes")
+                    }
                     Label {
                         text: qsTr("Route Planner")
                         font.bold: true
                         font.pointSize: 16
                         Layout.fillWidth: true
+                    }
+                    ToolButton {
+                        text: qsTr("Save")
+                        onClicked: _planner_model.save_route(_planner_model.name)
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Save this route locally")
                     }
                     ToolButton {
                         id: help_button

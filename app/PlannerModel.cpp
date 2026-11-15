@@ -28,6 +28,8 @@
 #endif
 #include <QFile>
 #include <QFileInfo>
+#include <QDir>
+#include <QStandardPaths>
 #include <gl_engine/Context.h>
 #include <nucleus/DataQuerier.h>
 #include <nucleus/planner/RouteOptimizer.h>
@@ -57,6 +59,12 @@ constexpr double k_user_position_z_offset = 3.0;
 // the user position dot is re-placed at this interval, so its dem altitude
 // follows the currently displayed terrain while it is active
 constexpr int k_user_position_refresh_interval_ms = 1000;
+
+// saved routes live in the app data directory, one gpx file per route
+QString routes_directory()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + QStringLiteral("/routes");
+}
 } // namespace
 
 PlannerModel::PlannerModel(QObject* parent)
@@ -397,12 +405,17 @@ void PlannerModel::import_gpx(const QUrl& file_url)
         emit status_changed();
         return;
     }
+    load_gpx_file(path, QFileInfo(path).completeBaseName());
+}
+
+bool PlannerModel::load_gpx_file(const QString& path, const QString& fallback_name)
+{
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
-        qWarning() << "PlannerModel::import_gpx: failed to open file!" << path;
+        qWarning() << "PlannerModel: failed to open file!" << path;
         m_status = tr("Could not open the selected file");
         emit status_changed();
-        return;
+        return false;
     }
 
     QXmlStreamReader xml_reader(&file);
@@ -410,19 +423,19 @@ void PlannerModel::import_gpx(const QUrl& file_url)
     file.close();
 
     if (gpx == nullptr) {
-        qWarning() << "PlannerModel::import_gpx: could not parse GPX file!" << path;
+        qWarning() << "PlannerModel: could not parse GPX file!" << path;
         m_status = tr("Could not parse the GPX file");
         emit status_changed();
-        return;
+        return false;
     }
     if (gpx->point_count() == 0) {
         m_status = tr("The GPX file contains no track points");
         emit status_changed();
-        return;
+        return false;
     }
 
-    // the imported track becomes the editable plan (replaces the current one).
-    // the planner edits one continuous leg and lists the points flat, so
+    // the track becomes the editable plan (replaces the current one). the
+    // planner edits one continuous leg and lists the points flat, so
     // multi-segment tracks are merged into a single segment: that keeps the
     // ui indices, the optimiser's pair numbering and the rendered line
     // consistent (segments of a gpx file are not connected, but a planned
@@ -430,7 +443,7 @@ void PlannerModel::import_gpx(const QUrl& file_url)
     m_plan = std::move(*gpx);
     m_plan.flatten_segments();
     if (m_plan.name.isEmpty()) {
-        m_plan.name = QFileInfo(path).completeBaseName();
+        m_plan.name = fallback_name;
     }
     m_plan.recompute_stats();
     invalidate_optimisation();
@@ -440,14 +453,91 @@ void PlannerModel::import_gpx(const QUrl& file_url)
     emit name_changed();
     emit description_changed();
 
-    // move the camera to the start of the imported track, like the track
-    // upload button does
+    // move the camera to the start of the track, like the track upload
+    // button does
     for (const auto& segment : m_plan.track) {
         if (segment.empty()) {
             continue;
         }
         emit track_imported({ segment.front().latitude, segment.front().longitude });
         break;
+    }
+    return true;
+}
+
+QVariantList PlannerModel::saved_routes() const
+{
+    QVariantList list;
+    const QDir dir(routes_directory());
+    for (const QFileInfo& entry : dir.entryInfoList({ QStringLiteral("*.gpx") }, QDir::Files, QDir::Name)) {
+        QFile file(entry.absoluteFilePath());
+        if (!file.open(QIODevice::ReadOnly)) {
+            continue;
+        }
+        QXmlStreamReader xml_reader(&file);
+        std::unique_ptr<nucleus::track::Gpx> gpx = nucleus::track::parse(xml_reader);
+        file.close();
+        if (gpx == nullptr) {
+            continue;
+        }
+        gpx->recompute_stats();
+        list.append(QVariantMap {
+            { "file", entry.fileName() },
+            { "name", gpx->name.isEmpty() ? entry.completeBaseName() : gpx->name },
+            { "points", gpx->point_count() },
+            { "distance", gpx->distance },
+        });
+    }
+    return list;
+}
+
+void PlannerModel::save_route(const QString& name)
+{
+    if (m_plan.point_count() == 0) {
+        m_status = tr("Nothing to save");
+        emit status_changed();
+        return;
+    }
+    // the route name doubles as the file name; anything the file system
+    // would not like becomes an underscore
+    QString clean_name;
+    for (const QChar& character : name) {
+        clean_name.append(character.isLetterOrNumber() || character == ' ' || character == '-' || character == '_'
+            ? character : QChar('_'));
+    }
+    clean_name = clean_name.trimmed();
+    if (clean_name.isEmpty()) {
+        clean_name = QStringLiteral("route");
+    }
+
+    const QDir dir(routes_directory());
+    dir.mkpath(QStringLiteral("."));
+    nucleus::track::Gpx route = m_plan;
+    route.creationDateTime = QDateTime::currentDateTime();
+    if (route.save(dir.filePath(clean_name + QStringLiteral(".gpx")))) {
+        m_status = tr("Route saved");
+        emit saved_routes_changed();
+    } else {
+        m_status = tr("Could not save the route");
+    }
+    emit status_changed();
+}
+
+bool PlannerModel::load_route(const QString& file_name)
+{
+    if (file_name.contains('/') || file_name.startsWith('.')) {
+        return false;
+    }
+    return load_gpx_file(routes_directory() + QLatin1Char('/') + file_name, QFileInfo(file_name).completeBaseName());
+}
+
+void PlannerModel::delete_route(const QString& file_name)
+{
+    if (file_name.contains('/') || file_name.startsWith('.')) {
+        return;
+    }
+    if (QFile::remove(routes_directory() + QLatin1Char('/') + file_name)) {
+        emit saved_routes_changed();
     }
 }
 

@@ -57,8 +57,11 @@ class PlannerModel : public QObject {
     Q_PROPERTY(int search_radius READ search_radius WRITE set_search_radius NOTIFY optimisation_parameters_changed)
     Q_PROPERTY(bool optimisation_running READ optimisation_running NOTIFY optimisation_running_changed)
     // one-line status of the editor's long-running or failing operations
-    // (optimisation, gpx import/export); empty = nothing to report
+    // (optimisation, gpx import/export/save); empty = nothing to report
     Q_PROPERTY(QString status READ status NOTIFY status_changed)
+    // the routes saved in the app data directory: entries are
+    // { file, name, points, distance }
+    Q_PROPERTY(QVariantList saved_routes READ saved_routes NOTIFY saved_routes_changed)
     // hides the rendered route *line* between the points (markers stay)
     Q_PROPERTY(bool route_line_visible READ route_line_visible WRITE set_route_line_visible NOTIFY route_line_visible_changed)
     // dense elevation profile of the rendered route line: entries are
@@ -91,6 +94,9 @@ public:
     bool route_line_visible() const;
     void set_route_line_visible(bool visible);
     QVariantList elevation_profile() const;
+    // the routes saved in the app data directory: entries are
+    // { file, name, points, distance }
+    QVariantList saved_routes() const;
 
 public slots:
     // geo coordinates in degrees/metres, as reported by the camera depth readback
@@ -102,6 +108,14 @@ public slots:
     void export_gpx(const QUrl& file_url);
     // loads the given gpx file into the planner (replaces the current plan)
     void import_gpx(const QUrl& file_url);
+    // saves the current plan as a gpx file in the app data directory, under
+    // the given name; an existing route of the same name is replaced
+    void save_route(const QString& name);
+    // loads a saved route (file name as listed in saved_routes) into the
+    // planner; false when the file could not be read
+    bool load_route(const QString& file_name);
+    // removes a saved route (file name as listed in saved_routes)
+    void delete_route(const QString& file_name);
     // renders a position indicator at the user's current gnss position.
     // the altitude is only a fallback, the dem altitude is preferred
     void set_user_position(double latitude, double longitude, double altitude);
@@ -133,6 +147,7 @@ signals:
     void user_position_cleared();
     void optimisation_running_changed();
     void status_changed();
+    void saved_routes_changed();
     void optimisation_parameters_changed();
     void route_line_visible_changed(bool visible);
 
@@ -152,6 +167,9 @@ private:
     // bump the generation so an in-flight optimisation result is discarded
     void drop_inflight_result();
     void clear_status();
+    // parses a gpx file and makes it the current plan; false (with a status
+    // message) on failure
+    bool load_gpx_file(const QString& path, const QString& fallback_name);
     // rebuilds the user position dot from the stored coordinates, re-sampling
     // the dem altitude from the currently cached tiles (connected to the
     // refresh timer, so the dot follows tile refinement)
