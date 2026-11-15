@@ -254,6 +254,27 @@ Item {
         function onPlanner_point_picked(latitude, longitude, altitude) {
             _planner_model.add_point_at(latitude, longitude, altitude)
         }
+        // hold-to-drag of route points
+        function onPlanner_press_geo(latitude, longitude) {
+            _planner_model.press_at(latitude, longitude)
+        }
+        function onPlanner_move_geo(latitude, longitude, altitude) {
+            _planner_model.move_dragged(latitude, longitude, altitude)
+        }
+        function onPlanner_release() {
+            _planner_model.release_at()
+        }
+        // a click landed on the planned route: let the editor ask whether a
+        // waypoint should be created there
+        function onWaypoint_insertion_requested(latitude, longitude, altitude, afterIndex) {
+            if (main.selectedPage === "gpxeditor" && main_stack_view.currentItem !== null
+                && main_stack_view.currentItem.request_waypoint_insertion !== undefined) {
+                main_stack_view.currentItem.request_waypoint_insertion(latitude, longitude, altitude, afterIndex)
+            }
+        }
+        function onRoute_point_dragging_changed(dragging) {
+            map.planner_drag_active = dragging
+        }
         // the fly bar buttons must not keep the keyboard focus: the arrow
         // keys steer the preview (left/right seek, up/down speed)
         function onPreview_state_changed() {

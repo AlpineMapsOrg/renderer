@@ -61,6 +61,17 @@ constexpr double k_user_position_z_offset = 3.0;
 constexpr int k_user_position_refresh_interval_ms = 1000;
 // success status messages disappear on their own after this long
 constexpr int k_status_expiry_ms = 3000;
+// a click within this distance of a route point lands on the point (hold to
+// move it) instead of appending a new one
+constexpr double k_point_grab_radius = 20.0;
+// a click within this distance of the planned route line asks whether a
+// waypoint should be inserted at that position
+constexpr double k_waypoint_insert_radius = 25.0;
+// a press near a route point turns into a drag after holding still this long
+constexpr int k_point_hold_ms = 350;
+// recorded tracks carry thousands of points; the per-point markers are only
+// useful for hand-planned routes
+constexpr int k_marker_point_limit = 500;
 
 // saved routes live in the app data directory, one gpx file per route
 QString routes_directory()
@@ -94,6 +105,16 @@ PlannerModel::PlannerModel(QObject* parent)
     connect(&m_status_timer, &QTimer::timeout, this, [this]() {
         if (m_status == m_transient_status) {
             clear_status();
+        }
+    });
+
+    m_hold_timer.setSingleShot(true);
+    m_hold_timer.setInterval(k_point_hold_ms);
+    connect(&m_hold_timer, &QTimer::timeout, this, [this]() {
+        if (m_drag_candidate >= 0 && !m_dragging) {
+            m_drag_point = m_drag_candidate;
+            m_dragging = true;
+            emit route_point_dragging_changed(true);
         }
     });
 }
@@ -330,8 +351,133 @@ std::vector<glm::dvec2> PlannerModel::waypoint_sequence() const
     return sequence;
 }
 
+PlannerModel::NearestRoute PlannerModel::nearest_route_geometry(double latitude, double longitude) const
+{
+    NearestRoute result;
+    result.line_distance = std::numeric_limits<double>::max();
+    result.point_distance = std::numeric_limits<double>::max();
+    const glm::dvec2 world = nucleus::srs::lat_long_to_world({ latitude, longitude });
+
+    int flat_index = 0;
+    bool have_previous = false;
+    glm::dvec2 previous_world(0.0);
+    for (const auto& segment : m_plan.track) {
+        for (const auto& point : segment) {
+            const glm::dvec2 point_world = nucleus::srs::lat_long_to_world({ point.latitude, point.longitude });
+            const double point_distance = glm::length(point_world - world);
+            if (point_distance < result.point_distance) {
+                result.point_distance = point_distance;
+                result.nearest_point = flat_index;
+            }
+            if (have_previous) {
+                // distance from the position to the flattened segment between
+                // the previous and the current route point
+                const glm::dvec2 ab = point_world - previous_world;
+                const double ab_length_sq = glm::dot(ab, ab);
+                const double t = ab_length_sq > 0.0
+                    ? std::clamp(glm::dot(world - previous_world, ab) / ab_length_sq, 0.0, 1.0)
+                    : 0.0;
+                const double segment_distance = glm::length(world - (previous_world + ab * t));
+                if (segment_distance < result.line_distance) {
+                    result.line_distance = segment_distance;
+                }
+            }
+            previous_world = point_world;
+            have_previous = true;
+            flat_index += 1;
+        }
+        have_previous = false; // segments are not connected to each other
+    }
+    // an empty plan has no line: line_distance stays at its maximum, so
+    // clicks fall through to the regular append path
+    return result;
+}
+
+void PlannerModel::insert_pairs_at(unsigned pair_index)
+{
+    // inserting a waypoint between waypoints pair_index and pair_index + 1
+    // replaces that cached pair with two new (uncached) pairs; appending
+    // after the last waypoint only adds one
+    if (pair_index < m_optimised_segments.size()) {
+        m_optimised_segments.erase(m_optimised_segments.begin() + long(pair_index));
+        const auto first = m_optimised_segments.begin() + long(pair_index);
+        m_optimised_segments.insert(first, {});
+        m_optimised_segments.insert(first + 1, {});
+    } else {
+        const auto at = m_optimised_segments.begin()
+            + long(std::min<size_t>(pair_index, m_optimised_segments.size()));
+        m_optimised_segments.insert(at, {});
+    }
+}
+
+void PlannerModel::insert_waypoint(double latitude, double longitude, double altitude, int after_index)
+{
+    if (after_index < 0 || after_index >= int(m_plan.point_count())) {
+        return;
+    }
+    m_plan.insert_point(unsigned(after_index) + 1, { latitude, longitude, altitude });
+    insert_pairs_at(unsigned(after_index));
+    m_plan.recompute_stats();
+    drop_inflight_result();
+    clear_status();
+    update_render_data();
+    mark_plan_dirty();
+    emit points_changed();
+}
+
+void PlannerModel::press_at(double latitude, double longitude)
+{
+    m_drag_candidate = -1;
+    const NearestRoute near = nearest_route_geometry(latitude, longitude);
+    if (near.point_distance <= k_point_grab_radius) {
+        m_drag_candidate = near.nearest_point;
+        m_hold_timer.start();
+    }
+}
+
+void PlannerModel::move_dragged(double latitude, double longitude, double altitude)
+{
+    if (!m_dragging || m_drag_point < 0) {
+        return;
+    }
+    m_plan.update_point(unsigned(m_drag_point), { latitude, longitude, altitude });
+    if (m_drag_point > 0) {
+        clear_optimised_segment(unsigned(m_drag_point) - 1);
+    }
+    clear_optimised_segment(unsigned(m_drag_point));
+    mark_plan_dirty();
+    update_render_data();
+}
+
+void PlannerModel::release_at()
+{
+    m_hold_timer.stop();
+    m_drag_candidate = -1;
+    if (!m_dragging) {
+        return;
+    }
+    m_dragging = false;
+    m_drag_point = -1;
+    m_plan.recompute_stats();
+    emit route_point_dragging_changed(false);
+    emit points_changed();
+}
+
 void PlannerModel::add_point_at(double latitude, double longitude, double altitude)
 {
+    const NearestRoute near = nearest_route_geometry(latitude, longitude);
+    if (near.point_distance <= k_point_grab_radius) {
+        // clicked onto an existing point: hold to move it, a plain click
+        // does nothing
+        return;
+    }
+    if (near.line_distance <= k_waypoint_insert_radius) {
+        // clicked onto the planned route line: ask whether a waypoint
+        // should be created at that position
+        emit waypoint_insertion_requested(latitude, longitude, altitude, near.nearest_point);
+        return;
+    }
+
     m_plan.add_new_point({ latitude, longitude, altitude });
     m_plan.recompute_stats();
     // appending a point adds one new waypoint pair; the optimised paths of
@@ -789,6 +935,10 @@ RenderData compute_render_data(const nucleus::track::Gpx& plan,
 {
     RenderData result;
 
+    // recorded tracks carry thousands of points; the per-point markers are
+    // only useful for hand-planned routes and would drown the map otherwise
+    const bool with_markers = int(plan.point_count()) <= k_marker_point_limit;
+
     // accumulates steepness statistics along the rendered line. called for
     // every point appended to the line, in order; the chain restarts at each
     // plan segment (segments are not connected to each other)
@@ -831,10 +981,12 @@ RenderData compute_render_data(const nucleus::track::Gpx& plan,
 
             // point marker: ~1 m segment that the capsule shader renders as a
             // round dot sitting on the route point
-            const double lat_offset = k_marker_length / k_metres_per_degree_latitude;
-            result.markers.add_new_segment();
-            result.markers.add_new_point({ a.latitude - lat_offset / 2.0, a.longitude, a.elevation });
-            result.markers.add_new_point({ a.latitude + lat_offset / 2.0, a.longitude, a.elevation });
+            if (with_markers) {
+                const double lat_offset = k_marker_length / k_metres_per_degree_latitude;
+                result.markers.add_new_segment();
+                result.markers.add_new_point({ a.latitude - lat_offset / 2.0, a.longitude, a.elevation });
+                result.markers.add_new_point({ a.latitude + lat_offset / 2.0, a.longitude, a.elevation });
+            }
 
             if (i + 1 >= segment.size()) {
                 continue;

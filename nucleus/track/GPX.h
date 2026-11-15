@@ -101,6 +101,16 @@ struct Gpx {
     // segments; appends when the index equals the point count)
     void insert_point(unsigned index, const Point& point) { insert_at_flat(index, point); }
 
+    // moves the point at the given flattened index to new coordinates
+    void update_point(unsigned index, const Point& point)
+    {
+        const auto location = locate_point(index);
+        if (!location) {
+            return;
+        }
+        track[location->first][location->second] = point;
+    }
+
     // moves the point at the given flattened index by steps positions within
     // the flattened sequence, across segment boundaries if needed. returns
     // the flattened index the point ended up at, or `from` if the move was a

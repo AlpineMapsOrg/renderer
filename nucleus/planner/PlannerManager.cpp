@@ -25,6 +25,7 @@ namespace nucleus::planner {
 PlannerManager::PlannerManager(QObject* parent)
     : QObject(parent)
 {
+    m_move_throttle.start();
 }
 
 void PlannerManager::set_edit_mode(bool edit_mode)
@@ -32,6 +33,12 @@ void PlannerManager::set_edit_mode(bool edit_mode)
     m_edit_mode = edit_mode;
     if (!edit_mode) {
         m_in_click = false;
+        // a gesture that is still running must end, or the planner model
+        // keeps waiting for a release that never comes
+        if (m_pressed) {
+            m_pressed = false;
+            emit release_detected();
+        }
     }
 }
 
@@ -41,12 +48,18 @@ void PlannerManager::mouse_press_event(const event_parameter::Mouse& e)
         return;
     }
     if (e.buttons & Qt::LeftButton) {
+        m_pressed = true;
         start_click_event(e.point.position);
+        emit press_detected(QPointF(e.point.position.x, e.point.position.y));
     }
 }
 
 void PlannerManager::mouse_release_event(const event_parameter::Mouse& e)
 {
+    if (m_pressed) {
+        m_pressed = false;
+        emit release_detected();
+    }
     if (m_in_click) {
         end_click_event(e.point.position);
     }
@@ -56,6 +69,9 @@ void PlannerManager::mouse_move_event(const event_parameter::Mouse& e)
 {
     if (m_in_click && glm::length(e.point.position - m_press_position) > s_valid_click_distance) {
         m_in_click = false;
+    }
+    if (m_pressed) {
+        emit_move_throttled(e.point.position);
     }
 }
 
@@ -81,6 +97,29 @@ void PlannerManager::touch_event(const event_parameter::Touch& e)
     } else if (e.points.size() == 1 && e.points[0].state == event_parameter::TouchPointPressed) {
         start_click_event(e.points[0].position);
     }
+
+    for (const auto& point : e.points) {
+        if (point.state == event_parameter::TouchPointPressed) {
+            m_pressed = true;
+            emit press_detected(QPointF(point.position.x, point.position.y));
+        } else if (point.state == event_parameter::TouchPointMoved && m_pressed) {
+            emit_move_throttled(point.position);
+        } else if (point.state == event_parameter::TouchPointReleased && m_pressed) {
+            m_pressed = false;
+            emit release_detected();
+        }
+    }
+}
+
+void PlannerManager::emit_move_throttled(const glm::vec2& position)
+{
+    // dragging a route point triggers a depth readback per event; keep the
+    // readback rate bounded
+    if (m_move_throttle.elapsed() < s_move_emit_interval_ms) {
+        return;
+    }
+    m_move_throttle.restart();
+    emit move_detected(QPointF(position.x, position.y));
 }
 
 void PlannerManager::start_click_event(const glm::vec2& position)

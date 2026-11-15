@@ -112,6 +112,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     qDebug() << "Rendering thread: " << QThread::currentThread();
     // called on rendering thread.
     auto ctx = RenderingContext::instance();
+    auto* self = const_cast<TerrainRendererItem*>(this);
 
     auto* r = new TerrainRenderer();
     connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &TerrainRendererItem::schedule_update);
@@ -134,6 +135,11 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::position_move_requested, r->controller(), &nucleus::camera::Controller::move_to_latitude_longitude);
     connect(this, &TerrainRendererItem::rotation_north_requested, r->controller(), &nucleus::camera::Controller::rotate_north);
 
+    // route point drag: while active, the camera controller is cut off from
+    // navigation events so dragging a point does not move the camera
+    self->m_planner_camera_controller = r->controller();
+    self->m_camera_mouse_move_connection = connect(self, &TerrainRendererItem::mouse_moved, r->controller(), &nucleus::camera::Controller::mouse_move);
+    self->m_camera_touch_connection = connect(self, &TerrainRendererItem::touch_made, r->controller(), &nucleus::camera::Controller::touch);
     connect(this, &TerrainRendererItem::touch_made, ctx->picker_manager().get(), &nucleus::picker::PickerManager::touch_event);
     connect(this, &TerrainRendererItem::mouse_pressed, ctx->picker_manager().get(), &nucleus::picker::PickerManager::mouse_press_event);
     connect(this, &TerrainRendererItem::mouse_released, ctx->picker_manager().get(), &nucleus::picker::PickerManager::mouse_release_event);
@@ -145,10 +151,52 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::mouse_released, ctx->planner_manager().get(), &nucleus::planner::PlannerManager::mouse_release_event);
     connect(this, &TerrainRendererItem::mouse_moved, ctx->planner_manager().get(), &nucleus::planner::PlannerManager::mouse_move_event);
     connect(this, &TerrainRendererItem::edit_mode_changed, ctx->planner_manager().get(), &nucleus::planner::PlannerManager::set_edit_mode);
-    connect(ctx->planner_manager().get(), &nucleus::planner::PlannerManager::click_detected, r->controller(), &nucleus::camera::Controller::query_world_position);
-    connect(r->controller(), &nucleus::camera::Controller::world_position_queried, this,
-            [this](const glm::dvec3& lat_long_alt) {
-                emit planner_point_picked(lat_long_alt.x, lat_long_alt.y, lat_long_alt.z);
+    // the press / move / release gestures resolve through the same depth
+    // readback as the clicks; a queue tags each answer with its gesture, so
+    // the model can tell a click from a point-drag event
+    auto* planner_manager = ctx->planner_manager().get();
+    connect(planner_manager, &nucleus::planner::PlannerManager::click_detected, self,
+            [self](const QPointF& pos) {
+                self->m_pending_geo_queries.push_back(GeoQueryKind::Click);
+                if (self->m_planner_camera_controller) {
+                    self->m_planner_camera_controller->query_world_position(pos);
+                }
+            });
+    connect(planner_manager, &nucleus::planner::PlannerManager::press_detected, self,
+            [self](const QPointF& pos) {
+                self->m_pending_geo_queries.push_back(GeoQueryKind::Press);
+                if (self->m_planner_camera_controller) {
+                    self->m_planner_camera_controller->query_world_position(pos);
+                }
+            });
+    connect(planner_manager, &nucleus::planner::PlannerManager::move_detected, self,
+            [self](const QPointF& pos) {
+                self->m_pending_geo_queries.push_back(GeoQueryKind::Move);
+                if (self->m_planner_camera_controller) {
+                    self->m_planner_camera_controller->query_world_position(pos);
+                }
+            });
+    connect(planner_manager, &nucleus::planner::PlannerManager::release_detected, this,
+            [this]() { emit planner_release(); }, Qt::QueuedConnection);
+    connect(r->controller(), &nucleus::camera::Controller::world_position_queried, self,
+            [self](const glm::dvec3& lat_long_alt) {
+                const GeoQueryKind kind = self->m_pending_geo_queries.empty()
+                    ? GeoQueryKind::Click
+                    : self->m_pending_geo_queries.front();
+                if (!self->m_pending_geo_queries.empty()) {
+                    self->m_pending_geo_queries.pop_front();
+                }
+                switch (kind) {
+                case GeoQueryKind::Press:
+                    emit self->planner_press_geo(lat_long_alt.x, lat_long_alt.y, lat_long_alt.z);
+                    break;
+                case GeoQueryKind::Move:
+                    emit self->planner_move_geo(lat_long_alt.x, lat_long_alt.y, lat_long_alt.z);
+                    break;
+                case GeoQueryKind::Click:
+                    emit self->planner_point_picked(lat_long_alt.x, lat_long_alt.y, lat_long_alt.z);
+                    break;
+                }
             });
     connect(this, &TerrainRendererItem::keyboard_focus_lost, r->controller(), &nucleus::camera::Controller::clear_keyboard_state);
     connect(this, &TerrainRendererItem::route_preview_started, r->controller(), &nucleus::camera::Controller::start_route_preview);
@@ -297,6 +345,25 @@ void TerrainRendererItem::move_position(double latitude, double longitude)
 {
     emit position_move_requested(latitude, longitude);
     RenderThreadNotifier::instance()->notify();
+}
+
+void TerrainRendererItem::set_planner_drag_active(bool active)
+{
+    if (m_planner_drag_active == active) {
+        return;
+    }
+    m_planner_drag_active = active;
+    // dragging a route point must not orbit the camera: cut the camera
+    // controller off from navigation events while the drag runs. the release
+    // event still reaches the controller, so its interaction state ends
+    // cleanly and reconnecting afterwards does not jump
+    if (active) {
+        disconnect(m_camera_mouse_move_connection);
+        disconnect(m_camera_touch_connection);
+    } else {
+        connect(this, &TerrainRendererItem::mouse_moved, m_planner_camera_controller, &nucleus::camera::Controller::mouse_move);
+        connect(this, &TerrainRendererItem::touch_made, m_planner_camera_controller, &nucleus::camera::Controller::touch);
+    }
 }
 
 void TerrainRendererItem::rotate_north()

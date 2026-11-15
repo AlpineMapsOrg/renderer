@@ -25,11 +25,14 @@
 #include "TileStatistics.h"
 #include <QDateTime>
 #include <QList>
+#include <QMetaObject>
+#include <QPointer>
 #include <QQmlEngine>
 #include <QQuickFramebufferObject>
 #include <QString>
 #include <QVector2D>
 #include <QVector3D>
+#include <deque>
 #include <gl_engine/UniformBufferObjects.h>
 #include <nucleus/camera/Definition.h>
 #include <nucleus/event_parameter.h>
@@ -37,6 +40,10 @@
 #include <nucleus/picker/types.h>
 
 class QTimer;
+
+namespace nucleus::camera {
+class Controller;
+}
 
 class TerrainRendererItem : public QQuickFramebufferObject {
     Q_OBJECT
@@ -65,6 +72,9 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(bool preview_paused READ preview_paused NOTIFY preview_state_changed)
     Q_PROPERTY(double preview_progress READ preview_progress NOTIFY preview_state_changed)
     Q_PROPERTY(double preview_speed READ preview_speed NOTIFY preview_state_changed)
+    // while a route point is dragged, camera navigation events are withheld
+    // from the camera controller
+    Q_PROPERTY(bool planner_drag_active WRITE set_planner_drag_active)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -120,6 +130,11 @@ signals:
 
     // emitted while the gpx editor is active, when the user clicked on the terrain
     void planner_point_picked(double latitude, double longitude, double altitude) const;
+    // the raw press / move / release gestures in edit mode, resolved to the
+    // terrain position under the pointer (for the route point drag)
+    void planner_press_geo(double latitude, double longitude, double altitude) const;
+    void planner_move_geo(double latitude, double longitude, double altitude) const;
+    void planner_release() const;
     void edit_mode_changed(bool edit_mode) const;
     // emitted when the item loses keyboard focus (e.g. alt+tab away from the app)
     void keyboard_focus_lost() const;
@@ -146,6 +161,8 @@ public slots:
     void set_position(double latitude, double longitude);
     // pans the camera to the position without changing the rotation
     void move_position(double latitude, double longitude);
+    // withholds camera navigation events while a route point is dragged
+    void set_planner_drag_active(bool active);
     void rotate_north();
     void set_gl_preset(const QString& preset_b64_string);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
@@ -269,4 +286,14 @@ private:
     double m_preview_progress = 0.0;
     double m_preview_speed = 24.0; // matches the combo's default index
     bool m_continuous_update_before_preview = false;
+
+    // route point drag: the geo queries sent for the press/move/click
+    // gestures are answered in order, and their kind decides which signal
+    // the answer is forwarded on
+    enum class GeoQueryKind { Click, Press, Move };
+    std::deque<GeoQueryKind> m_pending_geo_queries;
+    bool m_planner_drag_active = false;
+    QMetaObject::Connection m_camera_mouse_move_connection;
+    QMetaObject::Connection m_camera_touch_connection;
+    QPointer<nucleus::camera::Controller> m_planner_camera_controller;
 };

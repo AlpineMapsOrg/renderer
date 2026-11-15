@@ -127,6 +127,14 @@ public slots:
     bool load_route(const QString& file_name);
     // removes a saved route (file name as listed in saved_routes)
     void delete_route(const QString& file_name);
+    // gesture callbacks from the map (see TerrainRendererItem): a press near
+    // a route point arms the hold-to-drag, dragging moves the armed point,
+    // releasing ends the drag
+    void press_at(double latitude, double longitude);
+    void move_dragged(double latitude, double longitude, double altitude);
+    void release_at();
+    // inserts a waypoint into the route after the given flat waypoint index
+    void insert_waypoint(double latitude, double longitude, double altitude, int after_index);
     // renders a position indicator at the user's current gnss position.
     // the altitude is only a fallback, the dem altitude is preferred
     void set_user_position(double latitude, double longitude, double altitude);
@@ -154,6 +162,13 @@ signals:
     // emitted after a gpx import, with the lat/long of the first route point,
     // so the ui can move the camera to the imported track
     void track_imported(const QPointF& position);
+    // a click landed close to the planned route: the ui asks whether a
+    // waypoint should be created at that position (inserted into the route
+    // after the given flat waypoint index)
+    void waypoint_insertion_requested(double latitude, double longitude, double altitude, int after_index);
+    // while a route point is dragged, the map must not receive camera
+    // navigation events
+    void route_point_dragging_changed(bool dragging);
     void user_position_changed(const nucleus::track::Gpx& marker);
     void user_position_cleared();
     void optimisation_running_changed();
@@ -186,6 +201,17 @@ private:
     // parses a gpx file and makes it the current plan; false (with a status
     // message) on failure
     bool load_gpx_file(const QString& path, const QString& fallback_name);
+    // distances (metres) from a position to the planned route: to the route
+    // line and to the nearest route point (with its flat index)
+    struct NearestRoute {
+        double line_distance = 0;
+        double point_distance = 0;
+        int nearest_point = -1;
+    };
+    NearestRoute nearest_route_geometry(double latitude, double longitude) const;
+    // replaces the cached optimised path of the waypoint pair at the given
+    // index with two empty entries (a new waypoint splits the pair)
+    void insert_pairs_at(unsigned pair_index);
     // rebuilds the user position dot from the stored coordinates, re-sampling
     // the dem altitude from the currently cached tiles (connected to the
     // refresh timer, so the dot follows tile refinement)
@@ -211,6 +237,13 @@ private:
     double m_user_position_longitude = 0;
     double m_user_position_altitude = 0;
     QTimer m_user_position_timer;
+
+    // hold-to-drag state of the route points: a press near a point arms the
+    // drag candidate, holding long enough starts the drag, releasing ends it
+    int m_drag_candidate = -1;
+    int m_drag_point = -1;
+    bool m_dragging = false;
+    QTimer m_hold_timer;
 
     // optimised least-cost descent path per consecutive waypoint pair, kept
     // aligned with the pair numbering of update_render_data after every

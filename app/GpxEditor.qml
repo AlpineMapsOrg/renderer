@@ -52,6 +52,37 @@ Rectangle {
         return d < 1000 ? d.toFixed(0) + " m" : (d / 1000).toFixed(2) + " km";
     }
 
+    // called by Main.qml when a map click landed on the planned route
+    function request_waypoint_insertion(latitude, longitude, altitude, after_index) {
+        waypoint_popup.latitude = latitude;
+        waypoint_popup.longitude = longitude;
+        waypoint_popup.altitude = altitude;
+        waypoint_popup.after_index = after_index;
+        waypoint_popup.open();
+    }
+
+    Dialog {
+        id: waypoint_popup
+        property double latitude: 0
+        property double longitude: 0
+        property double altitude: 0
+        property int after_index: -1
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        title: qsTr("Create waypoint")
+        modal: true
+        standardButtons: Dialog.Yes | Dialog.No
+
+        Label {
+            text: qsTr("Create a waypoint on the route at this position?")
+            wrapMode: Label.Wrap
+        }
+
+        onAccepted: _planner_model.insert_waypoint(
+            waypoint_popup.latitude, waypoint_popup.longitude,
+            waypoint_popup.altitude, waypoint_popup.after_index)
+    }
+
     // leave the overview and open the planner panel; start minimized on
     // narrow screens (phone portrait), where the expanded panel would cover
     // the whole map
