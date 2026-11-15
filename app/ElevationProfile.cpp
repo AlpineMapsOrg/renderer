@@ -167,16 +167,17 @@ void ElevationProfile::paint(QPainter* painter)
 
     // the profile: each segment stroked and filled with its slope colour.
     // the fill fades out towards the chart bottom so steep segments read as
-    // more present than flat ones without hiding the segments behind them
+    // more present than flat ones without hiding the segments behind them.
+    // every segment is drawn (no sub-pixel skipping) and the stroke uses a
+    // flat cap, so the line spans exactly the filled span: with round caps
+    // the stroke dots of crowded profiles overlap and visually shift the
+    // line against the fill
     painter->setRenderHint(QPainter::Antialiasing, true);
     for (int i = 0; i + 1 < m_profile.size(); ++i) {
         const QVariantMap a = m_profile.at(i).toMap();
         const QVariantMap b = m_profile.at(i + 1).toMap();
         const QPointF pa = to_pixel(a.value("x").toDouble(), a.value("y").toDouble());
         const QPointF pb = to_pixel(b.value("x").toDouble(), b.value("y").toDouble());
-        if (std::abs(pb.x() - pa.x()) < 0.3) {
-            continue; // thinner than a pixel, the next segment covers it
-        }
         const QColor colour = steepness_color(b.value("slope").toDouble());
 
         QPolygonF fill_polygon;
@@ -188,7 +189,7 @@ void ElevationProfile::paint(QPainter* painter)
         painter->setBrush(fill_gradient);
         painter->drawPolygon(fill_polygon);
 
-        painter->setPen(QPen(colour, 2.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+        painter->setPen(QPen(colour, 2.0, Qt::SolidLine, Qt::FlatCap, Qt::RoundJoin));
         painter->setBrush(Qt::NoBrush);
         painter->drawLine(pa, pb);
     }
