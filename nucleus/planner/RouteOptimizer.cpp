@@ -327,8 +327,10 @@ std::optional<std::vector<glm::ivec2>> optimise_segment(const DemRaster& dem,
     const double weight_sum = steepness_weight + distance_weight;
     const double distance_term_weight = distance_weight / weight_sum;
     // surcharge per vertical metre climbed (in penalty metres). climbing is
-    // always expensive, even on ideal gradient terrain
-    constexpr double k_uphill_penalty_per_metre = 1.5;
+    // avoided aggressively: at the default weights a 100 m climb costs about
+    // as much as walking half a kilometre on ideal-slope terrain, so the
+    // optimiser prefers detours around hills over crossing them
+    constexpr double k_uphill_penalty_per_metre = 5.0;
     // 0..2 multiplier from the ui slider
     const double cross_weight = std::clamp(cross_slope_weight, 0.0, 2.0);
 
