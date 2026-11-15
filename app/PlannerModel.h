@@ -51,6 +51,8 @@ class PlannerModel : public QObject {
     Q_PROPERTY(double max_steepness READ max_steepness NOTIFY render_data_changed)
     // least-cost path optimisation (steep ski descent planning)
     Q_PROPERTY(int steepness_weight READ steepness_weight WRITE set_steepness_weight NOTIFY optimisation_parameters_changed)
+    Q_PROPERTY(int uphill_steepness_weight READ uphill_steepness_weight WRITE set_uphill_steepness_weight NOTIFY optimisation_parameters_changed)
+    Q_PROPERTY(int uphill_penalty READ uphill_penalty WRITE set_uphill_penalty NOTIFY optimisation_parameters_changed)
     Q_PROPERTY(int distance_weight READ distance_weight WRITE set_distance_weight NOTIFY optimisation_parameters_changed)
     Q_PROPERTY(int cross_slope_weight READ cross_slope_weight WRITE set_cross_slope_weight NOTIFY optimisation_parameters_changed)
     // search margin around the route, in percent of the route extent
@@ -86,6 +88,10 @@ public:
     double max_steepness() const;
     int steepness_weight() const;
     void set_steepness_weight(int weight);
+    int uphill_steepness_weight() const;
+    void set_uphill_steepness_weight(int weight);
+    int uphill_penalty() const;
+    void set_uphill_penalty(int penalty);
     int distance_weight() const;
     void set_distance_weight(int weight);
     int cross_slope_weight() const;
@@ -211,6 +217,8 @@ private:
     // waypoint edit (empty entries = approximate straight interpolation)
     std::vector<std::vector<nucleus::track::Point>> m_optimised_segments;
     int m_steepness_weight = 60;
+    int m_uphill_steepness_weight = 60;
+    int m_uphill_penalty = 50;
     int m_distance_weight = 40;
     int m_cross_slope_weight = 50;
     int m_search_radius = 20; // percent of the route extent

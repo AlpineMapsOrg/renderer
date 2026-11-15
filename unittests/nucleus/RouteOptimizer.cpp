@@ -71,6 +71,29 @@ TEST_CASE("RouteOptimizer gradient penalty")
     CHECK(gradient_penalty(63.0) > gradient_penalty(61.0));
 }
 
+TEST_CASE("RouteOptimizer uphill penalty")
+{
+    using nucleus::planner::uphill_penalty;
+    // the optimum band costs nothing
+    CHECK(uphill_penalty(20.0) == 0.0);
+    CHECK(uphill_penalty(22.0) == 0.0);
+    CHECK(uphill_penalty(25.0) == 0.0);
+    // flatter is suboptimal, but gentler than the descent curve's flat
+    // aversion (the distance term already dislikes detours)
+    CHECK(uphill_penalty(0.0) == 3.0);
+    CHECK(uphill_penalty(15.0) == 0.75);
+    CHECK(uphill_penalty(18.0) > 0.0);
+    CHECK(uphill_penalty(18.0) < 0.75);
+    // bootpack territory: every degree beyond 30 gets expensive
+    CHECK(uphill_penalty(28.0) > 0.0);
+    CHECK(uphill_penalty(32.0) > 3.0);
+    CHECK(uphill_penalty(40.0) == 12.0);
+    CHECK(uphill_penalty(50.0) > uphill_penalty(40.0));
+    // monotone behaviour within each band
+    CHECK(uphill_penalty(10.0) > uphill_penalty(14.0));
+    CHECK(uphill_penalty(35.0) > uphill_penalty(31.0));
+}
+
 TEST_CASE("RouteOptimizer dem raster")
 {
     using namespace nucleus::planner;
@@ -176,16 +199,17 @@ TEST_CASE("RouteOptimizer cross slope penalty moves traverses onto gentle ground
 {
     using namespace nucleus::planner;
     // terrain that descends towards the south, with a gentle bench band
-    // (5 degrees) between steep bands (35 degrees), built from a single
-    // per-row height profile (no artificial cross-slope cliffs). a diagonal
-    // route can distribute its east-west progress over any rows; the cross
-    // slope penalty prices east-west motion by the steepness of the current
-    // row, so with a high weight the traverse must happen inside the bench
+    // (5 degrees) between steep bands (~50 degrees), built from a single
+    // per-row height profile. diagonal descents on the steep face run at the
+    // ideal ~40 degrees (no along-slope penalty), so the only thing that
+    // makes them expensive is their ~40 degree side-tilt: without the cross
+    // slope penalty the east-west progress rides the steep diagonals, with a
+    // high weight it moves onto the low-tilt bench
     std::vector<float> profile(65);
     float height = 0.f;
     for (int r = 0; r < 65; ++r) {
         profile[size_t(r)] = height;
-        const double drop = (r >= 21 && r <= 40) ? 0.9 : 7.0; // bench ~5 degrees
+        const double drop = (r >= 21 && r <= 40) ? 0.9 : 11.9; // bench ~5 degrees, face ~50 degrees
         height += float(drop);
     }
     nucleus::planner::DemTile tile;

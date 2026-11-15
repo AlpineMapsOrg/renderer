@@ -70,9 +70,30 @@ double gradient_penalty_impl(double slope_degrees)
     return 40.0;
 }
 
+// penalty metres per metre travelled for CLIMBING the given slope angle
+// (skin-friendly terrain): the optimum band is 20-25 degrees, 15-20 degrees
+// is fine, flatter is suboptimal, above 30 degrees the skins come off and
+// every additional degree of bootpack steepness gets expensive fast
+double uphill_penalty_impl(double slope_degrees)
+{
+    if (slope_degrees < 15.0)
+        return 3.0 - (slope_degrees / 15.0) * 2.25;
+    if (slope_degrees < 20.0)
+        return 0.75 - (slope_degrees - 15.0) / 5.0 * 0.75;
+    if (slope_degrees <= 25.0)
+        return 0.0;
+    if (slope_degrees <= 30.0)
+        return (slope_degrees - 25.0) / 5.0 * 3.0;
+    if (slope_degrees <= 40.0)
+        return 3.0 + (slope_degrees - 30.0) / 10.0 * 9.0;
+    return 12.0 + (slope_degrees - 40.0) * 0.8;
+}
+
 } // namespace
 
 double gradient_penalty(double slope_degrees) { return gradient_penalty_impl(slope_degrees); }
+
+double uphill_penalty(double slope_degrees) { return uphill_penalty_impl(slope_degrees); }
 
 double cross_slope_penalty(double cross_slope_degrees)
 {
@@ -314,23 +335,29 @@ bool DemRaster::inside(glm::dvec2 world) const
 std::optional<std::vector<glm::ivec2>> optimise_segment(const DemRaster& dem,
                                                         glm::ivec2 start, glm::ivec2 goal,
                                                         double steepness_weight, double distance_weight,
-                                                        double cross_slope_weight)
+                                                        double cross_slope_weight,
+                                                        double uphill_steepness_weight, double climb_penalty)
 {
-    if (steepness_weight < 0.0 || distance_weight < 0.0 || (steepness_weight + distance_weight) <= 0.0) {
-        steepness_weight = distance_weight = 1.0;
-    }
+    // the cost mix is normalised per travel direction: descending edges use
+    // the (downhill) steepness weight, climbing edges the uphill one, and the
+    // distance weight is shared by both mixes
+    const double down_steep = std::max(steepness_weight, 2.0);
+    const double up_steep = std::max(uphill_steepness_weight, 2.0);
     // keep a small distance floor: with pure steepness weighting crossing
     // ideal terrain costs zero, which makes the search drift along zero-cost
     // plateaus instead of preferring the direct line
-    steepness_weight = std::max(steepness_weight, 2.0);
-    distance_weight = std::max(distance_weight, 2.0);
-    const double weight_sum = steepness_weight + distance_weight;
-    const double distance_term_weight = distance_weight / weight_sum;
-    // surcharge per vertical metre climbed (in penalty metres). climbing is
-    // avoided aggressively: at the default weights a 100 m climb costs about
-    // as much as walking half a kilometre on ideal-slope terrain, so the
-    // optimiser prefers detours around hills over crossing them
-    constexpr double k_uphill_penalty_per_metre = 5.0;
+    const double distance = std::max(distance_weight, 0.0);
+    const double down_sum = distance + down_steep;
+    const double up_sum = distance + up_steep;
+    const double down_dist_frac = distance / down_sum;
+    const double down_steep_frac = down_steep / down_sum;
+    const double up_dist_frac = distance / up_sum;
+    const double up_steep_frac = up_steep / up_sum;
+    // surcharge per vertical metre climbed (in penalty metres), scaled by the
+    // uphill-penalty slider. climbing is avoided aggressively: at the default
+    // settings a 100 m climb costs about as much as walking half a kilometre
+    // on ideal-slope terrain, so the optimiser prefers detours around hills
+    const double climb_surcharge = std::max(climb_penalty, 0.0);
     // 0..2 multiplier from the ui slider
     const double cross_weight = std::clamp(cross_slope_weight, 0.0, 2.0);
 
@@ -362,9 +389,11 @@ std::optional<std::vector<glm::ivec2>> optimise_segment(const DemRaster& dem,
 
     const auto goal_position = dem.cell_center(unsigned(anchored_goal->x), unsigned(anchored_goal->y));
 
-    const auto heuristic = [&dem, &goal_position, distance_term_weight](glm::ivec2 cell) {
+    const auto heuristic = [&dem, &goal_position, down_dist_frac, up_dist_frac](glm::ivec2 cell) {
         const glm::dvec2 position = dem.cell_center(unsigned(cell.x), unsigned(cell.y));
-        return distance_term_weight * glm::length(goal_position - position);
+        // admissible: every metre of horizontal progress costs at least the
+        // smaller of the two direction mixes' distance fractions
+        return std::min(down_dist_frac, up_dist_frac) * glm::length(goal_position - position);
     };
 
     struct QueueEntry {
@@ -411,9 +440,8 @@ std::optional<std::vector<glm::ivec2>> optimise_segment(const DemRaster& dem,
         }
 
         const auto from_altitude = dem.cell_altitude(unsigned(cell.x), unsigned(cell.y));
-        const auto from_gradient = dem.cell_gradient(unsigned(cell.x), unsigned(cell.y));
         const auto from_gradient_vec = dem.cell_gradient_vector(unsigned(cell.x), unsigned(cell.y));
-        if (!from_altitude || !from_gradient || !from_gradient_vec) {
+        if (!from_altitude || !from_gradient_vec) {
             continue;
         }
         const glm::dvec2 from_position = dem.cell_center(unsigned(cell.x), unsigned(cell.y));
@@ -424,22 +452,36 @@ std::optional<std::vector<glm::ivec2>> optimise_segment(const DemRaster& dem,
                 continue;
             }
             const auto to_altitude = dem.cell_altitude(unsigned(neighbour.x), unsigned(neighbour.y));
-            const auto to_gradient = dem.cell_gradient(unsigned(neighbour.x), unsigned(neighbour.y));
             const auto to_gradient_vec = dem.cell_gradient_vector(unsigned(neighbour.x), unsigned(neighbour.y));
-            if (!to_altitude || !to_gradient || !to_gradient_vec) {
+            if (!to_altitude || !to_gradient_vec) {
                 continue;
             }
             const glm::dvec2 to_position = dem.cell_center(unsigned(neighbour.x), unsigned(neighbour.y));
             const glm::dvec2 direction = to_position - from_position;
             const double horizontal = glm::length(direction);
-            // price the terrain steepness of the cells themselves (mean of the
-            // two), not the slope along the travelled edge: crossing steep
-            // ground sideways is as dangerous as descending it
-            const double terrain_slope_degrees = 0.5 * (double(*from_gradient) + double(*to_gradient));
-            double penalty = gradient_penalty_impl(terrain_slope_degrees);
+            // metres climbed / descended along the travelled edge; the
+            // steepness of the travelled path itself decides which cost curve
+            // applies (uphill or downhill)
+            const double climb = std::max(0.0, double(*to_altitude) - double(*from_altitude));
+            const double descent = std::max(0.0, double(*from_altitude) - double(*to_altitude));
+            const double slope_along_degrees = glm::degrees(std::atan((climb + descent) / horizontal));
+            double penalty;
+            double steep_frac;
+            double dist_frac;
+            if (climb > 0.0) {
+                // climbing: skin-friendly 20-25 degrees is optimal, bootpack
+                // territory above 30 degrees
+                penalty = uphill_penalty_impl(slope_along_degrees);
+                steep_frac = up_steep_frac;
+                dist_frac = up_dist_frac;
+            } else {
+                penalty = gradient_penalty_impl(slope_along_degrees);
+                steep_frac = down_steep_frac;
+                dist_frac = down_dist_frac;
+            }
             // side-tilt: the component of the terrain gradient perpendicular
             // to the travel direction. contouring a steep sidewall must cost
-            // extra even when the terrain steepness is in the ideal band
+            // extra even when the travelled slope is in the ideal band
             if (cross_weight > 0.0 && horizontal > 0.0) {
                 const glm::dvec2 unit = direction / horizontal;
                 const glm::dvec2 gradient_vec = 0.5 * (*from_gradient_vec + *to_gradient_vec);
@@ -447,18 +489,16 @@ std::optional<std::vector<glm::ivec2>> optimise_segment(const DemRaster& dem,
                 const double cross_slope_degrees = glm::degrees(std::atan(cross_component));
                 penalty += cross_weight * cross_slope_penalty(cross_slope_degrees);
             }
-            const double climb = std::max(0.0, double(*to_altitude) - double(*from_altitude)); // metres climbed
 
-            const double step_cost = (distance_weight * horizontal
-                                         + steepness_weight * (penalty * horizontal + k_uphill_penalty_per_metre * climb))
-                / weight_sum;
+            const double step_cost = dist_frac * horizontal
+                + steep_frac * (penalty * horizontal + climb_surcharge * climb);
             const double new_cost = path_cost[size_t(index)] + step_cost;
             const size_t neighbour_index = size_t(to_index(neighbour));
             if (new_cost < path_cost[neighbour_index]) {
                 path_cost[neighbour_index] = new_cost;
                 came_from[neighbour_index] = index;
                 const double estimate = new_cost
-                    + distance_term_weight * glm::length(goal_position - to_position);
+                    + std::min(down_dist_frac, up_dist_frac) * glm::length(goal_position - to_position);
                 open_set.push({ estimate, int(neighbour_index) });
             }
         }
@@ -646,7 +686,7 @@ void RouteOptimisationSession::compute()
 
             // optimise_segment anchors the cells to the nearest valid cells itself
             const auto path = optimise_segment(*raster, from_cell, to_cell, weights.steepness, weights.distance,
-                weights.cross_slope / 100.0 * 2.0);
+                weights.cross_slope / 100.0 * 2.0, weights.uphill_steepness, weights.uphill_penalty);
             if (!path || path->size() < 2) {
                 result.status = "No valid route found between waypoints (too steep or missing data)";
                 return result;

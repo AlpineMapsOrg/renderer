@@ -43,18 +43,26 @@ struct OptimisationResult {
 };
 
 struct OptimisationWeights {
-    double steepness = 60.0;     // 0..100
-    double distance = 40.0;      // 0..100
-    double cross_slope = 50.0;   // 0..100, scales the across-travel-direction slope penalty
-    double search_padding = 0.2; // fraction of the route extent added as search margin
+    double steepness = 60.0;         // 0..100, downhill edges
+    double uphill_steepness = 60.0;  // 0..100, climbing edges
+    double distance = 40.0;          // 0..100
+    double cross_slope = 50.0;       // 0..100, scales the across-travel-direction slope penalty
+    double uphill_penalty = 5.0;     // 0..10 penalty metres per vertical metre climbed
+    double search_padding = 0.2;     // fraction of the route extent added as search margin
 };
 
-// cost of traversing terrain with the given slope angle, in penalty metres
+// cost of DESCENDING terrain with the given slope angle, in penalty metres
 // per metre travelled (0 = perfect ski descent gradient, high = avoid).
 // steep ski descent preferences: 30-45 degrees is ideal, up to 60 degrees
 // is fine, above 60 degrees requires a rappel and is heavily penalised,
 // below 20 degrees is avoided (flat traversing).
 double gradient_penalty(double slope_degrees);
+
+// cost of CLIMBING terrain with the given slope angle, in penalty metres per
+// metre travelled: 20-25 degrees is optimal (skin-friendly), 15-20 degrees is
+// fine, flatter is suboptimal, above 30 degrees the skins come off (bootpack)
+// and the cost rises steeply
+double uphill_penalty(double slope_degrees);
 
 // penalty for the slope component perpendicular to the travel direction
 // (side-tilt). contouring a steep sidewall is uncomfortable and dangerous
@@ -112,15 +120,19 @@ private:
 };
 
 // least-cost path between two grid cells (8-connected, a*). the cost prices
-// each cell by the terrain gradient of the dem itself (not the slope along
-// the travelled edge - crossing steep ground sideways must be penalised too),
-// the slope across the travel direction (side-tilt, scaled by
-// cross_slope_weight), and a surcharge per vertical metre climbed. returns
+// the slope of the travelled edge itself, with the direction deciding the
+// curve: climbing edges use the uphill curve and the uphill steepness
+// weight, descending edges the downhill curve and the downhill steepness
+// weight (the distance weight is shared by both mixes). the slope across the
+// travel direction (side-tilt, scaled by cross_slope_weight) and a surcharge
+// per vertical metre climbed (climb_penalty) are added on top. returns
 // nullopt if no path could be found
 std::optional<std::vector<glm::ivec2>> optimise_segment(const DemRaster& dem,
                                                         glm::ivec2 start, glm::ivec2 goal,
                                                         double steepness_weight, double distance_weight,
-                                                        double cross_slope_weight = 0.0);
+                                                        double cross_slope_weight = 0.0,
+                                                        double uphill_steepness_weight = 60.0,
+                                                        double climb_penalty = 5.0);
 
 // fetches dem tiles for the planning area (highest resolution available for
 // the area size), decodes them and computes the least-cost path between

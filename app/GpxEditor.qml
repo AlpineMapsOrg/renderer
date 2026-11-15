@@ -389,7 +389,33 @@ Rectangle {
                     stepSize: 1
                     value: _planner_model.steepness_weight
                     onMoved: _planner_model.steepness_weight = value
-                    formatCallback: function(value) { return qsTr("slope ") + value.toFixed(0) + "%"; }
+                    formatCallback: function(value) { return qsTr("slope ↓ ") + value.toFixed(0) + "%"; }
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
+                }
+
+                LabledSlider {
+                    visible: gpx_root.weights_visible
+                    from: 0
+                    to: 100
+                    stepSize: 1
+                    value: _planner_model.uphill_steepness_weight
+                    onMoved: _planner_model.uphill_steepness_weight = value
+                    formatCallback: function(value) { return qsTr("slope ↑ ") + value.toFixed(0) + "%"; }
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 10
+                    Layout.rightMargin: 10
+                }
+
+                LabledSlider {
+                    visible: gpx_root.weights_visible
+                    from: 0
+                    to: 100
+                    stepSize: 5
+                    value: _planner_model.uphill_penalty
+                    onMoved: _planner_model.uphill_penalty = value
+                    formatCallback: function(value) { return qsTr("climb ") + (value / 10).toFixed(1); }
                     Layout.fillWidth: true
                     Layout.leftMargin: 10
                     Layout.rightMargin: 10

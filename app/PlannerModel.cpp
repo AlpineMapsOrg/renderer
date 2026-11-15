@@ -156,6 +156,28 @@ void PlannerModel::set_steepness_weight(int weight)
     emit optimisation_parameters_changed();
 }
 
+int PlannerModel::uphill_steepness_weight() const { return m_uphill_steepness_weight; }
+
+void PlannerModel::set_uphill_steepness_weight(int weight)
+{
+    if (m_uphill_steepness_weight == weight) {
+        return;
+    }
+    m_uphill_steepness_weight = weight;
+    emit optimisation_parameters_changed();
+}
+
+int PlannerModel::uphill_penalty() const { return m_uphill_penalty; }
+
+void PlannerModel::set_uphill_penalty(int penalty)
+{
+    if (m_uphill_penalty == penalty) {
+        return;
+    }
+    m_uphill_penalty = penalty;
+    emit optimisation_parameters_changed();
+}
+
 int PlannerModel::distance_weight() const { return m_distance_weight; }
 
 void PlannerModel::set_distance_weight(int weight)
@@ -619,8 +641,10 @@ void PlannerModel::optimise_route()
 
     nucleus::planner::OptimisationWeights weights;
     weights.steepness = m_steepness_weight;
+    weights.uphill_steepness = m_uphill_steepness_weight;
     weights.distance = m_distance_weight;
     weights.cross_slope = m_cross_slope_weight;
+    weights.uphill_penalty = m_uphill_penalty / 10.0;
     weights.search_padding = m_search_radius / 100.0;
 
     auto* session = new nucleus::planner::RouteOptimisationSession(waypoints, weights, this);
