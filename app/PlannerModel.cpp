@@ -90,6 +90,7 @@ PlannerModel::PlannerModel(QObject* parent)
     connect(&m_user_position_timer, &QTimer::timeout, this, &PlannerModel::place_user_position);
 
     m_status_timer.setSingleShot(true);
+    m_status_timer.setInterval(k_status_expiry_ms);
     connect(&m_status_timer, &QTimer::timeout, this, [this]() {
         if (m_status == m_transient_status) {
             clear_status();
