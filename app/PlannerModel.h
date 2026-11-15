@@ -110,8 +110,9 @@ public slots:
     void move_point_down(int index);
     void reset();
     void export_gpx(const QUrl& file_url);
-    // loads the given gpx file into the planner (replaces the current plan)
-    void import_gpx(const QUrl& file_url);
+    // loads the given gpx file into the planner (replaces the current plan);
+    // false when the file could not be read or parsed
+    bool import_gpx(const QUrl& file_url);
     // saves the current plan as a gpx file in the app data directory, under
     // the given name; an existing route of the same name is replaced
     void save_route(const QString& name);

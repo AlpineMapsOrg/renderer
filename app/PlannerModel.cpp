@@ -432,18 +432,20 @@ void PlannerModel::export_gpx(const QUrl& file_url)
     }
 }
 
-void PlannerModel::import_gpx(const QUrl& file_url)
+bool PlannerModel::import_gpx(const QUrl& file_url)
 {
     const QString path = file_url.isLocalFile() ? file_url.toLocalFile() : file_url.toString();
     if (path.isEmpty()) {
         qWarning() << "PlannerModel::import_gpx: not a local file" << file_url;
         m_status = tr("Could not open the selected file");
         emit status_changed();
-        return;
+        return false;
     }
     if (load_gpx_file(path, QFileInfo(path).completeBaseName())) {
         mark_plan_dirty();
+        return true;
     }
+    return false;
 }
 
 bool PlannerModel::load_gpx_file(const QString& path, const QString& fallback_name)

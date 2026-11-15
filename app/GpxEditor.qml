@@ -99,8 +99,8 @@ Rectangle {
         nameFilters: ["GPX (*.gpx *.xml)"]
         fileMode: FileDialog.OpenFile
         onAccepted: {
-            _planner_model.import_gpx(import_dialog.selectedFile)
-            if (gpx_root.show_routes) {
+            // only leave the overview when the file actually parsed
+            if (_planner_model.import_gpx(import_dialog.selectedFile) && gpx_root.show_routes) {
                 gpx_root.open_planner()
             }
         }
