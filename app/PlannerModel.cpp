@@ -59,6 +59,8 @@ constexpr double k_user_position_z_offset = 3.0;
 // the user position dot is re-placed at this interval, so its dem altitude
 // follows the currently displayed terrain while it is active
 constexpr int k_user_position_refresh_interval_ms = 1000;
+// success status messages disappear on their own after this long
+constexpr int k_status_expiry_ms = 3000;
 
 // saved routes live in the app data directory, one gpx file per route
 QString routes_directory()
@@ -86,6 +88,13 @@ PlannerModel::PlannerModel(QObject* parent)
 
     m_user_position_timer.setInterval(k_user_position_refresh_interval_ms);
     connect(&m_user_position_timer, &QTimer::timeout, this, &PlannerModel::place_user_position);
+
+    m_status_timer.setSingleShot(true);
+    connect(&m_status_timer, &QTimer::timeout, this, [this]() {
+        if (m_status == m_transient_status) {
+            clear_status();
+        }
+    });
 }
 
 QVariantList PlannerModel::points() const
@@ -113,6 +122,7 @@ void PlannerModel::set_name(const QString& new_name)
         return;
     }
     m_plan.name = new_name;
+    mark_plan_dirty();
     emit name_changed();
 }
 
@@ -124,6 +134,7 @@ void PlannerModel::set_description(const QString& new_description)
         return;
     }
     m_plan.description = new_description;
+    mark_plan_dirty();
     emit description_changed();
 }
 
@@ -227,6 +238,25 @@ void PlannerModel::set_route_line_visible(bool visible)
 
 QString PlannerModel::status() const { return m_status; }
 
+bool PlannerModel::route_dirty() const { return m_route_dirty; }
+
+void PlannerModel::mark_plan_dirty()
+{
+    if (m_route_dirty) {
+        return;
+    }
+    m_route_dirty = true;
+    emit route_dirty_changed();
+}
+
+void PlannerModel::set_transient_status(const QString& text)
+{
+    m_transient_status = text;
+    m_status = text;
+    emit status_changed();
+    m_status_timer.start();
+}
+
 void PlannerModel::invalidate_optimisation()
 {
     m_optimised_segments.clear();
@@ -287,6 +317,7 @@ void PlannerModel::add_point_at(double latitude, double longitude, double altitu
     drop_inflight_result();
     clear_status();
     update_render_data();
+    mark_plan_dirty();
     emit points_changed();
 }
 
@@ -322,6 +353,7 @@ void PlannerModel::delete_point(int index)
     drop_inflight_result();
     clear_status();
     update_render_data();
+    mark_plan_dirty();
     emit points_changed();
 }
 
@@ -343,6 +375,7 @@ void PlannerModel::move_point_up(int index)
     drop_inflight_result();
     clear_status();
     update_render_data();
+    mark_plan_dirty();
     emit points_changed();
 }
 
@@ -364,6 +397,7 @@ void PlannerModel::move_point_down(int index)
     drop_inflight_result();
     clear_status();
     update_render_data();
+    mark_plan_dirty();
     emit points_changed();
 }
 
@@ -372,6 +406,7 @@ void PlannerModel::reset()
     m_plan.reset();
     invalidate_optimisation();
     update_render_data();
+    mark_plan_dirty();
     emit points_changed();
     emit name_changed();
     emit description_changed();
@@ -405,7 +440,9 @@ void PlannerModel::import_gpx(const QUrl& file_url)
         emit status_changed();
         return;
     }
-    load_gpx_file(path, QFileInfo(path).completeBaseName());
+    if (load_gpx_file(path, QFileInfo(path).completeBaseName())) {
+        mark_plan_dirty();
+    }
 }
 
 bool PlannerModel::load_gpx_file(const QString& path, const QString& fallback_name)
@@ -510,17 +547,30 @@ void PlannerModel::save_route(const QString& name)
         clean_name = QStringLiteral("route");
     }
 
+    // never overwrite another route: extend the name with a counter until
+    // the file name is free ("Haidenspitze", "Haidenspitze 2", ...)
     const QDir dir(routes_directory());
     dir.mkpath(QStringLiteral("."));
+    QString used_name = clean_name;
+    int counter = 2;
+    while (QFileInfo::exists(dir.filePath(used_name + QStringLiteral(".gpx")))) {
+        used_name = clean_name + QLatin1Char(' ') + QString::number(counter++);
+    }
+
     nucleus::track::Gpx route = m_plan;
+    route.name = used_name;
     route.creationDateTime = QDateTime::currentDateTime();
-    if (route.save(dir.filePath(clean_name + QStringLiteral(".gpx")))) {
-        m_status = tr("Route saved");
+    if (route.save(dir.filePath(used_name + QStringLiteral(".gpx")))) {
+        set_transient_status(tr("Route saved"));
         emit saved_routes_changed();
+        if (m_route_dirty) {
+            m_route_dirty = false;
+            emit route_dirty_changed();
+        }
     } else {
         m_status = tr("Could not save the route");
+        emit status_changed();
     }
-    emit status_changed();
 }
 
 bool PlannerModel::load_route(const QString& file_name)
@@ -528,7 +578,14 @@ bool PlannerModel::load_route(const QString& file_name)
     if (file_name.contains('/') || file_name.startsWith('.')) {
         return false;
     }
-    return load_gpx_file(routes_directory() + QLatin1Char('/') + file_name, QFileInfo(file_name).completeBaseName());
+    if (!load_gpx_file(routes_directory() + QLatin1Char('/') + file_name, QFileInfo(file_name).completeBaseName())) {
+        return false;
+    }
+    if (m_route_dirty) {
+        m_route_dirty = false;
+        emit route_dirty_changed();
+    }
+    return true;
 }
 
 void PlannerModel::delete_route(const QString& file_name)
@@ -596,6 +653,7 @@ void PlannerModel::undo_last_point()
     drop_inflight_result();
     clear_status();
     update_render_data();
+    mark_plan_dirty();
     emit points_changed();
 }
 

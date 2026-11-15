@@ -165,6 +165,12 @@ Rectangle {
                 Layout.fillHeight: true
                 clip: true
                 spacing: 2
+                boundsBehavior: Flickable.StopAtBounds
+
+                ScrollBar.vertical: ScrollBar {
+                    policy: saved_routes_list.contentHeight > saved_routes_list.height
+                        ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
+                }
 
                 delegate: RowLayout {
                     width: saved_routes_list.width
@@ -268,12 +274,6 @@ Rectangle {
                         font.bold: true
                         font.pointSize: 16
                         Layout.fillWidth: true
-                    }
-                    ToolButton {
-                        text: qsTr("Save")
-                        onClicked: _planner_model.save_route(_planner_model.name)
-                        ToolTip.visible: hovered
-                        ToolTip.text: qsTr("Save this route locally")
                     }
                     ToolButton {
                         id: help_button
@@ -516,8 +516,12 @@ Rectangle {
                     Layout.bottomMargin: 10
 
                     Button {
-                        text: qsTr("Import GPX")
-                        onClicked: import_dialog.open()
+                        text: qsTr("Save")
+                        enabled: _planner_model.route_dirty
+                        Layout.fillWidth: true
+                        onClicked: _planner_model.save_route(_planner_model.name)
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Save this route locally")
                     }
                     Button {
                         text: qsTr("Reset")
@@ -533,7 +537,6 @@ Rectangle {
                             export_dialog.open()
                         }
                     }
-                    Item { Layout.fillWidth: true }
                 }
             }
         }

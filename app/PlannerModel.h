@@ -57,11 +57,14 @@ class PlannerModel : public QObject {
     Q_PROPERTY(int search_radius READ search_radius WRITE set_search_radius NOTIFY optimisation_parameters_changed)
     Q_PROPERTY(bool optimisation_running READ optimisation_running NOTIFY optimisation_running_changed)
     // one-line status of the editor's long-running or failing operations
-    // (optimisation, gpx import/export/save); empty = nothing to report
+    // (optimisation, gpx import/export/save); empty = nothing to report.
+    // success messages disappear automatically
     Q_PROPERTY(QString status READ status NOTIFY status_changed)
     // the routes saved in the app data directory: entries are
     // { file, name, points, distance }
     Q_PROPERTY(QVariantList saved_routes READ saved_routes NOTIFY saved_routes_changed)
+    // true when the plan changed since the last save (or was never saved)
+    Q_PROPERTY(bool route_dirty READ route_dirty NOTIFY route_dirty_changed)
     // hides the rendered route *line* between the points (markers stay)
     Q_PROPERTY(bool route_line_visible READ route_line_visible WRITE set_route_line_visible NOTIFY route_line_visible_changed)
     // dense elevation profile of the rendered route line: entries are
@@ -91,6 +94,7 @@ public:
     void set_search_radius(int percent);
     bool optimisation_running() const;
     QString status() const;
+    bool route_dirty() const;
     bool route_line_visible() const;
     void set_route_line_visible(bool visible);
     QVariantList elevation_profile() const;
@@ -147,6 +151,7 @@ signals:
     void user_position_cleared();
     void optimisation_running_changed();
     void status_changed();
+    void route_dirty_changed();
     void saved_routes_changed();
     void optimisation_parameters_changed();
     void route_line_visible_changed(bool visible);
@@ -167,6 +172,10 @@ private:
     // bump the generation so an in-flight optimisation result is discarded
     void drop_inflight_result();
     void clear_status();
+    // shows a status message that disappears on its own after a few seconds
+    void set_transient_status(const QString& text);
+    // flags the plan as changed since the last save (enables the save button)
+    void mark_plan_dirty();
     // parses a gpx file and makes it the current plan; false (with a status
     // message) on failure
     bool load_gpx_file(const QString& path, const QString& fallback_name);
@@ -206,6 +215,9 @@ private:
     int m_search_radius = 20; // percent of the route extent
     bool m_optimisation_running = false;
     QString m_status;
+    QString m_transient_status; // the status text the expiry timer may clear
+    bool m_route_dirty = false;
+    QTimer m_status_timer;
     bool m_route_line_visible = true;
     unsigned m_optimisation_generation = 0;
     // discards results of superseded render-data computations (async, one
