@@ -56,6 +56,9 @@ struct PolyLine {
     // average of the world-space track points, used to scale the width with
     // the camera distance
     glm::vec3 center = glm::vec3(0.f);
+    // decimated world-space points: the drawn width follows the distance to
+    // the nearest of them, so zooming in close thins the line out
+    std::vector<glm::vec3> width_samples;
 };
 
 class TrackManager : public nucleus::track::Manager {
@@ -95,11 +98,12 @@ private:
     unsigned int m_shading_method = 0U;
     float m_display_width = 7.0f;
     // the planned route line is rendered with a width that scales with the
-    // camera distance, so that it covers roughly this many pixels on screen
-    // (clamped to a min/max world width)
+    // distance to the nearest route point, so that it covers roughly this
+    // many pixels on screen (clamped to a min/max world width; the small
+    // minimum keeps the line thin when zoomed in close)
     float m_planned_target_pixel_width = 5.0f;
     float m_planned_marker_pixel_width = 7.0f;
-    float m_planned_min_world_width = 2.0f;
+    float m_planned_min_world_width = 0.25f;
     float m_planned_max_world_width = 150.0f;
     glm::vec3 m_planned_marker_color = glm::vec3(0.0f, 0.45f, 0.9f);
     glm::vec3 m_user_position_color = glm::vec3(0.95f, 0.15f, 0.55f);

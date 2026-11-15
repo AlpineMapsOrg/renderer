@@ -95,9 +95,16 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
             }
 
             if (planned) {
-                // scale the width with the camera distance so that the line
-                // covers roughly m_planned_target_pixel_width pixels on screen
-                const float distance = glm::distance(glm::vec3(camera.position()), track.center);
+                // scale the width with the distance to the nearest route
+                // point (not the route centre - zooming into one end of a
+                // long route would otherwise keep the line fat), so that the
+                // line covers roughly the target pixel width on screen at
+                // every zoom level
+                const glm::vec3 cam_pos = glm::vec3(camera.position());
+                float distance = glm::distance(cam_pos, track.center);
+                for (const glm::vec3& sample : track.width_samples) {
+                    distance = std::min(distance, glm::distance(cam_pos, sample));
+                }
                 const float pixel_to_world = 2.f * glm::tan(glm::radians(camera.field_of_view()) * 0.5f)
                     / float(camera.viewport_size().y);
                 const float target_pixels = track.marker ? m_planned_marker_pixel_width : m_planned_target_pixel_width;
@@ -185,6 +192,13 @@ void TrackManager::add_track(const nucleus::track::Gpx& gpx, const TrackList des
 
         PolyLine polyline = {};
         polyline.marker = markers;
+        // decimated points for the camera-distance width scaling (the width
+        // follows the nearest route point, see draw())
+        const size_t sample_stride = std::max<size_t>(1, points.size() / 512);
+        for (size_t i = 0; i < points.size(); i += sample_stride) {
+            polyline.width_samples.push_back(glm::vec3(points[i]));
+        }
+        polyline.width_samples.push_back(glm::vec3(points.back()));
         // average of the world-space points, for distance-based width scaling
         glm::vec3 center_sum(0.f);
         for (const glm::vec4& point : points) {
