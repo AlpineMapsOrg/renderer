@@ -201,6 +201,8 @@ private:
     // parses a gpx file and makes it the current plan; false (with a status
     // message) on failure
     bool load_gpx_file(const QString& path, const QString& fallback_name);
+    // imported routes are rendered as a light skeleton (see compute_render_data)
+    bool route_imported() const { return m_route_imported; }
     // distances (metres) from a position to the planned route: to the route
     // line and to the nearest route point (with its flat index)
     struct NearestRoute {
@@ -244,6 +246,10 @@ private:
     int m_drag_point = -1;
     bool m_dragging = false;
     QTimer m_hold_timer;
+
+    // imported (recorded) routes render as a light skeleton instead of
+    // point-by-point
+    bool m_route_imported = false;
 
     // optimised least-cost descent path per consecutive waypoint pair, kept
     // aligned with the pair numbering of update_render_data after every
