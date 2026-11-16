@@ -211,11 +211,13 @@ private:
     // true while the current plan comes from an imported gpx file
     bool route_imported() const { return m_route_imported; }
     // distances (metres) from a position to the planned route: to the route
-    // line and to the nearest route point (with its flat index)
+    // line (with the flat index of the closest segment's start point) and to
+    // the nearest route point (with its flat index)
     struct NearestRoute {
         double line_distance = 0;
         double point_distance = 0;
         int nearest_point = -1;
+        int line_segment_start = -1;
     };
     NearestRoute nearest_route_geometry(double latitude, double longitude) const;
     // replaces the cached optimised path of the waypoint pair at the given
@@ -248,10 +250,13 @@ private:
     QTimer m_user_position_timer;
 
     // hold-to-drag state of the route points: a press near a point arms the
-    // drag candidate, holding long enough starts the drag, releasing ends it
+    // drag candidate, holding long enough starts the drag, releasing ends it.
+    // moving before the hold fires cancels the grab (the gesture stays a pan)
     int m_drag_candidate = -1;
     int m_drag_point = -1;
     bool m_dragging = false;
+    double m_press_geo_latitude = 0;
+    double m_press_geo_longitude = 0;
     QTimer m_hold_timer;
 
     // imported (recorded) routes render as a light skeleton instead of

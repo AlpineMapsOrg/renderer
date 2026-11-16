@@ -69,6 +69,9 @@ constexpr double k_point_grab_radius = 20.0;
 constexpr double k_waypoint_insert_radius = 25.0;
 // a press near a route point turns into a drag after holding still this long
 constexpr int k_point_hold_ms = 350;
+// moving the pointer more than this far (metres) before the hold fires
+// cancels the pending grab: the gesture stays a camera pan
+constexpr double k_hold_cancel_distance = 1.5;
 // recorded tracks carry thousands of points; the per-point markers are only
 // useful for hand-planned routes
 constexpr int k_marker_point_limit = 50;
@@ -392,7 +395,9 @@ PlannerModel::NearestRoute PlannerModel::nearest_route_geometry(double latitude,
             }
             if (have_previous) {
                 // distance from the position to the flattened segment between
-                // the previous and the current route point
+                // the previous and the current route point; the segment start
+                // index is kept so a waypoint inserted there lands exactly
+                // between the two points of the clicked piece of line
                 const glm::dvec2 ab = point_world - previous_world;
                 const double ab_length_sq = glm::dot(ab, ab);
                 const double t = ab_length_sq > 0.0
@@ -401,6 +406,7 @@ PlannerModel::NearestRoute PlannerModel::nearest_route_geometry(double latitude,
                 const double segment_distance = glm::length(world - (previous_world + ab * t));
                 if (segment_distance < result.line_distance) {
                     result.line_distance = segment_distance;
+                    result.line_segment_start = flat_index - 1;
                 }
             }
             previous_world = point_world;
@@ -452,6 +458,8 @@ void PlannerModel::press_at(double latitude, double longitude)
     const NearestRoute near = nearest_route_geometry(latitude, longitude);
     if (near.point_distance <= k_point_grab_radius) {
         m_drag_candidate = near.nearest_point;
+        m_press_geo_latitude = latitude;
+        m_press_geo_longitude = longitude;
         m_hold_timer.start();
     }
 }
@@ -459,6 +467,15 @@ void PlannerModel::press_at(double latitude, double longitude)
 void PlannerModel::move_dragged(double latitude, double longitude, double altitude)
 {
     if (!m_dragging || m_drag_point < 0) {
+        // movement before the hold fired cancels the pending grab: the
+        // gesture stays a camera pan instead of half panning and then
+        // suddenly dragging a point
+        if (m_drag_candidate >= 0 && m_hold_timer.isActive()
+            && m_plan.haversine_distance({ m_press_geo_latitude, m_press_geo_longitude, 0.0 },
+                   { latitude, longitude, 0.0 }) > k_hold_cancel_distance) {
+            m_hold_timer.stop();
+            m_drag_candidate = -1;
+        }
         return;
     }
     m_plan.update_point(unsigned(m_drag_point), { latitude, longitude, altitude });
@@ -494,8 +511,10 @@ void PlannerModel::add_point_at(double latitude, double longitude, double altitu
     }
     if (near.line_distance <= k_waypoint_insert_radius) {
         // clicked onto the planned route line: ask whether a waypoint
-        // should be created at that position
-        emit waypoint_insertion_requested(latitude, longitude, altitude, near.nearest_point);
+        // should be created at that position, inserted between the two
+        // points of the clicked segment
+        const int after_index = near.line_segment_start >= 0 ? near.line_segment_start : near.nearest_point;
+        emit waypoint_insertion_requested(latitude, longitude, altitude, after_index);
         return;
     }
 

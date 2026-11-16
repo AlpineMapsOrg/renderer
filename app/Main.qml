@@ -264,6 +264,21 @@ Item {
         function onPlanner_release() {
             _planner_model.release_at()
         }
+        // the fly bar buttons must not keep the keyboard focus: the arrow
+        // keys steer the preview (left/right seek, up/down speed)
+        function onPreview_state_changed() {
+            // follow the actual preview speed wherever it came from
+            // (dropdown pick or arrow keys)
+            speed_combo.currentIndex = speed_combo.index_for(map.preview_speed)
+            if (map.preview_active)
+                map.forceActiveFocus()
+        }
+    }
+
+    // signals of the planner model itself (not the map): the waypoint
+    // insertion request and the route point drag state
+    Connections {
+        target: _planner_model
         // a click landed on the planned route: let the editor ask whether a
         // waypoint should be created there
         function onWaypoint_insertion_requested(latitude, longitude, altitude, afterIndex) {
@@ -274,15 +289,6 @@ Item {
         }
         function onRoute_point_dragging_changed(dragging) {
             map.planner_drag_active = dragging
-        }
-        // the fly bar buttons must not keep the keyboard focus: the arrow
-        // keys steer the preview (left/right seek, up/down speed)
-        function onPreview_state_changed() {
-            // follow the actual preview speed wherever it came from
-            // (dropdown pick or arrow keys)
-            speed_combo.currentIndex = speed_combo.index_for(map.preview_speed)
-            if (map.preview_active)
-                map.forceActiveFocus()
         }
     }
 
