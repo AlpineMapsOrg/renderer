@@ -420,15 +420,17 @@ void PlannerModel::insert_pairs_at(unsigned pair_index)
 {
     // inserting a waypoint between waypoints pair_index and pair_index + 1
     // replaces that cached pair with two new (uncached) pairs; appending
-    // after the last waypoint only adds one
+    // after the last waypoint only adds one. emplace, not insert(pos, {}):
+    // the braces bind to vector's initializer_list overload, which inserts
+    // an empty list - i.e. nothing
     if (pair_index < m_optimised_segments.size()) {
         m_optimised_segments.erase(m_optimised_segments.begin() + long(pair_index));
-        m_optimised_segments.insert(m_optimised_segments.begin() + long(pair_index), {});
-        m_optimised_segments.insert(m_optimised_segments.begin() + long(pair_index) + 1, {});
+        m_optimised_segments.emplace(m_optimised_segments.begin() + long(pair_index));
+        m_optimised_segments.emplace(m_optimised_segments.begin() + long(pair_index) + 1);
     } else {
         const auto at = m_optimised_segments.begin()
             + long(std::min<size_t>(pair_index, m_optimised_segments.size()));
-        m_optimised_segments.insert(at, {});
+        m_optimised_segments.emplace(at);
     }
 }
 
@@ -439,6 +441,13 @@ void PlannerModel::insert_waypoint(double latitude, double longitude, double alt
     }
     m_plan.insert_point(unsigned(after_index) + 1, { latitude, longitude, altitude });
     insert_pairs_at(unsigned(after_index));
+    if (m_optimised_segments.size() + 1 != m_plan.point_count()) {
+        // the cache must hold one entry per waypoint pair; this guards the
+        // insert path that silently no-op'ed once
+        qWarning() << "PLANNER: optimised cache size" << m_optimised_segments.size()
+                   << "does not match plan pairs" << m_plan.point_count() - 1 << "- clearing";
+        m_optimised_segments.clear();
+    }
     m_plan.recompute_stats();
     drop_inflight_result();
     clear_status();
