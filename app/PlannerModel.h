@@ -210,16 +210,18 @@ private:
     bool load_gpx_file(const QString& path, const QString& fallback_name);
     // true while the current plan comes from an imported gpx file
     bool route_imported() const { return m_route_imported; }
-    // distances (metres) from a position to the planned route: to the route
-    // line (with the flat index of the closest segment's start point) and to
-    // the nearest route point (with its flat index)
+    // distance (metres) from a position to the nearest route point (with its
+    // flat index), used for the point grab
     struct NearestRoute {
-        double line_distance = 0;
         double point_distance = 0;
         int nearest_point = -1;
-        int line_segment_start = -1;
     };
     NearestRoute nearest_route_geometry(double latitude, double longitude) const;
+    // pair index of the rendered route line segment nearest to the position
+    // (the rendered line follows the optimised paths, which stray from the
+    // plan's straight chords), with its distance in metres; -1 when there is
+    // no rendered line
+    int nearest_render_pair(double latitude, double longitude, double* out_distance) const;
     // replaces the cached optimised path of the waypoint pair at the given
     // index with two empty entries (a new waypoint splits the pair)
     void insert_pairs_at(unsigned pair_index);
@@ -254,6 +256,10 @@ private:
     // suppressed while it runs)
     int m_drag_point = -1;
     bool m_dragging = false;
+    // the waypoint pair each rendered line point belongs to (parallel to the
+    // rendered line points), for placing inserted waypoints on optimised
+    // routes
+    std::vector<int> m_render_line_pair_indices;
 
     // imported (recorded) routes render as a light skeleton instead of
     // point-by-point

@@ -363,13 +363,10 @@ std::vector<glm::dvec2> PlannerModel::waypoint_sequence() const
 PlannerModel::NearestRoute PlannerModel::nearest_route_geometry(double latitude, double longitude) const
 {
     NearestRoute result;
-    result.line_distance = std::numeric_limits<double>::max();
     result.point_distance = std::numeric_limits<double>::max();
     const glm::dvec2 world = nucleus::srs::lat_long_to_world({ latitude, longitude });
 
     int flat_index = 0;
-    bool have_previous = false;
-    glm::dvec2 previous_world(0.0);
     for (const auto& segment : m_plan.track) {
         for (const auto& point : segment) {
             const glm::dvec2 point_world = nucleus::srs::lat_long_to_world({ point.latitude, point.longitude });
@@ -378,31 +375,45 @@ PlannerModel::NearestRoute PlannerModel::nearest_route_geometry(double latitude,
                 result.point_distance = point_distance;
                 result.nearest_point = flat_index;
             }
-            if (have_previous) {
-                // distance from the position to the flattened segment between
-                // the previous and the current route point; the segment start
-                // index is kept so a waypoint inserted there lands exactly
-                // between the two points of the clicked piece of line
-                const glm::dvec2 ab = point_world - previous_world;
-                const double ab_length_sq = glm::dot(ab, ab);
-                const double t = ab_length_sq > 0.0
-                    ? std::clamp(glm::dot(world - previous_world, ab) / ab_length_sq, 0.0, 1.0)
-                    : 0.0;
-                const double segment_distance = glm::length(world - (previous_world + ab * t));
-                if (segment_distance < result.line_distance) {
-                    result.line_distance = segment_distance;
-                    result.line_segment_start = flat_index - 1;
-                }
-            }
-            previous_world = point_world;
-            have_previous = true;
             flat_index += 1;
         }
-        have_previous = false; // segments are not connected to each other
     }
-    // an empty plan has no line: line_distance stays at its maximum, so
-    // clicks fall through to the regular append path
     return result;
+}
+
+int PlannerModel::nearest_render_pair(double latitude, double longitude, double* out_distance) const
+{
+    static const double no_distance = std::numeric_limits<double>::max();
+    if (out_distance) {
+        *out_distance = no_distance;
+    }
+    const int point_count = int(m_render_line.point_count());
+    if (point_count < 2 || int(m_render_line_pair_indices.size()) < point_count) {
+        return -1;
+    }
+    const glm::dvec2 world = nucleus::srs::lat_long_to_world({ latitude, longitude });
+    double best_distance = no_distance;
+    int best_pair = -1;
+    for (int j = 0; j + 1 < point_count; ++j) {
+        const glm::dvec2 a = nucleus::srs::lat_long_to_world(
+            { m_render_line.track.front()[size_t(j)].latitude, m_render_line.track.front()[size_t(j)].longitude });
+        const glm::dvec2 b = nucleus::srs::lat_long_to_world(
+            { m_render_line.track.front()[size_t(j + 1)].latitude, m_render_line.track.front()[size_t(j + 1)].longitude });
+        const glm::dvec2 ab = b - a;
+        const double ab_length_sq = glm::dot(ab, ab);
+        const double t = ab_length_sq > 0.0
+            ? std::clamp(glm::dot(world - a, ab) / ab_length_sq, 0.0, 1.0)
+            : 0.0;
+        const double distance = glm::length(world - (a + ab * t));
+        if (distance < best_distance) {
+            best_distance = distance;
+            best_pair = m_render_line_pair_indices[size_t(j)];
+        }
+    }
+    if (out_distance) {
+        *out_distance = best_distance == no_distance ? 0.0 : best_distance;
+    }
+    return best_pair;
 }
 
 void PlannerModel::insert_pairs_at(unsigned pair_index)
@@ -412,9 +423,8 @@ void PlannerModel::insert_pairs_at(unsigned pair_index)
     // after the last waypoint only adds one
     if (pair_index < m_optimised_segments.size()) {
         m_optimised_segments.erase(m_optimised_segments.begin() + long(pair_index));
-        const auto first = m_optimised_segments.begin() + long(pair_index);
-        m_optimised_segments.insert(first, {});
-        m_optimised_segments.insert(first + 1, {});
+        m_optimised_segments.insert(m_optimised_segments.begin() + long(pair_index), {});
+        m_optimised_segments.insert(m_optimised_segments.begin() + long(pair_index) + 1, {});
     } else {
         const auto at = m_optimised_segments.begin()
             + long(std::min<size_t>(pair_index, m_optimised_segments.size()));
@@ -483,12 +493,17 @@ void PlannerModel::add_point_at(double latitude, double longitude, double altitu
         // does nothing
         return;
     }
-    if (near.line_distance <= k_waypoint_insert_radius) {
-        // clicked onto the planned route line: ask whether a waypoint
-        // should be created at that position, inserted between the two
-        // points of the clicked segment
-        const int after_index = near.line_segment_start >= 0 ? near.line_segment_start : near.nearest_point;
-        emit waypoint_insertion_requested(latitude, longitude, altitude, after_index, screen_x, screen_y);
+    // the insertion decision measures against the RENDERED line: on an
+    // optimised route it follows the a* paths, which stray far from the
+    // plan's straight chords - measuring against the chords would silently
+    // append the clicked waypoint at the route's end instead
+    double render_distance = 0;
+    const int render_pair = nearest_render_pair(latitude, longitude, &render_distance);
+    if (render_pair >= 0 && render_distance <= k_waypoint_insert_radius) {
+        // clicked onto the rendered route line: ask whether a waypoint
+        // should be created at that position, inserted into the clicked
+        // waypoint pair
+        emit waypoint_insertion_requested(latitude, longitude, altitude, render_pair, screen_x, screen_y);
         return;
     }
 
@@ -941,6 +956,10 @@ namespace {
 
 struct RenderData {
     nucleus::track::Gpx line;
+    // the waypoint pair each line point belongs to (parallel to the line
+    // points), so clicks on the rendered line can be tied back to a plan
+    // pair even when optimised paths stray from the straight chords
+    std::vector<int> line_pair_indices;
     nucleus::track::Gpx markers;
     double avg_steepness = 0;
     double max_steepness = 0;
@@ -967,7 +986,7 @@ RenderData compute_render_data(const nucleus::track::Gpx& plan,
     double total_distance = 0;
     bool chain_started = false;
     nucleus::track::Point chain_previous {};
-    const auto add_line_point = [&](const nucleus::track::Point& point) {
+    const auto add_line_point = [&](const nucleus::track::Point& point, int pair_index) {
         if (chain_started) {
             const double dist = plan.haversine_distance(chain_previous, point);
             if (dist > 0) {
@@ -981,6 +1000,7 @@ RenderData compute_render_data(const nucleus::track::Gpx& plan,
         }
         chain_previous = point;
         result.line.add_new_point(point);
+        result.line_pair_indices.push_back(pair_index);
     };
     const auto restart_chain = [&chain_started]() { chain_started = false; };
 
@@ -995,10 +1015,13 @@ RenderData compute_render_data(const nucleus::track::Gpx& plan,
         // collect the interpolated samples of this plan segment, then smooth
         // their elevations, so that the rendered steepness changes gradually
         std::vector<nucleus::track::Point> line_points;
+        std::vector<int> line_point_pairs;
         line_points.reserve(segment.size() * 8);
         for (size_t i = 0; i < segment.size(); ++i) {
             const nucleus::track::Point& a = segment[i];
+            const size_t current_pair = pair_index;
             line_points.push_back(a);
+            line_point_pairs.push_back(int(current_pair));
 
             // point marker: ~1 m segment that the capsule shader renders as a
             // round dot sitting on the route point
@@ -1059,6 +1082,7 @@ RenderData compute_render_data(const nucleus::track::Gpx& plan,
             // is appended by the next loop iteration (or as the segment end)
             for (size_t k = 0; k + 1 < path->size(); ++k) {
                 line_points.push_back((*path)[k]);
+                line_point_pairs.push_back(int(current_pair));
             }
         }
 
@@ -1082,8 +1106,8 @@ RenderData compute_render_data(const nucleus::track::Gpx& plan,
             line_points[i].elevation = sum / double(2 * radius + 1);
         }
 
-        for (const nucleus::track::Point& point : line_points) {
-            add_line_point(point);
+        for (size_t j = 0; j < line_points.size(); ++j) {
+            add_line_point(line_points[j], line_point_pairs[j]);
         }
     }
 
@@ -1101,6 +1125,7 @@ void PlannerModel::update_render_data()
     if (m_plan.point_count() == 0) {
         m_render_data_generation += 1; // discard an in-flight computation
         m_render_line = {};
+        m_render_line_pair_indices.clear();
         m_render_markers = {};
         m_avg_steepness = 0;
         m_max_steepness = 0;
@@ -1135,6 +1160,7 @@ void PlannerModel::update_render_data()
             }
             const RenderData& result = watcher->result();
             m_render_line = result.line;
+            m_render_line_pair_indices = result.line_pair_indices;
             m_render_markers = result.markers;
             m_avg_steepness = result.avg_steepness;
             m_max_steepness = result.max_steepness;
@@ -1146,6 +1172,7 @@ void PlannerModel::update_render_data()
     Q_UNUSED(generation);
     const RenderData result = compute_job();
     m_render_line = result.line;
+    m_render_line_pair_indices = result.line_pair_indices;
     m_render_markers = result.markers;
     m_avg_steepness = result.avg_steepness;
     m_max_steepness = result.max_steepness;
