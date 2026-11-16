@@ -251,8 +251,8 @@ Item {
     // route points picked in the gpx editor (map clicks) land in the planner model
     Connections {
         target: map
-        function onPlanner_point_picked(latitude, longitude, altitude) {
-            _planner_model.add_point_at(latitude, longitude, altitude)
+        function onPlanner_point_picked(latitude, longitude, altitude, screenX, screenY) {
+            _planner_model.add_point_at(latitude, longitude, altitude, screenX, screenY)
         }
         // hold-to-drag of route points
         function onPlanner_press_geo(latitude, longitude) {
@@ -281,10 +281,10 @@ Item {
         target: _planner_model
         // a click landed on the planned route: let the editor ask whether a
         // waypoint should be created there
-        function onWaypoint_insertion_requested(latitude, longitude, altitude, afterIndex) {
+        function onWaypoint_insertion_requested(latitude, longitude, altitude, afterIndex, screenX, screenY) {
             if (main.selectedPage === "gpxeditor" && main_stack_view.currentItem !== null
                 && main_stack_view.currentItem.request_waypoint_insertion !== undefined) {
-                main_stack_view.currentItem.request_waypoint_insertion(latitude, longitude, altitude, afterIndex)
+                main_stack_view.currentItem.request_waypoint_insertion(latitude, longitude, altitude, afterIndex, screenX, screenY)
             }
         }
         function onRoute_point_dragging_changed(dragging) {

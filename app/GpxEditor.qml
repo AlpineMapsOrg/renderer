@@ -52,35 +52,32 @@ Rectangle {
         return d < 1000 ? d.toFixed(0) + " m" : (d / 1000).toFixed(2) + " km";
     }
 
-    // called by Main.qml when a map click landed on the planned route
-    function request_waypoint_insertion(latitude, longitude, altitude, after_index) {
-        waypoint_popup.latitude = latitude;
-        waypoint_popup.longitude = longitude;
-        waypoint_popup.altitude = altitude;
-        waypoint_popup.after_index = after_index;
-        waypoint_popup.open();
+    // pending waypoint insertion (map click on the route line): a small
+    // button floats above the click position; any press outside of it
+    // cancels without adding a point
+    property bool waypoint_insertion_active: false
+    property double pending_latitude: 0
+    property double pending_longitude: 0
+    property double pending_altitude: 0
+    property int pending_after_index: -1
+
+    function request_waypoint_insertion(latitude, longitude, altitude, after_index, screen_x, screen_y) {
+        pending_latitude = latitude;
+        pending_longitude = longitude;
+        pending_altitude = altitude;
+        pending_after_index = after_index;
+        const button_width = waypoint_add_button.width > 0 ? waypoint_add_button.width : 110;
+        const button_height = waypoint_add_button.height > 0 ? waypoint_add_button.height : 36;
+        waypoint_add_button.x = Math.max(8, Math.min(screen_x - button_width / 2, gpx_root.width - button_width - 8));
+        waypoint_add_button.y = screen_y - button_height - 14;
+        if (waypoint_add_button.y < 8) {
+            waypoint_add_button.y = Math.min(screen_y + 14, gpx_root.height - button_height - 8);
+        }
+        waypoint_insertion_active = true;
     }
 
-    Dialog {
-        id: waypoint_popup
-        property double latitude: 0
-        property double longitude: 0
-        property double altitude: 0
-        property int after_index: -1
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        title: qsTr("Create waypoint")
-        modal: true
-        standardButtons: Dialog.Yes | Dialog.No
-
-        Label {
-            text: qsTr("Create a waypoint on the route at this position?")
-            wrapMode: Label.Wrap
-        }
-
-        onAccepted: _planner_model.insert_waypoint(
-            waypoint_popup.latitude, waypoint_popup.longitude,
-            waypoint_popup.altitude, waypoint_popup.after_index)
+    function cancel_waypoint_insertion() {
+        waypoint_insertion_active = false;
     }
 
     // leave the overview and open the planner panel; start minimized on
@@ -117,6 +114,31 @@ Rectangle {
                     map.change_edit_mode(!gpx_root.show_routes);
                 }
             }
+        }
+    }
+
+    // full-window press catcher: while the add-waypoint button is up, any
+    // press outside of it cancels the insertion without adding a point
+    MouseArea {
+        visible: gpx_root.waypoint_insertion_active
+        enabled: gpx_root.waypoint_insertion_active
+        anchors.fill: parent
+        z: 90
+        onPressed: function(mouse) {
+            gpx_root.cancel_waypoint_insertion();
+            mouse.accepted = true;
+        }
+    }
+
+    Button {
+        id: waypoint_add_button
+        visible: gpx_root.waypoint_insertion_active
+        z: 91
+        text: qsTr("Add waypoint")
+        font.bold: true
+        onClicked: {
+            _planner_model.insert_waypoint(pending_latitude, pending_longitude, pending_altitude, pending_after_index);
+            gpx_root.cancel_waypoint_insertion();
         }
     }
 

@@ -67,11 +67,6 @@ constexpr double k_point_grab_radius = 20.0;
 // a click within this distance of the planned route line asks whether a
 // waypoint should be inserted at that position
 constexpr double k_waypoint_insert_radius = 25.0;
-// a press near a route point turns into a drag after holding still this long
-constexpr int k_point_hold_ms = 350;
-// moving the pointer more than this far (metres) before the hold fires
-// cancels the pending grab: the gesture stays a camera pan
-constexpr double k_hold_cancel_distance = 1.5;
 // recorded tracks carry thousands of points; the per-point markers are only
 // useful for hand-planned routes
 constexpr int k_marker_point_limit = 50;
@@ -108,16 +103,6 @@ PlannerModel::PlannerModel(QObject* parent)
     connect(&m_status_timer, &QTimer::timeout, this, [this]() {
         if (m_status == m_transient_status) {
             clear_status();
-        }
-    });
-
-    m_hold_timer.setSingleShot(true);
-    m_hold_timer.setInterval(k_point_hold_ms);
-    connect(&m_hold_timer, &QTimer::timeout, this, [this]() {
-        if (m_drag_candidate >= 0 && !m_dragging) {
-            m_drag_point = m_drag_candidate;
-            m_dragging = true;
-            emit route_point_dragging_changed(true);
         }
     });
 }
@@ -454,28 +439,19 @@ void PlannerModel::insert_waypoint(double latitude, double longitude, double alt
 
 void PlannerModel::press_at(double latitude, double longitude)
 {
-    m_drag_candidate = -1;
     const NearestRoute near = nearest_route_geometry(latitude, longitude);
     if (near.point_distance <= k_point_grab_radius) {
-        m_drag_candidate = near.nearest_point;
-        m_press_geo_latitude = latitude;
-        m_press_geo_longitude = longitude;
-        m_hold_timer.start();
+        // dragging starts immediately (no hold delay); camera navigation is
+        // suppressed until the pointer is released
+        m_drag_point = near.nearest_point;
+        m_dragging = true;
+        emit route_point_dragging_changed(true);
     }
 }
 
 void PlannerModel::move_dragged(double latitude, double longitude, double altitude)
 {
     if (!m_dragging || m_drag_point < 0) {
-        // movement before the hold fired cancels the pending grab: the
-        // gesture stays a camera pan instead of half panning and then
-        // suddenly dragging a point
-        if (m_drag_candidate >= 0 && m_hold_timer.isActive()
-            && m_plan.haversine_distance({ m_press_geo_latitude, m_press_geo_longitude, 0.0 },
-                   { latitude, longitude, 0.0 }) > k_hold_cancel_distance) {
-            m_hold_timer.stop();
-            m_drag_candidate = -1;
-        }
         return;
     }
     m_plan.update_point(unsigned(m_drag_point), { latitude, longitude, altitude });
@@ -489,8 +465,6 @@ void PlannerModel::move_dragged(double latitude, double longitude, double altitu
 
 void PlannerModel::release_at()
 {
-    m_hold_timer.stop();
-    m_drag_candidate = -1;
     if (!m_dragging) {
         return;
     }
@@ -501,11 +475,11 @@ void PlannerModel::release_at()
     emit points_changed();
 }
 
-void PlannerModel::add_point_at(double latitude, double longitude, double altitude)
+void PlannerModel::add_point_at(double latitude, double longitude, double altitude, double screen_x, double screen_y)
 {
     const NearestRoute near = nearest_route_geometry(latitude, longitude);
     if (near.point_distance <= k_point_grab_radius) {
-        // clicked onto an existing point: hold to move it, a plain click
+        // clicked onto an existing point: press it to move it, a plain click
         // does nothing
         return;
     }
@@ -514,7 +488,7 @@ void PlannerModel::add_point_at(double latitude, double longitude, double altitu
         // should be created at that position, inserted between the two
         // points of the clicked segment
         const int after_index = near.line_segment_start >= 0 ? near.line_segment_start : near.nearest_point;
-        emit waypoint_insertion_requested(latitude, longitude, altitude, after_index);
+        emit waypoint_insertion_requested(latitude, longitude, altitude, after_index, screen_x, screen_y);
         return;
     }
 
@@ -653,7 +627,10 @@ bool PlannerModel::import_gpx(const QUrl& file_url)
         return false;
     }
     if (load_gpx_file(path, QFileInfo(path).completeBaseName())) {
-        mark_plan_dirty();
+        // imported routes are saved automatically under their name (an
+        // existing route of the same name is not overwritten, the name gets
+        // a counter)
+        save_route(m_plan.name);
         return true;
     }
     return false;

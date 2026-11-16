@@ -129,7 +129,7 @@ signals:
     void world_space_cursor_position_changed(const QVector3D& world_space_cursor_position);
 
     // emitted while the gpx editor is active, when the user clicked on the terrain
-    void planner_point_picked(double latitude, double longitude, double altitude) const;
+    void planner_point_picked(double latitude, double longitude, double altitude, double screen_x, double screen_y) const;
     // the raw press / move / release gestures in edit mode, resolved to the
     // terrain position under the pointer (for the route point drag)
     void planner_press_geo(double latitude, double longitude, double altitude) const;
@@ -289,9 +289,11 @@ private:
 
     // route point drag: the geo queries sent for the press/move/click
     // gestures are answered in order, and their kind decides which signal
-    // the answer is forwarded on
+    // the answer is forwarded on (the screen positions ride along for the
+    // waypoint-insertion button placement)
     enum class GeoQueryKind { Click, Press, Move };
     std::deque<GeoQueryKind> m_pending_geo_queries;
+    std::deque<QPointF> m_pending_geo_screen_positions;
     bool m_planner_drag_active = false;
     QPointer<nucleus::camera::Controller> m_planner_camera_controller;
 };

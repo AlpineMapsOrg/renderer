@@ -158,18 +158,21 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     // the gui thread first, so the queue order matches the query order
     auto* planner_manager = ctx->planner_manager().get();
     connect(planner_manager, &nucleus::planner::PlannerManager::click_detected, self,
-            [self](const QPointF&) {
+            [self](const QPointF& pos) {
                 self->m_pending_geo_queries.push_back(GeoQueryKind::Click);
+                self->m_pending_geo_screen_positions.push_back(pos);
             });
     connect(planner_manager, &nucleus::planner::PlannerManager::click_detected, r->controller(), &nucleus::camera::Controller::query_world_position);
     connect(planner_manager, &nucleus::planner::PlannerManager::press_detected, self,
-            [self](const QPointF&) {
+            [self](const QPointF& pos) {
                 self->m_pending_geo_queries.push_back(GeoQueryKind::Press);
+                self->m_pending_geo_screen_positions.push_back(pos);
             });
     connect(planner_manager, &nucleus::planner::PlannerManager::press_detected, r->controller(), &nucleus::camera::Controller::query_world_position);
     connect(planner_manager, &nucleus::planner::PlannerManager::move_detected, self,
-            [self](const QPointF&) {
+            [self](const QPointF& pos) {
                 self->m_pending_geo_queries.push_back(GeoQueryKind::Move);
+                self->m_pending_geo_screen_positions.push_back(pos);
             });
     connect(planner_manager, &nucleus::planner::PlannerManager::move_detected, r->controller(), &nucleus::camera::Controller::query_world_position);
     connect(planner_manager, &nucleus::planner::PlannerManager::release_detected, this,
@@ -182,6 +185,11 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
                 if (!self->m_pending_geo_queries.empty()) {
                     self->m_pending_geo_queries.pop_front();
                 }
+                QPointF screen_pos(0, 0);
+                if (!self->m_pending_geo_screen_positions.empty()) {
+                    screen_pos = self->m_pending_geo_screen_positions.front();
+                    self->m_pending_geo_screen_positions.pop_front();
+                }
                 switch (kind) {
                 case GeoQueryKind::Press:
                     emit self->planner_press_geo(lat_long_alt.x, lat_long_alt.y, lat_long_alt.z);
@@ -190,7 +198,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
                     emit self->planner_move_geo(lat_long_alt.x, lat_long_alt.y, lat_long_alt.z);
                     break;
                 case GeoQueryKind::Click:
-                    emit self->planner_point_picked(lat_long_alt.x, lat_long_alt.y, lat_long_alt.z);
+                    emit self->planner_point_picked(lat_long_alt.x, lat_long_alt.y, lat_long_alt.z, screen_pos.x(), screen_pos.y());
                     break;
                 }
             });

@@ -117,7 +117,7 @@ public:
 
 public slots:
     // geo coordinates in degrees/metres, as reported by the camera depth readback
-    void add_point_at(double latitude, double longitude, double altitude);
+    void add_point_at(double latitude, double longitude, double altitude, double screen_x = 0.0, double screen_y = 0.0);
     void delete_point(int index);
     void move_point_up(int index);
     void move_point_down(int index);
@@ -172,7 +172,7 @@ signals:
     // a click landed close to the planned route: the ui asks whether a
     // waypoint should be created at that position (inserted into the route
     // after the given flat waypoint index)
-    void waypoint_insertion_requested(double latitude, double longitude, double altitude, int after_index);
+    void waypoint_insertion_requested(double latitude, double longitude, double altitude, int after_index, double screen_x, double screen_y);
     // while a route point is dragged, the map must not receive camera
     // navigation events
     void route_point_dragging_changed(bool dragging);
@@ -249,15 +249,11 @@ private:
     double m_user_position_altitude = 0;
     QTimer m_user_position_timer;
 
-    // hold-to-drag state of the route points: a press near a point arms the
-    // drag candidate, holding long enough starts the drag, releasing ends it.
-    // moving before the hold fires cancels the grab (the gesture stays a pan)
-    int m_drag_candidate = -1;
+    // drag state of the route points: a press near a point immediately
+    // starts dragging it, releasing ends the drag (camera navigation is
+    // suppressed while it runs)
     int m_drag_point = -1;
     bool m_dragging = false;
-    double m_press_geo_latitude = 0;
-    double m_press_geo_longitude = 0;
-    QTimer m_hold_timer;
 
     // imported (recorded) routes render as a light skeleton instead of
     // point-by-point
