@@ -660,10 +660,11 @@ Rectangle {
                 if (!description_input.activeFocus)
                     description_input.text = _planner_model.description;
             }
-            // fly to the start of an imported track, like the upload button does
+            // pan to the start of an imported/opened track; the camera
+            // rotation and zoom the user had stay untouched
             function onTrack_imported(position) {
                 if (position.x !== 0 && position.y !== 0)
-                    map.set_position(position.x, position.y)
+                    map.move_position(position.x, position.y)
             }
         }
 
