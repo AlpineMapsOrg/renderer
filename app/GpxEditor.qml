@@ -200,6 +200,15 @@ Rectangle {
                     font.pointSize: 16
                     Layout.fillWidth: true
                 }
+                // mirror of the planner's back button: switches to the
+                // planner while a route is in progress
+                ToolButton {
+                    visible: _planner_model.point_count > 0
+                    text: "›"
+                    onClicked: gpx_root.open_planner()
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Continue editing the current route")
+                }
                 ToolButton {
                     text: "×"
                     onClicked: gpx_root.closeRequested()
