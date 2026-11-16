@@ -68,10 +68,13 @@ Rectangle {
         pending_after_index = after_index;
         const button_width = waypoint_add_button.width > 0 ? waypoint_add_button.width : 110;
         const button_height = waypoint_add_button.height > 0 ? waypoint_add_button.height : 36;
+        // high enough above the click position that a finger on a
+        // touchscreen does not cover the button
+        const gap = 60;
         waypoint_add_button.x = Math.max(8, Math.min(screen_x - button_width / 2, gpx_root.width - button_width - 8));
-        waypoint_add_button.y = screen_y - button_height - 14;
+        waypoint_add_button.y = screen_y - button_height - gap;
         if (waypoint_add_button.y < 8) {
-            waypoint_add_button.y = Math.min(screen_y + 14, gpx_root.height - button_height - 8);
+            waypoint_add_button.y = Math.min(screen_y + gap, gpx_root.height - button_height - 8);
         }
         waypoint_insertion_active = true;
     }
