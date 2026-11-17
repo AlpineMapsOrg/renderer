@@ -361,7 +361,7 @@ Rectangle {
                         ToolTip.text: qsTr("How to plan a route")
                     }
                     DirectionButton {
-                        direction: minimized ? 270 : 90
+                        direction: minimized ? 90 : 270
                         onClicked: gpx_root.minimized = !gpx_root.minimized
                         ToolTip.visible: hovered
                         ToolTip.text: minimized ? qsTr("Show route planner") : qsTr("Minimize to see the map")
@@ -450,7 +450,7 @@ Rectangle {
                         Layout.fillWidth: true
                     }
                     DirectionButton {
-                        direction: gpx_root.weights_visible ? 90 : 270
+                        direction: gpx_root.weights_visible ? 270 : 90
                         onClicked: gpx_root.weights_visible = !gpx_root.weights_visible
                         ToolTip.visible: hovered
                         ToolTip.text: gpx_root.weights_visible ? qsTr("Hide optimisation weights")
@@ -570,14 +570,14 @@ Rectangle {
                             Layout.fillWidth: true
                         }
                         DirectionButton {
-                            direction: 270
+                            direction: 90
                             enabled: index > 0
                             onClicked: _planner_model.move_point_up(index)
                             ToolTip.visible: hovered
                             ToolTip.text: qsTr("Move point up")
                         }
                         DirectionButton {
-                            direction: 90
+                            direction: 270
                             enabled: index < _planner_model.point_count - 1
                             onClicked: _planner_model.move_point_down(index)
                             ToolTip.visible: hovered
@@ -705,16 +705,17 @@ Rectangle {
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("Optimize the route")
             }
+            DirectionButton {
+                direction: 90
+                onClicked: gpx_root.minimized = false
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Show route planner")
+            }
             ToolButton {
                 text: "×"
                 onClicked: gpx_root.closeRequested()
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("Close the route planner")
-            }
-            DirectionButton {
-                onClicked: gpx_root.minimized = false
-                ToolTip.visible: hovered
-                ToolTip.text: qsTr("Show route planner")
             }
         }
     }

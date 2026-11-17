@@ -24,7 +24,7 @@ import QtQuick.Controls.Material
 // unicode glyph: arrows like ▲▼‹› are not in the font shipped to the
 // webassembly build and render as empty boxes there
 ToolButton {
-    // 0 = left, 90 = down, 180 = right, 270 = up
+    // qml rotation is clockwise: 0 = left, 90 = up, 180 = right, 270 = down
     property int direction: 0
 
     implicitWidth: 36

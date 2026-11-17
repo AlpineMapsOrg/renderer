@@ -56,6 +56,18 @@ EM_JS(void, alpine_app_routes_fs_sync_to_idb, (), {
 });
 
 EM_JS(void, alpine_app_routes_fs_sync_from_idb, (), {
+    // nothing is persisted unless an idbfs mount exists: mount it, create
+    // the routes directory inside it and pull what a previous session saved
+    // out of IndexedDB
+    try {
+        FS.mount(IDBFS, {}, '/idbfs');
+    } catch (e) {
+        console.error('Failed to mount idbfs', e);
+        return;
+    }
+    try {
+        FS.mkdir('/idbfs/routes');
+    } catch (e) {} // already exists
     FS.syncfs(true, function(err) {
         if (err) {
             console.error('Failed to load persisted routes', err);
@@ -141,7 +153,13 @@ constexpr int k_marker_point_limit = 50;
 // saved routes live in the app data directory, one gpx file per route
 QString routes_directory()
 {
+#ifdef __EMSCRIPTEN__
+    // the idbfs mount at /idbfs is created at startup (see the fs init js
+    // above) and persisted to IndexedDB on every save/delete
+    return QStringLiteral("/idbfs/routes");
+#else
     return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + QStringLiteral("/routes");
+#endif
 }
 } // namespace
 

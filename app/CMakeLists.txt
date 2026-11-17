@@ -210,6 +210,9 @@ if (ANDROID)
 endif()
 
 if (EMSCRIPTEN)
+    # route persistence: the saved routes live in an idbfs mount (IndexedDB),
+    # see PlannerModel::routes_directory
+    target_link_options(alpineapp PRIVATE -lidbfs.js)
     install(
         FILES
             "$<TARGET_FILE_DIR:alpineapp>/alpineapp.js"
