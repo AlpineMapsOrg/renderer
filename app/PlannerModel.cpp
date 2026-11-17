@@ -897,7 +897,7 @@ void PlannerModel::save_route(const QString& name)
 
 bool PlannerModel::load_route(const QString& file_name)
 {
-    if (file_name.contains('/') || file_name.startsWith('.')) {
+    if (file_name.contains('/') || file_name.contains('\\') || file_name.startsWith('.')) {
         return false;
     }
     if (!load_gpx_file(routes_directory() + QLatin1Char('/') + file_name, QFileInfo(file_name).completeBaseName())) {
@@ -912,7 +912,7 @@ bool PlannerModel::load_route(const QString& file_name)
 
 void PlannerModel::delete_route(const QString& file_name)
 {
-    if (file_name.contains('/') || file_name.startsWith('.')) {
+    if (file_name.contains('/') || file_name.contains('\\') || file_name.startsWith('.')) {
         return;
     }
     if (QFile::remove(routes_directory() + QLatin1Char('/') + file_name)) {

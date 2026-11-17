@@ -159,36 +159,31 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     auto* planner_manager = ctx->planner_manager().get();
     connect(planner_manager, &nucleus::planner::PlannerManager::click_detected, self,
             [self](const QPointF& pos) {
-                self->m_pending_geo_queries.push_back(GeoQueryKind::Click);
-                self->m_pending_geo_screen_positions.push_back(pos);
+                self->m_pending_geo_queries.push_back({ GeoQueryKind::Click, pos });
             });
     connect(planner_manager, &nucleus::planner::PlannerManager::click_detected, r->controller(), &nucleus::camera::Controller::query_world_position);
     connect(planner_manager, &nucleus::planner::PlannerManager::press_detected, self,
             [self](const QPointF& pos) {
-                self->m_pending_geo_queries.push_back(GeoQueryKind::Press);
-                self->m_pending_geo_screen_positions.push_back(pos);
+                self->m_pending_geo_queries.push_back({ GeoQueryKind::Press, pos });
             });
     connect(planner_manager, &nucleus::planner::PlannerManager::press_detected, r->controller(), &nucleus::camera::Controller::query_world_position);
     connect(planner_manager, &nucleus::planner::PlannerManager::move_detected, self,
             [self](const QPointF& pos) {
-                self->m_pending_geo_queries.push_back(GeoQueryKind::Move);
-                self->m_pending_geo_screen_positions.push_back(pos);
+                self->m_pending_geo_queries.push_back({ GeoQueryKind::Move, pos });
             });
     connect(planner_manager, &nucleus::planner::PlannerManager::move_detected, r->controller(), &nucleus::camera::Controller::query_world_position);
     connect(planner_manager, &nucleus::planner::PlannerManager::release_detected, this,
             [this]() { emit planner_release(); }, Qt::QueuedConnection);
     connect(r->controller(), &nucleus::camera::Controller::world_position_queried, self,
             [self](const glm::dvec3& lat_long_alt) {
-                const GeoQueryKind kind = self->m_pending_geo_queries.empty()
-                    ? GeoQueryKind::Click
-                    : self->m_pending_geo_queries.front();
-                if (!self->m_pending_geo_queries.empty()) {
-                    self->m_pending_geo_queries.pop_front();
-                }
+                // take the whole front entry before popping, so the screen
+                // position rides with its query
                 QPointF screen_pos(0, 0);
-                if (!self->m_pending_geo_screen_positions.empty()) {
-                    screen_pos = self->m_pending_geo_screen_positions.front();
-                    self->m_pending_geo_screen_positions.pop_front();
+                GeoQueryKind kind = GeoQueryKind::Click;
+                if (!self->m_pending_geo_queries.empty()) {
+                    kind = self->m_pending_geo_queries.front().kind;
+                    screen_pos = self->m_pending_geo_queries.front().screen_position;
+                    self->m_pending_geo_queries.pop_front();
                 }
                 switch (kind) {
                 case GeoQueryKind::Press:

@@ -289,11 +289,14 @@ private:
 
     // route point drag: the geo queries sent for the press/move/click
     // gestures are answered in order, and their kind decides which signal
-    // the answer is forwarded on (the screen positions ride along for the
-    // waypoint-insertion button placement)
+    // the answer is forwarded on (the screen position rides along in the
+    // same entry, for the waypoint-insertion button placement)
     enum class GeoQueryKind { Click, Press, Move };
-    std::deque<GeoQueryKind> m_pending_geo_queries;
-    std::deque<QPointF> m_pending_geo_screen_positions;
+    struct PendingGeoQuery {
+        GeoQueryKind kind;
+        QPointF screen_position;
+    };
+    std::deque<PendingGeoQuery> m_pending_geo_queries;
     bool m_planner_drag_active = false;
     QPointer<nucleus::camera::Controller> m_planner_camera_controller;
 };
