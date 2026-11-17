@@ -22,7 +22,6 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Dialogs
-import QtCore
 
 import app
 import "components"
@@ -151,7 +150,6 @@ Rectangle {
         nameFilters: ["GPX (*.gpx)"]
         defaultSuffix: "gpx"
         fileMode: FileDialog.SaveFile
-        currentFolder: StandardPaths.standardLocations(StandardPaths.DownloadLocation)[0]
         onAccepted: _planner_model.export_gpx(export_dialog.selectedFile)
     }
 

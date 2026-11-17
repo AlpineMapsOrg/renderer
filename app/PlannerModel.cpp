@@ -55,27 +55,36 @@ EM_JS(void, alpine_app_routes_fs_sync_to_idb, (), {
     });
 });
 
-EM_JS(void, alpine_app_routes_fs_sync_from_idb, (), {
-    // nothing is persisted unless an idbfs mount exists: mount it, create
-    // the routes directory inside it and pull what a previous session saved
-    // out of IndexedDB
-    try {
-        FS.mount(IDBFS, {}, '/idbfs');
-    } catch (e) {
-        console.error('Failed to mount idbfs', e);
-        return;
-    }
-    try {
-        FS.mkdir('/idbfs/routes');
-    } catch (e) {} // already exists
-    FS.syncfs(true, function(err) {
-        if (err) {
-            console.error('Failed to load persisted routes', err);
+// the idbfs mount uses EM_ASM (not EM_JS): emscripten scans EM_ASM bodies
+// for js library symbols, so IDBFS from -lidbfs.js is resolved here; an
+// EM_JS body would leave it undefined at runtime
+static void alpine_app_routes_fs_init()
+{
+    EM_ASM({
+        // nothing is persisted unless an idbfs filesystem exists: mount it,
+        // create the routes directory inside it and pull what a previous
+        // session saved out of IndexedDB
+        try {
+            FS.mkdir('/idbfs'); // the mount point must exist before mounting
+        } catch (e) {} // already exists
+        try {
+            FS.mount(IDBFS, {}, '/idbfs');
+        } catch (e) {
+            console.error('Failed to mount idbfs', e && (e.message || e.errno || e));
             return;
         }
-        _alpine_app_routes_fs_synced();
+        try {
+            FS.mkdir('/idbfs/routes');
+        } catch (e) {} // already exists
+        FS.syncfs(true, function(err) {
+            if (err) {
+                console.error('Failed to load persisted routes', err);
+                return;
+            }
+            _alpine_app_routes_fs_synced();
+        });
     });
-});
+}
 
 EM_JS(void, alpine_app_open_gpx_picker_and_mount, (), {
     const file_selector = document.createElement('input');
@@ -195,7 +204,7 @@ PlannerModel::PlannerModel(QObject* parent)
     alpine_app_wasm_planner = this;
     // pull the routes saved by a previous session out of IndexedDB; the
     // callback refreshes the saved-routes list when it lands
-    alpine_app_routes_fs_sync_from_idb();
+    alpine_app_routes_fs_init();
 #endif
 }
 
