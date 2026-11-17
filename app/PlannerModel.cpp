@@ -98,8 +98,10 @@ EM_JS(void, alpine_app_open_gpx_picker_and_mount, (), {
         file_reader.addEventListener('load', load_event => {
             try {
                 const data = new Uint8Array(load_event.target.result);
-                const filename = file.name.replace(/[^a-zA-Z0-9_\\-()]/g, '_');
-                const stream = FS.open('/tmp/planner_import/' + filename, 'w+');
+                // fixed file name: the picked name is not needed (the route
+                // name comes from the gpx content), and sanitizing it would
+                // replace the dot of the extension with an underscore
+                const stream = FS.open('/tmp/planner_import/import.gpx', 'w+');
                 FS.write(stream, data, 0, data.length, 0);
                 FS.close(stream);
                 _alpine_app_planner_import_ready();
@@ -942,14 +944,14 @@ bool PlannerModel::import_route_file()
 #ifdef __EMSCRIPTEN__
 void PlannerModel::finish_wasm_import()
 {
+    // the picker always mounts the picked file as import.gpx
     const QDir dir("/tmp/planner_import/");
-    const QStringList files = dir.entryList({ QStringLiteral("*.gpx") }, QDir::Files);
-    if (files.isEmpty()) {
+    const QString path = dir.absoluteFilePath(QStringLiteral("import.gpx"));
+    if (!QFileInfo::exists(path)) {
         qWarning() << "PlannerModel: imported file did not arrive";
         return;
     }
-    const QString path = dir.absoluteFilePath(files.first());
-    if (load_gpx_file(path, QFileInfo(path).completeBaseName())) {
+    if (load_gpx_file(path, QStringLiteral("import"))) {
         // imports are saved automatically, like on the desktop
         save_route(m_plan.name);
     }
