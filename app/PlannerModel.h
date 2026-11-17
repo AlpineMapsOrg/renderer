@@ -134,6 +134,14 @@ public slots:
     bool load_route(const QString& file_name);
     // removes a saved route (file name as listed in saved_routes)
     void delete_route(const QString& file_name);
+    // webassembly: opens the browser file picker, mounts the picked gpx into
+    // the memory file system and imports it; returns false on other
+    // platforms so the caller can fall back to the native file dialog
+    Q_INVOKABLE bool import_route_file();
+#ifdef __EMSCRIPTEN__
+    // finishes the import mounted by the browser file picker (called from js)
+    void finish_wasm_import();
+#endif
     // gesture callbacks from the map (see TerrainRendererItem): a press near
     // a route point arms the hold-to-drag, dragging moves the armed point,
     // releasing ends the drag

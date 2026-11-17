@@ -93,6 +93,7 @@ qt_add_qml_module(alpineapp
         FloatingActionButtonGroup.qml
         FilterWindow.qml
         PickerWindow.qml
+        components/DirectionButton.qml
         components/LabledSlider.qml
         components/LabledRangeSlider.qml
         components/ColorPicker.qml
