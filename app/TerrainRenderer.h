@@ -29,6 +29,10 @@ class Window;
 namespace nucleus {
 class Controller;
 }
+namespace nucleus::tile::cache_queries {
+class DemMeshSampler;
+}
+
 namespace nucleus::camera {
 class Controller;
 }
@@ -58,5 +62,8 @@ private:
     QQuickWindow* m_window = nullptr;
     std::unique_ptr<gl_engine::Window> m_glWindow;
     std::unique_ptr<nucleus::camera::Controller> m_camera_controller;
+    // decode-once dem sampler for the camera's navigation floor (must outlive
+    // the controller; used only on the render thread)
+    std::unique_ptr<nucleus::tile::cache_queries::DemMeshSampler> m_terrain_floor_sampler;
     std::shared_ptr<nucleus::avalanche::ReportLoadService> m_eaws_report_load_service;
 };

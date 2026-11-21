@@ -337,3 +337,124 @@ TEST_CASE("nucleus/camera: Definition")
         }
     }
 }
+
+#ifdef QT_GUI_LIB
+#include <QBuffer>
+#include <QImage>
+
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+#include "nucleus/camera/Controller.h"
+#include "nucleus/srs.h"
+#include "nucleus/tile/cache_quieries.h"
+
+namespace {
+
+QByteArray png_tile(unsigned size, float altitude)
+{
+    QImage tile(QSize{int(size), int(size)}, QImage::Format_ARGB32);
+    const auto rgb = radix::height_encoding::to_rgb(altitude);
+    tile.fill(QColor(rgb.x, rgb.y, rgb.z));
+    QByteArray arr;
+    QBuffer buffer(&arr);
+    REQUIRE(buffer.open(QIODevice::WriteOnly));
+    tile.save(&buffer, "PNG");
+    return arr;
+}
+
+// the cache visit descends from the root through cached quads only, so the
+// ancestor chain up to the deepest tile must be present
+void fill_with_flat_ground(nucleus::tile::MemoryCache& cache, float altitude)
+{
+    using namespace nucleus::tile;
+    const auto quad = [&altitude](const Id& id) {
+        const auto children = id.children();
+        DataQuad cpu_quad;
+        cpu_quad.id = id;
+        cpu_quad.n_tiles = 4;
+        const auto altitude_tile = png_tile(64, altitude);
+        for (unsigned i = 0; i < 4; ++i) {
+            cpu_quad.tiles[i].id = children[i];
+            cpu_quad.tiles[i].data = std::make_shared<QByteArray>(altitude_tile);
+            cpu_quad.tiles[i].network_info.status = NetworkInfo::Status::Good;
+            cpu_quad.tiles[i].network_info.timestamp = nucleus::utils::time_since_epoch();
+        }
+        return cpu_quad;
+    };
+    cache.insert(quad(Id { 0, { 0, 0 } }));
+    cache.insert(quad(Id { 1, { 1, 1 } }));
+    cache.insert(quad(Id { 2, { 2, 2 } }));
+    cache.insert(quad(Id { 3, { 4, 5 } }));
+    cache.insert(quad(Id { 4, { 8, 10 } }));
+}
+
+nucleus::camera::Definition camera_at(const glm::dvec2& lat_long, double altitude)
+{
+    nucleus::camera::Definition camera;
+    const glm::dvec3 position = nucleus::srs::lat_long_alt_to_world({ lat_long.x, lat_long.y, altitude });
+    camera.look_at(position, position + glm::dvec3(0.0, -1000.0, -500.0));
+    return camera;
+}
+
+} // namespace
+
+TEST_CASE("Controller terrain floor")
+{
+    using namespace nucleus::camera;
+    // inside the cached tile chain, ground is a flat 1000 m
+    const glm::dvec2 here = { 47.5587933, 12.3450985 };
+    nucleus::tile::MemoryCache cache;
+    fill_with_flat_ground(cache, 1000.f);
+
+    SECTION("a camera below the dem is lifted to 20 m above it")
+    {
+        nucleus::tile::cache_queries::DemMeshSampler sampler(&cache);
+        Controller controller(camera_at(here, 900.0), nullptr, nullptr, &sampler);
+        Definition emitted;
+        QObject::connect(&controller, &Controller::definition_changed, [&emitted](const Definition& d) { emitted = d; });
+        controller.set_pixel_error_threshold(3.0f); // any change triggers update()
+
+        const glm::dvec3 lat_long_alt = nucleus::srs::world_to_lat_long_alt(emitted.position());
+        CHECK(lat_long_alt.z == Catch::Approx(1020.0).margin(0.5));
+        // vertical lift only: the horizontal position is untouched
+        CHECK(lat_long_alt.x == Catch::Approx(here.x).margin(1e-6));
+        CHECK(lat_long_alt.y == Catch::Approx(here.y).margin(1e-6));
+    }
+
+    SECTION("a camera above the dem is not moved")
+    {
+        nucleus::tile::cache_queries::DemMeshSampler sampler(&cache);
+        Controller controller(camera_at(here, 1500.0), nullptr, nullptr, &sampler);
+        Definition emitted;
+        QObject::connect(&controller, &Controller::definition_changed, [&emitted](const Definition& d) { emitted = d; });
+        controller.set_pixel_error_threshold(3.0f);
+
+        const glm::dvec3 lat_long_alt = nucleus::srs::world_to_lat_long_alt(emitted.position());
+        CHECK(lat_long_alt.z == Catch::Approx(1500.0).margin(0.5));
+    }
+
+    SECTION("without a dem at the camera position the floor is skipped")
+    {
+        nucleus::tile::MemoryCache empty_cache;
+        nucleus::tile::cache_queries::DemMeshSampler sampler(&empty_cache);
+        Controller controller(camera_at(here, 900.0), nullptr, nullptr, &sampler);
+        Definition emitted;
+        QObject::connect(&controller, &Controller::definition_changed, [&emitted](const Definition& d) { emitted = d; });
+        controller.set_pixel_error_threshold(3.0f);
+
+        const glm::dvec3 lat_long_alt = nucleus::srs::world_to_lat_long_alt(emitted.position());
+        CHECK(lat_long_alt.z == Catch::Approx(900.0).margin(0.5));
+    }
+
+    SECTION("without a terrain cache the floor is inert")
+    {
+        Controller controller(camera_at(here, 900.0), nullptr, nullptr, nullptr);
+        Definition emitted;
+        QObject::connect(&controller, &Controller::definition_changed, [&emitted](const Definition& d) { emitted = d; });
+        controller.set_pixel_error_threshold(3.0f);
+
+        const glm::dvec3 lat_long_alt = nucleus::srs::world_to_lat_long_alt(emitted.position());
+        CHECK(lat_long_alt.z == Catch::Approx(900.0).margin(0.5));
+    }
+}
+#endif

@@ -28,10 +28,15 @@
 #include <QObject>
 #include <glm/glm.hpp>
 #include <memory>
+#include <optional>
 #include <nucleus/event_parameter.h>
 
 namespace nucleus {
 class DataQuerier;
+}
+
+namespace nucleus::tile::cache_queries {
+class DemMeshSampler;
 }
 
 namespace nucleus::camera {
@@ -41,9 +46,13 @@ class Controller : public QObject
 {
     Q_OBJECT
 public:
+    // terrain_sampler: decode-once dem sampler for the navigation floor
+    // (owned by the caller, must outlive the controller; null disables the
+    // floor - see apply_terrain_floor)
     explicit Controller(const Definition& camera,
                         AbstractDepthTester* depth_tester,
-                        DataQuerier* data_querier);
+                        DataQuerier* data_querier,
+                        nucleus::tile::cache_queries::DemMeshSampler* terrain_sampler = nullptr);
 
     /// warning: not thread safe
     [[nodiscard]] const Definition& definition() const;
@@ -72,7 +81,7 @@ public slots:
     void set_field_of_view(float fov_degrees);
     void move(const glm::dvec3& v);
     void orbit(const glm::dvec3& centre, const glm::dvec2& degrees);
-    void update() const;
+    void update();
 
     void mouse_press(const event_parameter::Mouse&);
     void mouse_move(const event_parameter::Mouse&);
@@ -113,9 +122,17 @@ signals:
     void route_preview_changed(double progress_fraction, bool paused, bool active, double speed) const;
 
 private:
-    // lifts a world-space position to at least 500 true metres above the dem
-    // (using the fallback altitude when no dem is cached there)
-    glm::dvec3 clamped_above_dem(const glm::dvec3& world_position, double altitude_fallback);
+    // lifts a world-space position to at least `clearance` true metres above
+    // the dem; without a fallback, an unknown dem leaves the position
+    // unchanged (with one, the fallback altitude is used as the ground)
+    glm::dvec3 clamped_above_dem(const glm::dvec3& world_position, double clearance,
+        const std::optional<double>& altitude_fallback = std::nullopt);
+
+    // the navigation floor: called from update(), lifts the camera to at
+    // least k_floor_clearance metres above the dem under it (vertical lift
+    // only, orientation preserved). skipped while the route preview runs (it
+    // manages its own height) and while no dem is cached at the camera
+    void apply_terrain_floor();
 
     void set_interaction_style(std::unique_ptr<InteractionStyle> new_style);
     void set_animation_style(std::unique_ptr<InteractionStyle> new_style);
@@ -124,6 +141,9 @@ private:
     Definition m_definition;
     AbstractDepthTester* m_depth_tester;
     DataQuerier* m_data_querier;
+    // decode-once dem sampler for the navigation floor (caller-owned; used
+    // only on the controller's thread - DemMeshSampler is not synchronised)
+    nucleus::tile::cache_queries::DemMeshSampler* m_terrain_floor_sampler = nullptr;
     std::unique_ptr<InteractionStyle> m_interaction_style;
     std::unique_ptr<AnimationStyle> m_animation_style;
     std::unique_ptr<RoutePreviewAnimation> m_route_preview;

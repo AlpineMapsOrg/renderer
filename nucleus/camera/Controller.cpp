@@ -32,13 +32,16 @@
 #include <glm/gtx/string_cast.hpp>
 #include <nucleus/DataQuerier.h>
 #include <nucleus/srs.h>
+#include <nucleus/tile/cache_quieries.h>
 
 using namespace nucleus::camera;
 
-Controller::Controller(const Definition& camera, AbstractDepthTester* depth_tester, DataQuerier* data_querier)
+Controller::Controller(const Definition& camera, AbstractDepthTester* depth_tester, DataQuerier* data_querier,
+                       nucleus::tile::cache_queries::DemMeshSampler* terrain_sampler)
     : m_definition(camera)
     , m_depth_tester(depth_tester)
     , m_data_querier(data_querier)
+    , m_terrain_floor_sampler(terrain_sampler)
     , m_interaction_style(std::make_unique<OrbitInteraction>())
 {
     connect(this, &Controller::definition_changed, &m_recorder, &recording::Device::record);
@@ -95,7 +98,7 @@ void Controller::move_to_latitude_longitude(double latitude, double longitude)
     // vertical component keeps the height above ground on sloped terrain
     const glm::dvec3 shift = glm::dvec3(target_xy, target_altitude) - centre;
     glm::dvec3 new_position = m_definition.position() + shift;
-    new_position = clamped_above_dem(new_position, target_altitude);
+    new_position = clamped_above_dem(new_position, 500.0, target_altitude);
 
     // keep the orientation: look along the unchanged view direction from the
     // shifted position (look_at derives the rotation from the direction only)
@@ -107,21 +110,47 @@ void Controller::move_to_latitude_longitude(double latitude, double longitude)
     update();
 }
 
-glm::dvec3 Controller::clamped_above_dem(const glm::dvec3& world_position, double altitude_fallback)
+glm::dvec3 Controller::clamped_above_dem(const glm::dvec3& world_position, double clearance,
+    const std::optional<double>& altitude_fallback)
 {
     // the dem is at least as high as the fallback (e.g. the framed route's
-    // highest point); the camera must never sit less than 500 true metres
-    // above it. altitudes are compared in true metres, the position is world
-    // space (mercator-stretched z)
+    // highest point); the camera must never sit less than `clearance` true
+    // metres above it. altitudes are compared in true metres, the position
+    // is world space (mercator-stretched z). without a fallback and without
+    // cached dem data the position is returned unchanged
     const glm::dvec3 lat_long_alt = srs::world_to_lat_long_alt(world_position);
-    double ground = altitude_fallback;
+    double ground = altitude_fallback.value_or(0.0);
     if (m_data_querier) {
         ground = m_data_querier->get_altitude({ lat_long_alt.x, lat_long_alt.y }).value_or(ground);
-    }
-    if (lat_long_alt.z >= ground + 500.0) {
+    } else if (!altitude_fallback.has_value()) {
         return world_position;
     }
-    return srs::lat_long_alt_to_world({ lat_long_alt.x, lat_long_alt.y, ground + 500.0 });
+    if (lat_long_alt.z >= ground + clearance) {
+        return world_position;
+    }
+    return srs::lat_long_alt_to_world({ lat_long_alt.x, lat_long_alt.y, ground + clearance });
+}
+
+void Controller::apply_terrain_floor()
+{
+    // the route preview manages its own height above the route
+    if (m_route_preview || !m_terrain_floor_sampler) {
+        return;
+    }
+    const glm::dvec3 position = m_definition.position();
+    const glm::dvec3 lat_long_alt = srs::world_to_lat_long_alt(position);
+    const auto ground = m_terrain_floor_sampler->altitude({ lat_long_alt.x, lat_long_alt.y });
+    if (!ground.has_value()) {
+        return; // no dem cached here (yet): never block navigation
+    }
+    constexpr double k_floor_clearance = 20.0; // true metres above the dem
+    if (lat_long_alt.z >= ground.value() + k_floor_clearance) {
+        return;
+    }
+    // vertical lift only: raise the altitude, keep the horizontal position
+    // and the orientation (Definition::move translates the position)
+    const glm::dvec3 lifted = srs::lat_long_alt_to_world({ lat_long_alt.x, lat_long_alt.y, ground.value() + k_floor_clearance });
+    m_definition.move(lifted - position);
 }
 
 void Controller::frame_area(const glm::dvec2& world_min, const glm::dvec2& world_max, double min_altitude, double max_altitude)
@@ -145,7 +174,7 @@ void Controller::frame_area(const glm::dvec2& world_min, const glm::dvec2& world
     // dem is in the way (the small pitch change is the price of the clamp)
     const glm::dvec3 forward = m_definition.ray_direction(glm::dvec2(0.0));
     glm::dvec3 position = centre - forward * distance;
-    position = clamped_above_dem(position, max_altitude);
+    position = clamped_above_dem(position, 500.0, max_altitude);
 
     auto end_camera = m_definition;
     end_camera.look_at(position, centre);
@@ -183,8 +212,11 @@ void Controller::orbit(const glm::dvec3& centre, const glm::dvec2& degrees)
     update();
 }
 
-void Controller::update() const
+void Controller::update()
 {
+    // every camera change funnels through here: keep the camera above the
+    // dem before the definition goes out to the renderers
+    apply_terrain_floor();
     emit definition_changed(m_definition);
 }
 
