@@ -322,6 +322,20 @@ Rectangle {
             clip: true
             boundsBehavior: Flickable.StopAtBounds
 
+            // flickables do not consume wheel events: without this the wheel
+            // would propagate to the map and zoom it. the waypoint list has
+            // its own handler and consumes the wheel first
+            MouseArea {
+                parent: panel_scroll
+                anchors.fill: panel_scroll
+                acceptedButtons: Qt.NoButton // clicks pass through
+                onWheel: (wheel) => {
+                    const max_y = Math.max(0, panel_scroll.contentHeight - panel_scroll.height);
+                    panel_scroll.contentY = Math.max(0, Math.min(max_y, panel_scroll.contentY - wheel.angleDelta.y * 0.5));
+                    wheel.accepted = true;
+                }
+            }
+
             ScrollBar.vertical: ScrollBar {
                 policy: panel_scroll.contentHeight > panel_scroll.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
             }
@@ -553,6 +567,19 @@ Rectangle {
                     Layout.preferredHeight: visible ? Math.min(contentHeight, 220) : 0
                     Layout.leftMargin: 10
                     Layout.rightMargin: 10
+
+                    // flickables do not consume wheel events: without this
+                    // the wheel would propagate to the map and zoom it
+                    MouseArea {
+                        parent: point_list
+                        anchors.fill: point_list
+                        acceptedButtons: Qt.NoButton // clicks pass through
+                        onWheel: (wheel) => {
+                            const max_y = Math.max(0, point_list.contentHeight - point_list.height);
+                            point_list.contentY = Math.max(0, Math.min(max_y, point_list.contentY - wheel.angleDelta.y * 0.5));
+                            wheel.accepted = true;
+                        }
+                    }
                     spacing: 2
                     clip: true
 
