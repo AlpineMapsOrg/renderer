@@ -711,6 +711,29 @@ void PlannerModel::move_point_down(int index)
     emit points_changed();
 }
 
+void PlannerModel::move_point_to(int from, int to)
+{
+    const int count = int(m_plan.point_count());
+    if (from == to || from < 0 || to < 0 || from >= count || to >= count) {
+        return;
+    }
+    if (m_plan.move_point(unsigned(from), to - from) == unsigned(from)) {
+        return; // the move was a no-op
+    }
+    // every pair between the two positions changed: the moved waypoint
+    // changed partners, and the waypoints it passed shifted by one
+    const int first_pair = std::max(0, std::min(from, to) - 1);
+    const int last_pair = std::min(count - 2, std::max(from, to));
+    for (int pair = first_pair; pair <= last_pair; ++pair) {
+        clear_optimised_segment(unsigned(pair));
+    }
+    drop_inflight_result();
+    clear_status();
+    update_render_data();
+    mark_plan_dirty();
+    emit points_changed();
+}
+
 void PlannerModel::reset()
 {
     m_plan.reset();
@@ -809,14 +832,23 @@ bool PlannerModel::load_gpx_file(const QString& path, const QString& fallback_na
     emit name_changed();
     emit description_changed();
 
-    // move the camera to the start of the track, like the track upload
-    // button does
+    // frame the whole route: the camera keeps its orientation as much as
+    // possible, the route fits on screen and the camera stays above the dem
+    double min_lat = 90.0, min_lon = 180.0, max_lat = -90.0, max_lon = -180.0;
+    double min_alt = std::numeric_limits<double>::max();
+    double max_alt = std::numeric_limits<double>::lowest();
     for (const auto& segment : m_plan.track) {
-        if (segment.empty()) {
-            continue;
+        for (const auto& point : segment) {
+            min_lat = std::min(min_lat, point.latitude);
+            max_lat = std::max(max_lat, point.latitude);
+            min_lon = std::min(min_lon, point.longitude);
+            max_lon = std::max(max_lon, point.longitude);
+            min_alt = std::min(min_alt, point.elevation);
+            max_alt = std::max(max_alt, point.elevation);
         }
-        emit track_imported({ segment.front().latitude, segment.front().longitude });
-        break;
+    }
+    if (min_alt <= max_alt) {
+        emit route_framing_requested(min_lat, min_lon, max_lat, max_lon, min_alt, max_alt);
     }
     return true;
 }

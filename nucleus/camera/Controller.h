@@ -60,8 +60,14 @@ public slots:
     void fly_to_latitude_longitude(double latitude, double longitude);
     // translates the camera so the point it currently looks at lands on the
     // requested position; the orientation (rotation, pitch, distance, height
-    // above ground) stays as it is
+    // above ground) stays as it is - except that the camera is never left
+    // less than 500 m above the dem
     void move_to_latitude_longitude(double latitude, double longitude);
+    // frames the given world-space area (with true-metre altitudes): keeps
+    // the current view direction (rotating as little as possible), pulls far
+    // enough back that the whole area fits on screen, and keeps the camera
+    // at least 500 m above the dem
+    void frame_area(const glm::dvec2& world_min, const glm::dvec2& world_max, double min_altitude, double max_altitude);
     void rotate_north();
     void set_field_of_view(float fov_degrees);
     void move(const glm::dvec3& v);
@@ -107,6 +113,10 @@ signals:
     void route_preview_changed(double progress_fraction, bool paused, bool active, double speed) const;
 
 private:
+    // lifts a world-space position to at least 500 true metres above the dem
+    // (using the fallback altitude when no dem is cached there)
+    glm::dvec3 clamped_above_dem(const glm::dvec3& world_position, double altitude_fallback);
+
     void set_interaction_style(std::unique_ptr<InteractionStyle> new_style);
     void set_animation_style(std::unique_ptr<InteractionStyle> new_style);
 

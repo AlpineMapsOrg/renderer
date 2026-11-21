@@ -556,36 +556,89 @@ Rectangle {
                     spacing: 2
                     clip: true
 
-                    delegate: RowLayout {
+                    delegate: Item {
+                        id: point_row
                         width: point_list.width
+                        height: 38
 
-                        Label {
-                            text: (index + 1) + ": "
-                                  + modelData.latitude.toFixed(5) + ", "
-                                  + modelData.longitude.toFixed(5) + " ("
-                                  + modelData.elevation.toFixed(0) + " m)"
-                            elide: Text.ElideRight
-                            Layout.fillWidth: true
-                        }
-                        DirectionButton {
-                            direction: 90
-                            enabled: index > 0
-                            onClicked: _planner_model.move_point_up(index)
-                            ToolTip.visible: hovered
-                            ToolTip.text: qsTr("Move point up")
-                        }
-                        DirectionButton {
-                            direction: 270
-                            enabled: index < _planner_model.point_count - 1
-                            onClicked: _planner_model.move_point_down(index)
-                            ToolTip.visible: hovered
-                            ToolTip.text: qsTr("Move point down")
-                        }
-                        ToolButton {
-                            text: "×"
-                            onClicked: _planner_model.delete_point(index)
-                            ToolTip.visible: hovered
-                            ToolTip.text: qsTr("Delete point")
+                        // width/height instead of anchors: the vertical drag
+                        // changes y, which anchors would pin down
+                        Rectangle {
+                            id: row_content
+                            width: parent.width
+                            height: parent.height
+                            radius: 4
+                            color: row_content.dragging ? Qt.alpha(Material.backgroundColor, 0.95) : "transparent"
+                            border.width: row_content.dragging ? 1 : 0
+                            border.color: Qt.alpha("black", 0.4)
+                            property bool dragging: false
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 6
+                                anchors.rightMargin: 2
+
+                                Item {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    clip: true
+
+                                    Label {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: parent.width
+                                        text: (index + 1) + ": "
+                                              + modelData.latitude.toFixed(5) + ", "
+                                              + modelData.longitude.toFixed(5) + " ("
+                                              + modelData.elevation.toFixed(0) + " m)"
+                                        elide: Text.ElideRight
+                                    }
+
+                                    // drag the row vertically to reorder the
+                                    // waypoint; the up/down buttons stay as
+                                    // the precise alternative
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.SizeVerCursor
+                                        drag.target: row_content
+                                        drag.axis: Qt.YAxis
+                                        drag.minimumY: -index * point_row.height
+                                        drag.maximumY: (point_list.count - 1 - index) * point_row.height
+                                        onPressed: {
+                                            row_content.dragging = true;
+                                            row_content.z = 10;
+                                        }
+                                        onReleased: {
+                                            const shift = Math.round(row_content.y / point_row.height);
+                                            const target = Math.max(0, Math.min(point_list.count - 1, index + shift));
+                                            row_content.dragging = false;
+                                            row_content.y = 0;
+                                            row_content.z = 0;
+                                            if (target !== index)
+                                                _planner_model.move_point_to(index, target);
+                                        }
+                                    }
+                                }
+                                DirectionButton {
+                                    direction: 90
+                                    enabled: index > 0
+                                    onClicked: _planner_model.move_point_up(index)
+                                    ToolTip.visible: hovered
+                                    ToolTip.text: qsTr("Move point up")
+                                }
+                                DirectionButton {
+                                    direction: 270
+                                    enabled: index < _planner_model.point_count - 1
+                                    onClicked: _planner_model.move_point_down(index)
+                                    ToolTip.visible: hovered
+                                    ToolTip.text: qsTr("Move point down")
+                                }
+                                ToolButton {
+                                    text: "×"
+                                    onClicked: _planner_model.delete_point(index)
+                                    ToolTip.visible: hovered
+                                    ToolTip.text: qsTr("Delete point")
+                                }
+                            }
                         }
                     }
                 }
@@ -662,12 +715,6 @@ Rectangle {
             function onDescriptionChanged() {
                 if (!description_input.activeFocus)
                     description_input.text = _planner_model.description;
-            }
-            // pan to the start of an imported/opened track; the camera
-            // rotation and zoom the user had stay untouched
-            function onTrack_imported(position) {
-                if (position.x !== 0 && position.y !== 0)
-                    map.move_position(position.x, position.y)
             }
         }
 

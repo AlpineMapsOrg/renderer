@@ -96,6 +96,7 @@ signals:
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
     void position_set_by_user(double new_latitude, double new_longitude);
     void position_move_requested(double new_latitude, double new_longitude);
+    void area_framing_requested(const glm::dvec2& world_min, const glm::dvec2& world_max, double min_altitude, double max_altitude);
     void camera_definition_set_by_user(const nucleus::camera::Definition&) const;
 
     void shared_config_changed(gl_engine::uboSharedConfig new_shared_config) const;
@@ -161,6 +162,10 @@ public slots:
     void set_position(double latitude, double longitude);
     // pans the camera to the position without changing the rotation
     void move_position(double latitude, double longitude);
+    // frames the lat/long area (true-metre altitudes): whole area on screen,
+    // camera at least 500 m above the dem, rotation changed as little as
+    // possible
+    Q_INVOKABLE void frame_area(double min_latitude, double min_longitude, double max_latitude, double max_longitude, double min_altitude, double max_altitude);
     // withholds camera navigation events while a route point is dragged
     void set_planner_drag_active(bool active);
     void rotate_north();

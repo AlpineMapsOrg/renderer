@@ -121,6 +121,9 @@ public slots:
     void delete_point(int index);
     void move_point_up(int index);
     void move_point_down(int index);
+    // moves the waypoint from one flat index to another (list drag reorder);
+    // the optimised pairs in between are invalidated
+    void move_point_to(int from, int to);
     void reset();
     void export_gpx(const QUrl& file_url);
     // loads the given gpx file into the planner (replaces the current plan);
@@ -174,9 +177,10 @@ signals:
     // plan edit, so it arrives shortly after points_changed
     void render_data_changed();
     void planned_track_changed(const nucleus::track::Gpx& line, const nucleus::track::Gpx& markers);
-    // emitted after a gpx import, with the lat/long of the first route point,
-    // so the ui can move the camera to the imported track
-    void track_imported(const QPointF& position);
+    // emitted after a gpx import/load, with the route's lat/long and altitude
+    // bounds, so the ui can frame the whole route with the camera
+    void route_framing_requested(double min_latitude, double min_longitude, double max_latitude, double max_longitude,
+        double min_altitude, double max_altitude);
     // a click landed close to the planned route: the ui asks whether a
     // waypoint should be created at that position (inserted into the route
     // after the given flat waypoint index)

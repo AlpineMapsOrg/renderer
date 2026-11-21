@@ -133,6 +133,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::update_camera_requested, r->controller(), &nucleus::camera::Controller::advance_camera);
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller(), &nucleus::camera::Controller::fly_to_latitude_longitude);
     connect(this, &TerrainRendererItem::position_move_requested, r->controller(), &nucleus::camera::Controller::move_to_latitude_longitude);
+    connect(this, &TerrainRendererItem::area_framing_requested, r->controller(), &nucleus::camera::Controller::frame_area);
     connect(this, &TerrainRendererItem::rotation_north_requested, r->controller(), &nucleus::camera::Controller::rotate_north);
 
     // route point drag: the controller withholds navigation input itself
@@ -343,6 +344,15 @@ void TerrainRendererItem::set_position(double latitude, double longitude)
 void TerrainRendererItem::move_position(double latitude, double longitude)
 {
     emit position_move_requested(latitude, longitude);
+    RenderThreadNotifier::instance()->notify();
+}
+
+void TerrainRendererItem::frame_area(double min_latitude, double min_longitude, double max_latitude, double max_longitude, double min_altitude, double max_altitude)
+{
+    emit area_framing_requested(
+        nucleus::srs::lat_long_to_world({ min_latitude, min_longitude }),
+        nucleus::srs::lat_long_to_world({ max_latitude, max_longitude }),
+        min_altitude, max_altitude);
     RenderThreadNotifier::instance()->notify();
 }
 

@@ -290,6 +290,11 @@ Item {
         function onRoute_point_dragging_changed(dragging) {
             map.planner_drag_active = dragging
         }
+        // a route was imported or opened: frame it whole, keeping the camera
+        // orientation as far as possible and above the dem
+        function onRoute_framing_requested(minLat, minLon, maxLat, maxLon, minAlt, maxAlt) {
+            map.frame_area(minLat, minLon, maxLat, maxLon, minAlt, maxAlt)
+        }
     }
 
     // route preview controls, floating above the map while a fly-through runs.

@@ -94,7 +94,8 @@ void Controller::move_to_latitude_longitude(double latitude, double longitude)
     // the shift moves the looked-at point onto the requested position; the
     // vertical component keeps the height above ground on sloped terrain
     const glm::dvec3 shift = glm::dvec3(target_xy, target_altitude) - centre;
-    const glm::dvec3 new_position = m_definition.position() + shift;
+    glm::dvec3 new_position = m_definition.position() + shift;
+    new_position = clamped_above_dem(new_position, target_altitude);
 
     // keep the orientation: look along the unchanged view direction from the
     // shifted position (look_at derives the rotation from the direction only)
@@ -102,6 +103,52 @@ void Controller::move_to_latitude_longitude(double latitude, double longitude)
     auto end_camera = m_definition;
     end_camera.look_at(new_position, new_position + forward);
 
+    m_animation_style = std::make_unique<LinearCameraAnimation>(m_definition, end_camera);
+    update();
+}
+
+glm::dvec3 Controller::clamped_above_dem(const glm::dvec3& world_position, double altitude_fallback)
+{
+    // the dem is at least as high as the fallback (e.g. the framed route's
+    // highest point); the camera must never sit less than 500 true metres
+    // above it. altitudes are compared in true metres, the position is world
+    // space (mercator-stretched z)
+    const glm::dvec3 lat_long_alt = srs::world_to_lat_long_alt(world_position);
+    double ground = altitude_fallback;
+    if (m_data_querier) {
+        ground = m_data_querier->get_altitude({ lat_long_alt.x, lat_long_alt.y }).value_or(ground);
+    }
+    if (lat_long_alt.z >= ground + 500.0) {
+        return world_position;
+    }
+    return srs::lat_long_alt_to_world({ lat_long_alt.x, lat_long_alt.y, ground + 500.0 });
+}
+
+void Controller::frame_area(const glm::dvec2& world_min, const glm::dvec2& world_max, double min_altitude, double max_altitude)
+{
+    const glm::dvec2 centre_xy = 0.5 * (world_min + world_max);
+    const double centre_altitude = 0.5 * (min_altitude + max_altitude);
+    const glm::dvec2 centre_lat_long = srs::world_to_lat_long(centre_xy);
+    const glm::dvec3 centre = srs::lat_long_alt_to_world({ centre_lat_long.x, centre_lat_long.y, centre_altitude });
+
+    // distance so the whole area fits on screen: the area's bounding sphere
+    // must fit into the smaller of the vertical and horizontal field of view
+    const double radius = 0.5 * glm::length(world_max - world_min) + (max_altitude - min_altitude);
+    const double fov_v = glm::radians(double(m_definition.field_of_view()));
+    const auto viewport = m_definition.viewport_size();
+    const double fov_h = 2.0 * std::atan(std::tan(fov_v * 0.5) * double(viewport.x) / double(viewport.y));
+    const double fitting_fov = std::min(fov_v, fov_h);
+    const double distance = radius / std::tan(fitting_fov * 0.5) * 1.1 + radius;
+
+    // keep the view direction exactly (rotate as little as possible): pull
+    // straight back along it, then lift the camera out of the ground if the
+    // dem is in the way (the small pitch change is the price of the clamp)
+    const glm::dvec3 forward = m_definition.ray_direction(glm::dvec2(0.0));
+    glm::dvec3 position = centre - forward * distance;
+    position = clamped_above_dem(position, max_altitude);
+
+    auto end_camera = m_definition;
+    end_camera.look_at(position, centre);
     m_animation_style = std::make_unique<LinearCameraAnimation>(m_definition, end_camera);
     update();
 }
