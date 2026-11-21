@@ -711,29 +711,6 @@ void PlannerModel::move_point_down(int index)
     emit points_changed();
 }
 
-void PlannerModel::move_point_to(int from, int to)
-{
-    const int count = int(m_plan.point_count());
-    if (from == to || from < 0 || to < 0 || from >= count || to >= count) {
-        return;
-    }
-    if (m_plan.move_point(unsigned(from), to - from) == unsigned(from)) {
-        return; // the move was a no-op
-    }
-    // every pair between the two positions changed: the moved waypoint
-    // changed partners, and the waypoints it passed shifted by one
-    const int first_pair = std::max(0, std::min(from, to) - 1);
-    const int last_pair = std::min(count - 2, std::max(from, to));
-    for (int pair = first_pair; pair <= last_pair; ++pair) {
-        clear_optimised_segment(unsigned(pair));
-    }
-    drop_inflight_result();
-    clear_status();
-    update_render_data();
-    mark_plan_dirty();
-    emit points_changed();
-}
-
 void PlannerModel::reset()
 {
     m_plan.reset();
@@ -934,6 +911,15 @@ bool PlannerModel::load_route(const QString& file_name)
     }
     if (!load_gpx_file(routes_directory() + QLatin1Char('/') + file_name, QFileInfo(file_name).completeBaseName())) {
         return false;
+    }
+    // load_gpx_file flags every load as an imported recorded track, which
+    // hides the editable waypoint list; a saved route is editable when it
+    // is sparse enough to have point markers - only dense recorded tracks
+    // (auto-saved imports) stay flagged
+    const bool dense = m_plan.point_count() > unsigned(k_marker_point_limit);
+    if (m_route_imported != dense) {
+        m_route_imported = dense;
+        emit points_changed(); // route_imported notifies through this
     }
     if (m_route_dirty) {
         m_route_dirty = false;

@@ -121,9 +121,6 @@ public slots:
     void delete_point(int index);
     void move_point_up(int index);
     void move_point_down(int index);
-    // moves the waypoint from one flat index to another (list drag reorder);
-    // the optimised pairs in between are invalidated
-    void move_point_to(int from, int to);
     void reset();
     void export_gpx(const QUrl& file_url);
     // loads the given gpx file into the planner (replaces the current plan);
