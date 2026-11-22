@@ -51,6 +51,11 @@ private:
 #ifdef QT_DEBUG
     uint32_t m_dbg_dropped_measurement_count = 0;
 #endif
+
+    // Expires when the timer is destroyed; the read-back callback checks it before touching the
+    // timer, which may be gone by the time Dawn delivers the result. Declared last, so it
+    // expires before the other members are destroyed.
+    std::shared_ptr<const bool> m_lifetime = std::make_shared<const bool>(true);
 };
 
 } // namespace webgpu::timing
