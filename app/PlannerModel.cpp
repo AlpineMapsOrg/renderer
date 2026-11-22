@@ -809,6 +809,12 @@ bool PlannerModel::load_gpx_file(const QString& path, const QString& fallback_na
     emit name_changed();
     emit description_changed();
 
+    // a route that was saved in its optimised state is optimised again on
+    // open (with the current weights), so it renders as it was left
+    if (m_plan.keywords.contains(QLatin1String("optimized"), Qt::CaseInsensitive)) {
+        optimise_route();
+    }
+
     // frame the whole route: the camera keeps its orientation as much as
     // possible, the route fits on screen and the camera stays above the dem
     double min_lat = 90.0, min_lon = 180.0, max_lat = -90.0, max_lon = -180.0;
@@ -888,6 +894,20 @@ void PlannerModel::save_route(const QString& name)
     nucleus::track::Gpx route = m_plan;
     route.name = used_name;
     route.creationDateTime = QDateTime::currentDateTime();
+    // tag optimised routes through the gpx keywords, so reopening them can
+    // re-run the optimisation (the saved file contains only the waypoints)
+    {
+        constexpr QLatin1StringView k_optimized_tag("optimized");
+        QStringList tags = route.keywords.split(QLatin1Char(','), Qt::SkipEmptyParts);
+        tags.removeAll(QLatin1String(""));
+        tags.removeAll(k_optimized_tag);
+        const bool has_optimised = std::any_of(m_optimised_segments.begin(), m_optimised_segments.end(),
+            [](const auto& segment) { return !segment.empty(); });
+        if (has_optimised) {
+            tags.prepend(k_optimized_tag);
+        }
+        route.keywords = tags.join(QLatin1Char(','));
+    }
     if (route.save(dir.filePath(used_name + QStringLiteral(".gpx")))) {
         set_transient_status(tr("Route saved"));
 #ifdef __EMSCRIPTEN__
@@ -1070,6 +1090,7 @@ void PlannerModel::optimisation_finished(const nucleus::planner::OptimisationRes
     }
 
     // distribute the optimised segment paths onto the waypoint pairs
+    mark_plan_dirty(); // an optimised route differs from what was saved
     m_optimised_segments.assign(result.segment_paths.size(), {});
     size_t pair = 0;
     for (const auto& segment : result.segment_paths) {

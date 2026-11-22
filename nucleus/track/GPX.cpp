@@ -72,6 +72,8 @@ std::unique_ptr<Gpx> parse(QXmlStreamReader& xmlReader)
                 gpx->name = xmlReader.readElementText();
             } else if (name == QString("desc") && gpx->track.empty()) {
                 gpx->description = xmlReader.readElementText();
+            } else if (name == QString("keywords") && gpx->track.empty()) {
+                gpx->keywords = xmlReader.readElementText();
             } else if (name == QString("trkpt") || name == QString("rtept")) {
                 Point point;
                 double latitude = xmlReader.attributes().value("lat").toDouble();
@@ -202,6 +204,9 @@ void Gpx::save(QXmlStreamWriter& xml) const
     xml.writeTextElement("name", name);
     if (!description.isEmpty()) {
         xml.writeTextElement("desc", description);
+    }
+    if (!keywords.isEmpty()) {
+        xml.writeTextElement("keywords", keywords);
     }
     // xsd:dateTime requires a timezone
     const QDateTime creation = creationDateTime.isValid() ? creationDateTime : QDateTime::currentDateTime();

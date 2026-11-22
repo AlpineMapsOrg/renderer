@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "nucleus/track/GPX.h"
+#include <QBuffer>
+#include <QXmlStreamWriter>
 #include <QString>
 #include <iostream>
 
@@ -19,6 +21,27 @@ TEST_CASE("GPX")
         CHECK(gpx->track.size() == 2); // two segements
         CHECK(gpx->track[0].size() == 3); // there are three trackpoints in segment 1
         CHECK(gpx->track[1].size() == 2); // there are two trackpoints in segment 2
+    }
+
+    SECTION("keywords metadata round-trips")
+    {
+        Gpx gpx;
+        gpx.add_new_point({ 47.0, 11.0, 1000.0 });
+        gpx.add_new_point({ 47.1, 11.1, 1100.0 });
+        gpx.name = "Roundtrip";
+        gpx.keywords = "optimized, tour";
+
+        QBuffer buffer;
+        buffer.open(QIODevice::WriteOnly);
+        QXmlStreamWriter writer(&buffer);
+        gpx.save(writer);
+        buffer.close();
+        buffer.open(QIODevice::ReadOnly);
+        QXmlStreamReader reader(&buffer);
+        auto parsed = parse(reader);
+
+        REQUIRE(parsed != nullptr);
+        CHECK(parsed->keywords == "optimized, tour");
     }
 
     SECTION("standalone waypoints are skipped, the track still parses")

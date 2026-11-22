@@ -53,6 +53,8 @@ struct Gpx {
     Type track;
     QString name;
     QString description;
+    // gpx <keywords> metadata; the planner tags optimised routes here
+    QString keywords;
     QDateTime creationDateTime;
 
     void add_new_segment() { track.push_back(Segment()); }
@@ -162,6 +164,7 @@ struct Gpx {
         track.clear();
         name.clear();
         description.clear();
+        keywords.clear();
     }
 
     unsigned point_count() const
