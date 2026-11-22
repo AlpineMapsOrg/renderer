@@ -57,7 +57,7 @@ TerrainRenderer::TerrainRenderer()
     auto* gl_window_ptr = m_glWindow.get();
 
     m_terrain_floor_sampler = std::make_unique<nucleus::tile::cache_queries::DemMeshSampler>(&ctx->geometry_scheduler()->ram_cache());
-    m_camera_controller = std::make_unique<CameraController>(nucleus::camera::PositionStorage::instance()->get("nockspitze"), m_glWindow.get(), ctx->data_querier().get(), m_terrain_floor_sampler.get());
+    m_camera_controller = std::make_unique<CameraController>(nucleus::camera::PositionStorage::instance()->get("grossglockner"), m_glWindow.get(), ctx->data_querier().get(), m_terrain_floor_sampler.get());
 
     // clang-format off
     // NOTICE ME!!!! READ THIS, IF YOU HAVE TROUBLES WITH SIGNALS NOT REACHING THE QML RENDERING THREAD!!!!111elevenone
