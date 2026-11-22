@@ -20,9 +20,13 @@
 #include "TerrainRenderer.h"
 
 #include <QDateTime>
+#include <QDir>
+#include <QFileInfo>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFramebufferObjectFormat>
 #include <QQuickWindow>
+#include <QSaveFile>
+#include <QStandardPaths>
 #include <QThread>
 #include <QtAssert>
 
@@ -43,6 +47,35 @@
 #include <nucleus/tile/cache_quieries.h>
 #include <nucleus/tile/TextureScheduler.h>
 #include <nucleus/utils/thread.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+
+EM_JS(void, alpine_app_sync_camera_fs, (), {
+    // flush the idbfs mount (routes and the saved camera) to IndexedDB
+    FS.syncfs(false, function(err) {
+        if (err)
+            console.error('Failed to persist files', err);
+    });
+});
+#endif
+
+namespace {
+
+// the saved camera lives next to the saved routes: on webassembly inside the
+// idbfs mount (persisted to IndexedDB), elsewhere in the app data directory
+QString last_camera_path()
+{
+#ifdef __EMSCRIPTEN__
+    return QStringLiteral("/idbfs/last_camera.txt");
+#else
+    return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + QStringLiteral("/last_camera.txt");
+#endif
+}
+
+constexpr int k_camera_matrix_version = 1;
+
+}
+
 TerrainRenderer::TerrainRenderer()
 {
     using nucleus::map_label::Filter;
@@ -57,7 +90,44 @@ TerrainRenderer::TerrainRenderer()
     auto* gl_window_ptr = m_glWindow.get();
 
     m_terrain_floor_sampler = std::make_unique<nucleus::tile::cache_queries::DemMeshSampler>(&ctx->geometry_scheduler()->ram_cache());
-    m_camera_controller = std::make_unique<CameraController>(nucleus::camera::PositionStorage::instance()->get("grossglockner"), m_glWindow.get(), ctx->data_querier().get(), m_terrain_floor_sampler.get());
+    // reopen with the exact view the app was left in (position and
+    // orientation); the registered grossglockner position is the fallback
+    auto initial_camera = nucleus::camera::PositionStorage::instance()->get("grossglockner");
+#ifdef __EMSCRIPTEN__
+    bool camera_restored = false;
+#endif
+    if (const auto saved = load_last_camera()) {
+        initial_camera.set_model_matrix(saved.value());
+#ifdef __EMSCRIPTEN__
+        camera_restored = true;
+#endif
+    }
+    m_camera_controller = std::make_unique<CameraController>(initial_camera, m_glWindow.get(), ctx->data_querier().get(), m_terrain_floor_sampler.get());
+#ifdef __EMSCRIPTEN__
+    if (!camera_restored) {
+        // the idbfs mount is filled by an async syncfs at startup; retry once
+        // it has most likely landed and apply the saved view late
+        QTimer::singleShot(1500, this, [this]() {
+            if (!m_camera_controller)
+                return;
+            if (const auto saved = load_last_camera()) {
+                auto restored = m_camera_controller->definition();
+                restored.set_model_matrix(saved.value());
+                m_camera_controller->set_model_matrix(restored);
+            }
+        });
+    }
+#endif
+
+    // persist the last view (debounced while the camera moves) and on shutdown
+    m_camera_autosave.setSingleShot(true);
+    m_camera_autosave.setInterval(1000);
+    connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, this, [this]() {
+        m_camera_autosave.start();
+    });
+    connect(&m_camera_autosave, &QTimer::timeout, this, [this]() {
+        save_last_camera();
+    });
 
     // clang-format off
     // NOTICE ME!!!! READ THIS, IF YOU HAVE TROUBLES WITH SIGNALS NOT REACHING THE QML RENDERING THREAD!!!!111elevenone
@@ -90,7 +160,67 @@ TerrainRenderer::TerrainRenderer()
         &gl_engine::Window::update_eaws_reports);
 }
 
-TerrainRenderer::~TerrainRenderer() = default;
+TerrainRenderer::~TerrainRenderer()
+{
+    // a pending autosave (camera moved within the last second) is flushed so
+    // shutdown also persists the final view
+    if (m_camera_autosave.isActive() && m_camera_controller) {
+        save_last_camera();
+    }
+}
+
+std::optional<glm::dmat4> TerrainRenderer::load_last_camera() const
+{
+    QFile file(last_camera_path());
+    if (!file.open(QIODevice::ReadOnly)) {
+        return std::nullopt;
+    }
+    const QStringList parts = QString::fromUtf8(file.readAll()).split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    if (parts.size() != 17 || parts.first().toInt() != k_camera_matrix_version) {
+        return std::nullopt;
+    }
+    glm::dmat4 matrix(1.0);
+    int component = 0;
+    for (int col = 0; col < 4; ++col) {
+        for (int row = 0; row < 4; ++row) {
+            const double value = parts.at(1 + component).toDouble();
+            if (!std::isfinite(value)) {
+                return std::nullopt;
+            }
+            matrix[col][row] = value;
+            component += 1;
+        }
+    }
+    return matrix;
+}
+
+void TerrainRenderer::save_last_camera() const
+{
+    if (!m_camera_controller) {
+        return;
+    }
+    const glm::dmat4 matrix = m_camera_controller->definition().model_matrix();
+    QString text = QString::number(k_camera_matrix_version);
+    for (int col = 0; col < 4; ++col) {
+        for (int row = 0; row < 4; ++row) {
+            text += QLatin1Char(' ') + QString::number(matrix[col][row], 'g', 17);
+        }
+    }
+    QDir().mkpath(QFileInfo(last_camera_path()).absolutePath());
+    QSaveFile file(last_camera_path());
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qWarning() << "TerrainRenderer: cannot save the last camera position";
+        return;
+    }
+    file.write(text.toUtf8());
+    if (!file.commit()) {
+        qWarning() << "TerrainRenderer: failed to write the last camera position";
+        return;
+    }
+#ifdef __EMSCRIPTEN__
+    alpine_app_sync_camera_fs();
+#endif
+}
 
 void TerrainRenderer::synchronize(QQuickFramebufferObject *item)
 {

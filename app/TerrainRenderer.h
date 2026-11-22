@@ -18,7 +18,10 @@
 
 #pragma once
 
+#include <QTimer>
+#include <glm/glm.hpp>
 #include <memory>
+#include <optional>
 
 #include <QObject>
 #include <QQuickFramebufferObject>
@@ -59,6 +62,11 @@ public:
     [[nodiscard]] std::shared_ptr<nucleus::avalanche::ReportLoadService> eaws_report_load_service();
 
 private:
+    // the last camera view (position + orientation, i.e. the model matrix) is
+    // persisted and restored on startup, so the app reopens where it was left
+    [[nodiscard]] std::optional<glm::dmat4> load_last_camera() const;
+    void save_last_camera() const;
+
     QQuickWindow* m_window = nullptr;
     std::unique_ptr<gl_engine::Window> m_glWindow;
     std::unique_ptr<nucleus::camera::Controller> m_camera_controller;
@@ -66,4 +74,6 @@ private:
     // the controller; used only on the render thread)
     std::unique_ptr<nucleus::tile::cache_queries::DemMeshSampler> m_terrain_floor_sampler;
     std::shared_ptr<nucleus::avalanche::ReportLoadService> m_eaws_report_load_service;
+    // debounces the camera persistence while the camera moves
+    QTimer m_camera_autosave;
 };
