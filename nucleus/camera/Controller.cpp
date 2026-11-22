@@ -169,11 +169,21 @@ void Controller::frame_area(const glm::dvec2& world_min, const glm::dvec2& world
     const double fitting_fov = std::min(fov_v, fov_h);
     const double distance = radius / std::tan(fitting_fov * 0.5) * 1.1 + radius;
 
-    // keep the view direction exactly (rotate as little as possible): pull
-    // straight back along it, then lift the camera out of the ground if the
-    // dem is in the way (the small pitch change is the price of the clamp)
-    const glm::dvec3 forward = m_definition.ray_direction(glm::dvec2(0.0));
-    glm::dvec3 position = centre - forward * distance;
+    // vantage point: look at the route from the side, so it runs across the
+    // screen instead of away from the camera - from the south where possible
+    // (matching fly_to_latitude_longitude) and at a shallow angle above the
+    // terrain that leaves the elevation profile readable
+    glm::dvec2 side(0.0, -1.0); // degenerate bbox: look from the south
+    const glm::dvec2 route_dir = world_max - world_min;
+    if (glm::length(route_dir) > 1.0) {
+        side = glm::normalize(glm::dvec2(-route_dir.y, route_dir.x));
+        if (side.y > 0.0) {
+            side = -side; // prefer the southern side of the route
+        }
+    }
+    constexpr double pitch = glm::radians(35.0);
+    const glm::dvec3 offset = glm::dvec3(side, 0.0) * std::cos(pitch) + glm::dvec3(0.0, 0.0, 1.0) * std::sin(pitch);
+    glm::dvec3 position = centre + offset * distance;
     position = clamped_above_dem(position, 500.0, max_altitude);
 
     auto end_camera = m_definition;

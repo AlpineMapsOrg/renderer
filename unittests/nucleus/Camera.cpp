@@ -19,6 +19,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <chrono>
+#include <thread>
+
 #include "nucleus/camera/Definition.h"
 #include "radix/geometry.h"
 #include "test_helpers.h"
@@ -444,6 +447,36 @@ TEST_CASE("Controller terrain floor")
 
         const glm::dvec3 lat_long_alt = nucleus::srs::world_to_lat_long_alt(emitted.position());
         CHECK(lat_long_alt.z == Catch::Approx(900.0).margin(0.5));
+    }
+
+    SECTION("frame_area settles south of and above the area, looking at it")
+    {
+        nucleus::tile::cache_queries::DemMeshSampler sampler(&cache);
+        Controller controller(camera_at(here, 3000.0), nullptr, nullptr, &sampler);
+        // a small route-shaped area around `here`, running east-west
+        const glm::dvec2 c = nucleus::srs::lat_long_to_world(here);
+        controller.frame_area(c - glm::dvec2(500.0, 10.0), c + glm::dvec2(500.0, 10.0), 1000.0, 1200.0);
+        // run the animation out (~500 ms)
+        glm::dvec3 position(0.0);
+        for (int i = 0; i < 30; ++i) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(40));
+            controller.advance_camera();
+            position = controller.definition().position();
+        }
+        for (int i = 0; i < 3; ++i) { // settle
+            std::this_thread::sleep_for(std::chrono::milliseconds(40));
+            controller.advance_camera();
+            position = controller.definition().position();
+        }
+
+        const glm::dvec3 lat_long_alt = nucleus::srs::world_to_lat_long_alt(position);
+        CHECK(lat_long_alt.z >= 1500.0); // 500 m above the flat 1000 m ground
+        CHECK(position.y < c.y); // camera sits south of the route
+        // and looks at the area centre (the z axis is the camera's BACKWARD
+        // axis, so it must point exactly away from the centre)
+        const glm::dvec3 centre_world = nucleus::srs::lat_long_alt_to_world({ here.x, here.y, 1100.0 });
+        const glm::dvec3 to_centre = glm::normalize(centre_world - position);
+        CHECK(glm::dot(controller.definition().z_axis(), to_centre) < -0.99);
     }
 
     SECTION("without a terrain cache the floor is inert")
