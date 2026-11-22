@@ -241,6 +241,20 @@ Rectangle {
                         ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
                 }
 
+                // flickables do not consume wheel events: without this the
+                // wheel would propagate to the map and zoom it (same guard as
+                // the waypoint list)
+                MouseArea {
+                    parent: saved_routes_list
+                    anchors.fill: saved_routes_list
+                    acceptedButtons: Qt.NoButton // clicks pass through
+                    onWheel: (wheel) => {
+                        const max_y = Math.max(0, saved_routes_list.contentHeight - saved_routes_list.height);
+                        saved_routes_list.contentY = Math.max(0, Math.min(max_y, saved_routes_list.contentY - wheel.angleDelta.y * 0.5));
+                        wheel.accepted = true;
+                    }
+                }
+
                 delegate: RowLayout {
                     width: saved_routes_list.width
 
