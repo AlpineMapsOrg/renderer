@@ -1,6 +1,6 @@
 /*****************************************************************************
  * AlpineMaps.org
- * Copyright (C) 2023 Adam Celerek
+ * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,6 +18,7 @@
  *****************************************************************************/
 
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import "components"
@@ -133,6 +134,12 @@ Item {
         }
 
         DrawerButton {
+            text: qsTr ("GPX Editor")
+            iconSource: _r + "icons/material/track.png"
+            onClicked: change_page("GpxEditor.qml", qsTr("GPX Editor"))
+        }
+
+        DrawerButton {
             text: qsTr ("Settings")
             iconSource: _r + "icons/material/settings.png"
             onClicked: change_page("Settings.qml", qsTr("Settings"))
@@ -182,6 +189,8 @@ Item {
         if (selectedPage !== "map" && selectedPage !== "settings"  && stats_window_loader.item !== null) {
             stats_window_loader.item.visible = false;
         }
+        // the gpx editor only accepts clicks on the map while its page is open
+        map.change_edit_mode(selectedPage === "gpxeditor");
         if (source === "map") {
             if (main_stack_view.depth >= 1) main_stack_view.pop()
             page_title.visible = false
@@ -193,6 +202,9 @@ Item {
             main_stack_view.push(source)
         else
             main_stack_view.replace(source)
+        // the gpx editor's close button returns to the map page
+        if (main_stack_view.currentItem.closeRequested !== undefined)
+            main_stack_view.currentItem.closeRequested.connect(function() { change_page("map", qsTr("Map")) })
         main_stack_view.selectedPage = selectedPage
         page_title.visible = true
         search.visible = false
@@ -234,6 +246,134 @@ Item {
             }
         }
         Behavior on field_of_view { NumberAnimation { duration: 500; easing.type: Easing.InOutExpo } }
+    }
+
+    // route points picked in the gpx editor (map clicks) land in the planner model
+    Connections {
+        target: map
+        function onPlanner_point_picked(latitude, longitude, altitude, screenX, screenY) {
+            _planner_model.add_point_at(latitude, longitude, altitude, screenX, screenY)
+        }
+        // hold-to-drag of route points
+        function onPlanner_press_geo(latitude, longitude) {
+            _planner_model.press_at(latitude, longitude)
+        }
+        function onPlanner_move_geo(latitude, longitude, altitude) {
+            _planner_model.move_dragged(latitude, longitude, altitude)
+        }
+        function onPlanner_release() {
+            _planner_model.release_at()
+        }
+        // the fly bar buttons must not keep the keyboard focus: the arrow
+        // keys steer the preview (left/right seek, up/down speed)
+        function onPreview_state_changed() {
+            // follow the actual preview speed wherever it came from
+            // (dropdown pick or arrow keys)
+            speed_combo.currentIndex = speed_combo.index_for(map.preview_speed)
+            if (map.preview_active)
+                map.forceActiveFocus()
+        }
+    }
+
+    // signals of the planner model itself (not the map): the waypoint
+    // insertion request and the route point drag state
+    Connections {
+        target: _planner_model
+        // a click landed on the planned route: let the editor ask whether a
+        // waypoint should be created there
+        function onWaypoint_insertion_requested(latitude, longitude, altitude, afterIndex, screenX, screenY) {
+            if (main.selectedPage === "gpxeditor" && main_stack_view.currentItem !== null
+                && main_stack_view.currentItem.request_waypoint_insertion !== undefined) {
+                main_stack_view.currentItem.request_waypoint_insertion(latitude, longitude, altitude, afterIndex, screenX, screenY)
+            }
+        }
+        function onRoute_point_dragging_changed(dragging) {
+            map.planner_drag_active = dragging
+        }
+        // a route was imported or opened: frame it whole, keeping the camera
+        // orientation as far as possible and above the dem
+        function onRoute_framing_requested(minLat, minLon, maxLat, maxLon, minAlt, maxAlt) {
+            map.frame_area(minLat, minLon, maxLat, maxLon, minAlt, maxAlt)
+        }
+    }
+
+    // route preview controls, floating above the map while a fly-through runs.
+    // sized to also fit phone screens; controls take no focus so the arrow
+    // keys keep steering the preview
+    Rectangle {
+        id: preview_controls
+        visible: map.preview_active
+        color: Qt.alpha(Material.backgroundColor, 0.85)
+        radius: 8
+        height: 56
+        clip: true
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+            leftMargin: 8 + main.safeLeft
+            rightMargin: 8 + main.safeRight
+            bottomMargin: 12 + main.safeBottom
+        }
+        z: 150
+
+        RowLayout {
+            id: preview_row
+            anchors.fill: parent
+            anchors.margins: 6
+            spacing: 4
+
+            ToolButton {
+                focusPolicy: Qt.NoFocus
+                // shows Play at the route end (auto-paused), and Play while
+                // the user paused - pressing it resumes or restarts
+                text: map.preview_paused ? qsTr("Play") : qsTr("Pause")
+                onClicked: map.set_preview_paused(!map.preview_paused)
+                ToolTip.visible: hovered
+                ToolTip.text: map.preview_paused ? qsTr("Resume the preview") : qsTr("Pause the preview")
+            }
+            Slider {
+                id: preview_progress_slider
+                focusPolicy: Qt.NoFocus
+                from: 0
+                to: 1
+                value: map.preview_progress
+                onMoved: map.seek_preview(value)
+                Layout.fillWidth: true
+                Layout.minimumWidth: 100
+                ToolTip.visible: hovered
+                ToolTip.text: Math.round(value * 100) + " %"
+            }
+            ComboBox {
+                id: speed_combo
+                focusPolicy: Qt.NoFocus
+                model: [qsTr("Slow"), qsTr("Normal"), qsTr("Fast"), qsTr("Very fast")]
+                // sized to fit inside the bar (the default combo background
+                // is taller than the tool buttons and poked out below)
+                implicitHeight: 36
+                currentIndex: 1 // normal
+                onActivated: map.set_preview_speed(speed_combo.speed_for(index))
+                function speed_for(index) { return [12, 24, 48, 96][index]; }
+                function index_for(speed) {
+                    const speeds = [12, 24, 48, 96];
+                    let best = 1;
+                    for (let i = 0; i < speeds.length; ++i) {
+                        if (Math.abs(speeds[i] - speed) < Math.abs(speeds[best] - speed))
+                            best = i;
+                    }
+                    return best;
+                }
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Flight speed")
+            }
+            ToolButton {
+                focusPolicy: Qt.NoFocus
+                text: "×"
+                onClicked: map.stop_route_preview()
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("End the route preview")
+            }
+        }
     }
 
     StackView {

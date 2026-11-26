@@ -26,6 +26,9 @@
 #include <QFileDialog>
 #endif
 
+#include <QFile>
+#include <QFileInfo>
+
 #include "RenderThreadNotifier.h"
 #include "RenderingContext.h"
 #include <gl_engine/Context.h>
@@ -108,7 +111,7 @@ void TrackModel::add_track(const QString& file_name, const QByteArray& file_cont
         emit tracks_changed(m_data);
         emit track_added(lat_long(m_data.size() - 1));
     } else {
-        qDebug("Could not parse GPX file!");
+        qWarning() << "TrackModel::add_track: could not parse GPX file!";
     }
 }
 
@@ -140,6 +143,19 @@ void TrackModel::finish_wasm_upload()
 }
 #endif
 
+void TrackModel::import_track(const QUrl& file_url)
+{
+    // android file dialogs return content:// uris, which QFile can open but
+    // which have no local file path
+    const QString path = file_url.isLocalFile() ? file_url.toLocalFile() : file_url.toString();
+    QFile file(path);
+    if (!file.open(QFile::ReadOnly)) {
+        qWarning() << "TrackModel::import_track: failed to open file!" << path;
+        return;
+    }
+    add_track(QFileInfo(path).fileName(), file.readAll());
+}
+
 void TrackModel::upload_track()
 {
 #ifdef __EMSCRIPTEN__
@@ -151,7 +167,7 @@ void TrackModel::upload_track()
     if (file.open(QFile::ReadOnly))
         add_track(file.fileName(), file.readAll());
     else
-        qDebug() << "TrackModel::upload_track: failed to read file!" << path;
+        qWarning() << "TrackModel::upload_track: failed to read file!" << path;
 #endif
 }
 

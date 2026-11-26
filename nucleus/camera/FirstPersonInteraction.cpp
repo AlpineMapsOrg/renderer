@@ -143,4 +143,16 @@ std::optional<Definition> FirstPersonInteraction::update(Definition camera, Abst
     }
     return camera;
 }
+
+void FirstPersonInteraction::clear_keyboard_state()
+{
+    m_keys_pressed = 0;
+    m_key_w = false;
+    m_key_s = false;
+    m_key_a = false;
+    m_key_d = false;
+    m_key_e = false;
+    m_key_q = false;
+    m_key_shift = false;
+}
 }

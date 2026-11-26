@@ -18,12 +18,12 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include <memory>
+#include <QOpenGLTexture>
 #include "helpers.h"
 #include "nucleus/camera/Definition.h"
 
 #define MAX_SSAO_KERNEL_SIZE 64 // ALSO CHANGE IN ssao.frag
 
-class QOpenGLTexture;
 class QOpenGLExtraFunctions;
 
 namespace gl_engine {

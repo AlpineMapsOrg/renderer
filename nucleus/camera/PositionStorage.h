@@ -125,6 +125,9 @@ private:
         m_positions.insert({ "wien", nucleus::camera::stored_positions::wien() });
         m_positions.insert({ "grossglockner_shadow", nucleus::camera::stored_positions::grossglockner_shadow() });
         m_positions.insert({ "weichtalhaus", nucleus::camera::stored_positions::weichtalhaus() });
+        // development position near the default gpx planning area; the
+        // release startup camera is "grossglockner" (see TerrainRenderer)
+        m_positions.insert({ "nockspitze", nucleus::camera::stored_positions::nockspitze() });
     }
     static PositionStorage* s_instance;
     std::map<std::string, nucleus::camera::Definition> m_positions;

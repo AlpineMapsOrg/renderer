@@ -25,11 +25,14 @@
 #include "TileStatistics.h"
 #include <QDateTime>
 #include <QList>
+#include <QMetaObject>
+#include <QPointer>
 #include <QQmlEngine>
 #include <QQuickFramebufferObject>
 #include <QString>
 #include <QVector2D>
 #include <QVector3D>
+#include <deque>
 #include <gl_engine/UniformBufferObjects.h>
 #include <nucleus/camera/Definition.h>
 #include <nucleus/event_parameter.h>
@@ -37,6 +40,10 @@
 #include <nucleus/picker/types.h>
 
 class QTimer;
+
+namespace nucleus::camera {
+class Controller;
+}
 
 class TerrainRendererItem : public QQuickFramebufferObject {
     Q_OBJECT
@@ -60,6 +67,14 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(bool continuous_update READ continuous_update WRITE set_continuous_update NOTIFY continuous_update_changed)
     Q_PROPERTY(nucleus::picker::Feature picked_feature READ picked_feature NOTIFY picked_feature_changed FINAL)
     Q_PROPERTY(QVector3D world_space_cursor_position READ world_space_cursor_position NOTIFY world_space_cursor_position_changed FINAL)
+    // camera fly-through preview state
+    Q_PROPERTY(bool preview_active READ preview_active NOTIFY preview_state_changed)
+    Q_PROPERTY(bool preview_paused READ preview_paused NOTIFY preview_state_changed)
+    Q_PROPERTY(double preview_progress READ preview_progress NOTIFY preview_state_changed)
+    Q_PROPERTY(double preview_speed READ preview_speed NOTIFY preview_state_changed)
+    // while a route point is dragged, camera navigation events are withheld
+    // from the camera controller
+    Q_PROPERTY(bool planner_drag_active WRITE set_planner_drag_active)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -80,6 +95,8 @@ signals:
     void update_camera_requested() const;
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
     void position_set_by_user(double new_latitude, double new_longitude);
+    void position_move_requested(double new_latitude, double new_longitude);
+    void area_framing_requested(const glm::dvec2& world_min, const glm::dvec2& world_max, double min_altitude, double max_altitude);
     void camera_definition_set_by_user(const nucleus::camera::Definition&) const;
 
     void shared_config_changed(gl_engine::uboSharedConfig new_shared_config) const;
@@ -112,6 +129,23 @@ signals:
 
     void world_space_cursor_position_changed(const QVector3D& world_space_cursor_position);
 
+    // emitted while the gpx editor is active, when the user clicked on the terrain
+    void planner_point_picked(double latitude, double longitude, double altitude, double screen_x, double screen_y) const;
+    // the raw press / move / release gestures in edit mode, resolved to the
+    // terrain position under the pointer (for the route point drag)
+    void planner_press_geo(double latitude, double longitude, double altitude) const;
+    void planner_move_geo(double latitude, double longitude, double altitude) const;
+    void planner_release() const;
+    void edit_mode_changed(bool edit_mode) const;
+    // emitted when the item loses keyboard focus (e.g. alt+tab away from the app)
+    void keyboard_focus_lost() const;
+    void route_preview_started(const std::vector<glm::dvec3>& world_points) const;
+    void route_preview_stopped() const;
+    void route_preview_pause_changed(bool paused) const;
+    void route_preview_seek_requested(double fraction) const;
+    void route_preview_speed_changed(double metres_per_second) const;
+    void preview_state_changed();
+
     void eaws_report_date_changed(QDate newDate) const; // This is emitted after user picked a date for eaws avalanche report in the gui
 
 protected:
@@ -122,9 +156,18 @@ protected:
     void wheelEvent(QWheelEvent*) override;
     void keyPressEvent(QKeyEvent*) override;
     void keyReleaseEvent(QKeyEvent*) override;
+    void focusOutEvent(QFocusEvent*) override;
 
 public slots:
     void set_position(double latitude, double longitude);
+    // pans the camera to the position without changing the rotation
+    void move_position(double latitude, double longitude);
+    // frames the lat/long area (true-metre altitudes): whole area on screen,
+    // camera at least 500 m above the dem, rotation changed as little as
+    // possible
+    Q_INVOKABLE void frame_area(double min_latitude, double min_longitude, double max_latitude, double max_longitude, double min_altitude, double max_altitude);
+    // withholds camera navigation events while a route point is dragged
+    void set_planner_drag_active(bool active);
     void rotate_north();
     void set_gl_preset(const QString& preset_b64_string);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
@@ -133,6 +176,14 @@ public slots:
     void set_slope_angle_layer(bool value);
     void set_stop_or_go_layer(bool value);
     void updateEawsReportDate(int day, int month, int year);
+    // enables/disables click-to-place-route-point mode of the gpx editor
+    void change_edit_mode(bool edit_mode);
+    // camera fly-through preview along the route stored in the RenderingContext
+    Q_INVOKABLE void start_route_preview();
+    Q_INVOKABLE void stop_route_preview();
+    Q_INVOKABLE void set_preview_paused(bool paused);
+    Q_INVOKABLE void seek_preview(double fraction);
+    Q_INVOKABLE void set_preview_speed(double metres_per_second);
 private slots:
     void schedule_update();
     void init_after_creation_slot();
@@ -190,6 +241,11 @@ public:
 
     const QVector3D& world_space_cursor_position() const;
 
+    bool preview_active() const { return m_preview_active; }
+    bool preview_paused() const { return m_preview_paused; }
+    double preview_progress() const { return m_preview_progress; }
+    double preview_speed() const { return m_preview_speed; }
+
 private:
     void set_world_space_cursor_position(const glm::dvec3& new_world_space_cursor_position);
     void set_picked_feature(const nucleus::picker::Feature& new_picked_feature);
@@ -228,4 +284,24 @@ private:
     // with the multi-thread nature of this app. So far the url modifier is
     // only necessary in this class and on this thread, so we'll use it here.
     std::shared_ptr<nucleus::utils::UrlModifier> m_url_modifier;
+
+    // camera fly-through preview state (updated from the render thread)
+    bool m_preview_active = false;
+    bool m_preview_paused = false;
+    double m_preview_progress = 0.0;
+    double m_preview_speed = 24.0; // matches the combo's default index
+    bool m_continuous_update_before_preview = false;
+
+    // route point drag: the geo queries sent for the press/move/click
+    // gestures are answered in order, and their kind decides which signal
+    // the answer is forwarded on (the screen position rides along in the
+    // same entry, for the waypoint-insertion button placement)
+    enum class GeoQueryKind { Click, Press, Move };
+    struct PendingGeoQuery {
+        GeoQueryKind kind;
+        QPointF screen_position;
+    };
+    std::deque<PendingGeoQuery> m_pending_geo_queries;
+    bool m_planner_drag_active = false;
+    QPointer<nucleus::camera::Controller> m_planner_camera_controller;
 };

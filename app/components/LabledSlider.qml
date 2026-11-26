@@ -38,16 +38,18 @@ Item {
 
     RowLayout {
         anchors.fill: parent
-        spacing: 0
+        spacing: 8
         Slider {
             id: slider;
-            Layout.preferredWidth: root.width - 50
+            Layout.fillWidth: true
             value: root.target ? root.target[root.property] : 0
             onMoved: root.moved()
         }
         Label {
             id: label;
-            Layout.preferredWidth: 50
+            // sized to the text so longer labels stay readable; right-aligned
+            // so the values line up across sliders
+            horizontalAlignment: Text.AlignRight
             text: root.formatCallback(root.value)
             font.underline: true;
         }

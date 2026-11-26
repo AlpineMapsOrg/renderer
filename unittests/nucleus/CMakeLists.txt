@@ -39,6 +39,8 @@ alp_add_unittest(unittests_nucleus
     RateTester.h RateTester.cpp
     zppbits.cpp
     cache_queries.cpp
+    RouteOptimizer.cpp
+    RoutePreview.cpp
     bits_and_pieces.cpp
     tile_drawing.cpp
 )

@@ -19,6 +19,7 @@
 #pragma once
 
 #include "UniformBuffer.h"
+#include "Texture.h"
 #include <QObject>
 #include <nucleus/tile/DrawListGenerator.h>
 #include <nucleus/tile/GpuArrayHelper.h>
@@ -36,7 +37,6 @@ class QOpenGLVertexArrayObject;
 namespace gl_engine {
 class ShaderRegistry;
 class ShaderProgram;
-class Texture;
 class TileGeometry;
 class AvalancheWarningLayer;
 

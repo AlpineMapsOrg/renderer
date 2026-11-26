@@ -19,3 +19,17 @@ __pycache__
 **/.qmlls.ini
 /docs/project_reports
 **/__pycache__/*.pyc
+
+# local helper script (not part of the project)
+/run-alpineapp.bat
+TODO.md
+
+# local testing / ide / secrets
+/.idea/
+/.zcode/
+/cmake-build-debug/
+/doc/
+/release.keystore
+/signingkeybase64
+/build-android/*
+/build-wasm/

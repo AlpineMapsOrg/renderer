@@ -34,6 +34,7 @@
 #include <QQuickWindow>
 #include <QThread>
 #include <QTimer>
+#include <gl_engine/Context.h>
 #include <gl_engine/Window.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -45,6 +46,7 @@
 #include <nucleus/map_label/Filter.h>
 #include <nucleus/map_label/Scheduler.h>
 #include <nucleus/picker/PickerManager.h>
+#include <nucleus/planner/PlannerManager.h>
 #include <nucleus/srs.h>
 #include <nucleus/tile/GeometryScheduler.h>
 #include <nucleus/tile/TextureScheduler.h>
@@ -110,6 +112,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     qDebug() << "Rendering thread: " << QThread::currentThread();
     // called on rendering thread.
     auto ctx = RenderingContext::instance();
+    auto* self = const_cast<TerrainRendererItem*>(this);
 
     auto* r = new TerrainRenderer();
     connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &TerrainRendererItem::schedule_update);
@@ -123,17 +126,104 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::touch_made, r->controller(), &nucleus::camera::Controller::touch);
     connect(this, &TerrainRendererItem::mouse_pressed, r->controller(), &nucleus::camera::Controller::mouse_press);
     connect(this, &TerrainRendererItem::mouse_moved, r->controller(), &nucleus::camera::Controller::mouse_move);
+    connect(this, &TerrainRendererItem::mouse_released, r->controller(), &nucleus::camera::Controller::mouse_release);
     connect(this, &TerrainRendererItem::wheel_turned, r->controller(), &nucleus::camera::Controller::wheel_turn);
     connect(this, &TerrainRendererItem::key_pressed, r->controller(), &nucleus::camera::Controller::key_press);
     connect(this, &TerrainRendererItem::key_released, r->controller(), &nucleus::camera::Controller::key_release);
     connect(this, &TerrainRendererItem::update_camera_requested, r->controller(), &nucleus::camera::Controller::advance_camera);
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller(), &nucleus::camera::Controller::fly_to_latitude_longitude);
+    connect(this, &TerrainRendererItem::position_move_requested, r->controller(), &nucleus::camera::Controller::move_to_latitude_longitude);
+    connect(this, &TerrainRendererItem::area_framing_requested, r->controller(), &nucleus::camera::Controller::frame_area);
     connect(this, &TerrainRendererItem::rotation_north_requested, r->controller(), &nucleus::camera::Controller::rotate_north);
 
+    // route point drag: the controller withholds navigation input itself
+    // (set_route_point_dragging), so the connections to it stay intact and
+    // the gesture state machine never misses an event
+    self->m_planner_camera_controller = r->controller();
     connect(this, &TerrainRendererItem::touch_made, ctx->picker_manager().get(), &nucleus::picker::PickerManager::touch_event);
     connect(this, &TerrainRendererItem::mouse_pressed, ctx->picker_manager().get(), &nucleus::picker::PickerManager::mouse_press_event);
     connect(this, &TerrainRendererItem::mouse_released, ctx->picker_manager().get(), &nucleus::picker::PickerManager::mouse_release_event);
     connect(this, &TerrainRendererItem::mouse_moved, ctx->picker_manager().get(), &nucleus::picker::PickerManager::mouse_move_event);
+
+    // gpx editor: detect clicks on the terrain and resolve them into geo coordinates
+    connect(this, &TerrainRendererItem::touch_made, ctx->planner_manager().get(), &nucleus::planner::PlannerManager::touch_event);
+    connect(this, &TerrainRendererItem::mouse_pressed, ctx->planner_manager().get(), &nucleus::planner::PlannerManager::mouse_press_event);
+    connect(this, &TerrainRendererItem::mouse_released, ctx->planner_manager().get(), &nucleus::planner::PlannerManager::mouse_release_event);
+    connect(this, &TerrainRendererItem::mouse_moved, ctx->planner_manager().get(), &nucleus::planner::PlannerManager::mouse_move_event);
+    connect(this, &TerrainRendererItem::edit_mode_changed, ctx->planner_manager().get(), &nucleus::planner::PlannerManager::set_edit_mode);
+    // the press / move / release gestures resolve through the same depth
+    // readback as the clicks; a queue tags each answer with its gesture, so
+    // the model can tell a click from a point-drag event. the queries must
+    // run on the controller's thread (the readback needs the gl context),
+    // which the receiver-threaded connection handles; the tagging runs on
+    // the gui thread first, so the queue order matches the query order
+    auto* planner_manager = ctx->planner_manager().get();
+    connect(planner_manager, &nucleus::planner::PlannerManager::click_detected, self,
+            [self](const QPointF& pos) {
+                self->m_pending_geo_queries.push_back({ GeoQueryKind::Click, pos });
+            });
+    connect(planner_manager, &nucleus::planner::PlannerManager::click_detected, r->controller(), &nucleus::camera::Controller::query_world_position);
+    connect(planner_manager, &nucleus::planner::PlannerManager::press_detected, self,
+            [self](const QPointF& pos) {
+                self->m_pending_geo_queries.push_back({ GeoQueryKind::Press, pos });
+            });
+    connect(planner_manager, &nucleus::planner::PlannerManager::press_detected, r->controller(), &nucleus::camera::Controller::query_world_position);
+    connect(planner_manager, &nucleus::planner::PlannerManager::move_detected, self,
+            [self](const QPointF& pos) {
+                self->m_pending_geo_queries.push_back({ GeoQueryKind::Move, pos });
+            });
+    connect(planner_manager, &nucleus::planner::PlannerManager::move_detected, r->controller(), &nucleus::camera::Controller::query_world_position);
+    connect(planner_manager, &nucleus::planner::PlannerManager::release_detected, this,
+            [this]() { emit planner_release(); }, Qt::QueuedConnection);
+    connect(r->controller(), &nucleus::camera::Controller::world_position_queried, self,
+            [self](const glm::dvec3& lat_long_alt) {
+                // take the whole front entry before popping, so the screen
+                // position rides with its query
+                QPointF screen_pos(0, 0);
+                GeoQueryKind kind = GeoQueryKind::Click;
+                if (!self->m_pending_geo_queries.empty()) {
+                    kind = self->m_pending_geo_queries.front().kind;
+                    screen_pos = self->m_pending_geo_queries.front().screen_position;
+                    self->m_pending_geo_queries.pop_front();
+                }
+                switch (kind) {
+                case GeoQueryKind::Press:
+                    emit self->planner_press_geo(lat_long_alt.x, lat_long_alt.y, lat_long_alt.z);
+                    break;
+                case GeoQueryKind::Move:
+                    emit self->planner_move_geo(lat_long_alt.x, lat_long_alt.y, lat_long_alt.z);
+                    break;
+                case GeoQueryKind::Click:
+                    emit self->planner_point_picked(lat_long_alt.x, lat_long_alt.y, lat_long_alt.z, screen_pos.x(), screen_pos.y());
+                    break;
+                }
+            });
+    connect(this, &TerrainRendererItem::keyboard_focus_lost, r->controller(), &nucleus::camera::Controller::clear_keyboard_state);
+    connect(this, &TerrainRendererItem::route_preview_started, r->controller(), &nucleus::camera::Controller::start_route_preview);
+    connect(this, &TerrainRendererItem::route_preview_stopped, r->controller(), &nucleus::camera::Controller::stop_route_preview);
+    connect(this, &TerrainRendererItem::route_preview_pause_changed, r->controller(), &nucleus::camera::Controller::set_route_preview_paused);
+    connect(this, &TerrainRendererItem::route_preview_seek_requested, r->controller(), &nucleus::camera::Controller::seek_route_preview);
+    connect(this, &TerrainRendererItem::route_preview_speed_changed, r->controller(), &nucleus::camera::Controller::set_route_preview_speed);
+    // during the camera fly-through no route is rendered
+    // (receiver = track manager lives on the render thread -> queued)
+    if (const auto engine_context = ctx->engine_context()) {
+        if (auto* track_manager = engine_context->track_manager()) {
+            connect(this, &TerrainRendererItem::route_preview_started, track_manager, [track_manager]() {
+                track_manager->set_flight_mode(true);
+            });
+            connect(this, &TerrainRendererItem::route_preview_stopped, track_manager, [track_manager]() {
+                track_manager->set_flight_mode(false);
+            });
+        }
+    }
+    connect(r->controller(), &nucleus::camera::Controller::route_preview_changed, this,
+            [item = const_cast<TerrainRendererItem*>(this)](double fraction, bool paused, bool active, double speed) {
+                item->m_preview_progress = fraction;
+                item->m_preview_paused = paused;
+                item->m_preview_active = active;
+                item->m_preview_speed = speed;
+                emit item->preview_state_changed();
+            });
 
     // Connect definition change to aquire camera position for sun angle calculation
     connect(r->controller(), &nucleus::camera::Controller::definition_changed, this, &TerrainRendererItem::camera_definition_changed);
@@ -219,6 +309,15 @@ void TerrainRendererItem::keyReleaseEvent(QKeyEvent* e)
     RenderThreadNotifier::instance()->notify();
 }
 
+void TerrainRendererItem::focusOutEvent(QFocusEvent* event)
+{
+    QQuickItem::focusOutEvent(event);
+    // keys pressed before losing focus never see their release event (e.g.
+    // alt+tab), which leaves the camera interaction styles with stuck modifier
+    // state (zooming instead of panning)
+    emit keyboard_focus_lost();
+}
+
 void TerrainRendererItem::camera_definition_changed(const nucleus::camera::Definition& new_definition)
 {
     auto camPositionWS = new_definition.position();
@@ -240,6 +339,35 @@ void TerrainRendererItem::set_position(double latitude, double longitude)
 {
     emit position_set_by_user(latitude, longitude);
     RenderThreadNotifier::instance()->notify();
+}
+
+void TerrainRendererItem::move_position(double latitude, double longitude)
+{
+    emit position_move_requested(latitude, longitude);
+    RenderThreadNotifier::instance()->notify();
+}
+
+void TerrainRendererItem::frame_area(double min_latitude, double min_longitude, double max_latitude, double max_longitude, double min_altitude, double max_altitude)
+{
+    emit area_framing_requested(
+        nucleus::srs::lat_long_to_world({ min_latitude, min_longitude }),
+        nucleus::srs::lat_long_to_world({ max_latitude, max_longitude }),
+        min_altitude, max_altitude);
+    RenderThreadNotifier::instance()->notify();
+}
+
+void TerrainRendererItem::set_planner_drag_active(bool active)
+{
+    if (m_planner_drag_active == active) {
+        return;
+    }
+    m_planner_drag_active = active;
+    // the controller withholds navigation input while a route point is
+    // dragged; forwarded queued to its (render) thread
+    if (m_planner_camera_controller) {
+        QMetaObject::invokeMethod(m_planner_camera_controller.data(),
+            "set_route_point_dragging", Qt::QueuedConnection, Q_ARG(bool, active));
+    }
 }
 
 void TerrainRendererItem::rotate_north()
@@ -457,6 +585,53 @@ void TerrainRendererItem::set_world_space_cursor_position(const glm::dvec3& new_
         return;
     m_world_space_cursor_position = new_vec3d;
     emit world_space_cursor_position_changed(m_world_space_cursor_position);
+}
+
+void TerrainRendererItem::change_edit_mode(bool edit_mode)
+{
+    emit edit_mode_changed(edit_mode);
+}
+
+void TerrainRendererItem::start_route_preview()
+{
+    const auto points = RenderingContext::instance()->preview_route_points();
+    if (points.size() < 2) {
+        return;
+    }
+    // keep the frame loop running while the preview flies
+    m_continuous_update_before_preview = m_continuous_update;
+    set_continuous_update(true);
+    emit route_preview_started(points);
+}
+
+void TerrainRendererItem::stop_route_preview()
+{
+    if (!m_preview_active) {
+        return;
+    }
+    emit route_preview_stopped();
+    set_continuous_update(m_continuous_update_before_preview);
+    m_preview_active = false;
+    m_preview_paused = false;
+    m_preview_progress = 0.0;
+    emit preview_state_changed();
+}
+
+void TerrainRendererItem::set_preview_paused(bool paused)
+{
+    emit route_preview_pause_changed(paused);
+}
+
+void TerrainRendererItem::seek_preview(double fraction)
+{
+    emit route_preview_seek_requested(fraction);
+}
+
+void TerrainRendererItem::set_preview_speed(double metres_per_second)
+{
+    m_preview_speed = metres_per_second;
+    emit route_preview_speed_changed(metres_per_second);
+    emit preview_state_changed();
 }
 
 const nucleus::picker::Feature& TerrainRendererItem::picked_feature() const { return m_picked_feature; }

@@ -23,6 +23,8 @@
 #include <QDebug>
 #include <QFile>
 #include <QXmlStreamReader>
+#include <QXmlStreamWriter>
+#include <algorithm>
 
 #include "../srs.h"
 
@@ -31,17 +33,48 @@ std::unique_ptr<Gpx> parse(QXmlStreamReader& xmlReader)
 {
     auto gpx = std::make_unique<Gpx>();
 
+    // gpx files may contain standalone waypoints (<wpt>, e.g. exported by
+    // gdal/skitourenguru) that the planner has no use for; their subtree is
+    // skipped, otherwise their <ele> would leak into the track points
+    bool skipping_subtree = false;
+    int skip_depth = 0;
+
     while (!xmlReader.atEnd() && !xmlReader.hasError()) {
         QXmlStreamReader::TokenType token = xmlReader.readNext();
+
+        if (skipping_subtree) {
+            if (token == QXmlStreamReader::StartElement) {
+                skip_depth += 1;
+            } else if (token == QXmlStreamReader::EndElement) {
+                skip_depth -= 1;
+                if (skip_depth == 0) {
+                    skipping_subtree = false;
+                }
+            }
+            continue;
+        }
 
         if (token == QXmlStreamReader::StartElement) {
             // Handle the start element
 
             QStringView name = xmlReader.name();
 
+            if (name == QString("wpt")) {
+                skipping_subtree = true;
+                skip_depth = 1;
+                continue;
+            }
+
             if (name == QString("trk")) {
                 // nothing to do here
-            } else if (name == QString("trkpt")) {
+            } else if (name == QString("name") && gpx->track.empty()) {
+                // track/metadata name, appears before any point data
+                gpx->name = xmlReader.readElementText();
+            } else if (name == QString("desc") && gpx->track.empty()) {
+                gpx->description = xmlReader.readElementText();
+            } else if (name == QString("keywords") && gpx->track.empty()) {
+                gpx->keywords = xmlReader.readElementText();
+            } else if (name == QString("trkpt") || name == QString("rtept")) {
                 Point point;
                 double latitude = xmlReader.attributes().value("lat").toDouble();
                 double longitude = xmlReader.attributes().value("lon").toDouble();
@@ -72,13 +105,9 @@ std::unique_ptr<Gpx> parse(QXmlStreamReader& xmlReader)
             } else if (name == QString("trkseg")) {
                 gpx->add_new_segment();
 
-            } else if (name == QString("wpt")) {
-                qDebug() << "'wpt' NOT IMPLEMENTED!\n";
-                return nullptr;
 
             } else if (name == QString("rte")) {
-                qDebug() << "'rte' NOT IMPLEMENTED!\n";
-                return nullptr;
+                gpx->add_new_segment();
             }
         } else if (token == QXmlStreamReader::EndElement) {
             // Handle the end element
@@ -111,6 +140,95 @@ std::unique_ptr<Gpx> parse(const QString& path)
     QXmlStreamReader xmlReader(&file);
 
     return parse(xmlReader);
+}
+
+double Gpx::haversine_distance(const Point& a, const Point& b) const
+{
+    constexpr double R = 6371000; // metres
+    constexpr double deg_to_rad = M_PI / 180;
+    const double phi1 = a.latitude * deg_to_rad;
+    const double phi2 = b.latitude * deg_to_rad;
+    const double delta_phi = (b.latitude - a.latitude) * deg_to_rad;
+    const double delta_lambda = (b.longitude - a.longitude) * deg_to_rad;
+
+    const double h = std::sin(delta_phi / 2) * std::sin(delta_phi / 2)
+        + std::cos(phi1) * std::cos(phi2) * std::sin(delta_lambda / 2) * std::sin(delta_lambda / 2);
+
+    return R * 2 * std::atan2(std::sqrt(h), std::sqrt(1 - h));
+}
+
+void Gpx::recompute_stats()
+{
+    distance = 0;
+    ascent = 0;
+    descent = 0;
+    for (const Segment& segment : track) {
+        for (size_t i = 1; i < segment.size(); ++i) {
+            const Point& previous = segment[i - 1];
+            const Point& current = segment[i];
+            distance += haversine_distance(previous, current);
+            const double elevation_diff = current.elevation - previous.elevation;
+            if (elevation_diff > 0) {
+                ascent += elevation_diff;
+            } else {
+                descent -= elevation_diff;
+            }
+        }
+    }
+}
+
+bool Gpx::save(const QString& file_path) const
+{
+    QFile file(file_path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qWarning() << "Cannot open file for writing:" << file_path << file.errorString();
+        return false;
+    }
+
+    QXmlStreamWriter xml_writer(&file);
+    save(xml_writer);
+    file.close();
+    return !xml_writer.hasError();
+}
+
+void Gpx::save(QXmlStreamWriter& xml) const
+{
+    xml.setAutoFormatting(true);
+    xml.writeStartDocument();
+    xml.writeStartElement("gpx");
+    xml.writeAttribute("version", "1.1");
+    xml.writeAttribute("creator", "alpine-renderer");
+    xml.writeAttribute("xmlns", "http://www.topografix.com/GPX/1/1");
+
+    xml.writeStartElement("metadata");
+    xml.writeTextElement("name", name);
+    if (!description.isEmpty()) {
+        xml.writeTextElement("desc", description);
+    }
+    if (!keywords.isEmpty()) {
+        xml.writeTextElement("keywords", keywords);
+    }
+    // xsd:dateTime requires a timezone
+    const QDateTime creation = creationDateTime.isValid() ? creationDateTime : QDateTime::currentDateTime();
+    xml.writeTextElement("time", creation.toUTC().toString(Qt::ISODate));
+    xml.writeEndElement(); // metadata
+
+    xml.writeStartElement("trk");
+    xml.writeTextElement("name", name);
+    for (const Segment& segment : track) {
+        xml.writeStartElement("trkseg");
+        for (const Point& point : segment) {
+            xml.writeStartElement("trkpt");
+            xml.writeAttribute("lat", QString::number(point.latitude, 'f', 7));
+            xml.writeAttribute("lon", QString::number(point.longitude, 'f', 7));
+            xml.writeTextElement("ele", QString::number(point.elevation, 'f', 1));
+            xml.writeEndElement(); // trkpt
+        }
+        xml.writeEndElement(); // trkseg
+    }
+    xml.writeEndElement(); // trk
+    xml.writeEndElement(); // gpx
+    xml.writeEndDocument();
 }
 
 std::vector<glm::vec4> to_world_points(const Gpx& gpx)

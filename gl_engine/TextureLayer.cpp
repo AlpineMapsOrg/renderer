@@ -70,6 +70,7 @@ void TextureLayer::draw(
 
     m_instanced_zoom->bind(8);
     m_shader->set_uniform("instanced_texture_zoom_sampler", 8);
+
     m_instanced_zoom->upload(zoom_level_raster);
 
     tile_geometry.draw(m_shader.get(), camera, draw_list);

@@ -20,10 +20,10 @@
 
 #include <QDirIterator>
 #include <QFontDatabase>
-#if defined(ALP_ENABLE_DEV_TOOLS) || defined(__ANDROID__)
-#include <QApplication>
-#else
+#ifdef __EMSCRIPTEN__
 #include <QGuiApplication>
+#else
+#include <QApplication> // needed for QFileDialog based file import/export
 #endif
 #ifdef ALP_ENABLE_DEV_TOOLS
 #include "HotReloader.h"
@@ -31,6 +31,7 @@
 #endif
 #include "RenderThreadNotifier.h"
 #include "TrackModel.h"
+#include "PlannerModel.h"
 #include <QLoggingCategory>
 #include <QNetworkInformation>
 #include <QOpenGLContext>
@@ -65,10 +66,10 @@ int main(int argc, char **argv)
 {
     // originalHandler = qInstallMessageHandler(filter_log);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
-#if defined(ALP_ENABLE_DEV_TOOLS) || defined(__ANDROID__)
-    QApplication app(argc, argv);
-#else
+#ifdef __EMSCRIPTEN__
     QGuiApplication app(argc, argv);
+#else
+    QApplication app(argc, argv);
 #endif
     app.setWindowIcon(QIcon(":/icons/favicon.ico"));
     QCoreApplication::setOrganizationName("AlpineMaps.org");
@@ -151,6 +152,9 @@ int main(int argc, char **argv)
 
     auto track_model = TrackModel();
     engine.rootContext()->setContextProperty("_track_model", &track_model);
+
+    auto planner_model = PlannerModel();
+    engine.rootContext()->setContextProperty("_planner_model", &planner_model);
 
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,

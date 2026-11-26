@@ -23,4 +23,10 @@ namespace nucleus::tile::constants {
 constexpr auto default_network_timeout = 8000;
 using TimestampType = unsigned;
 
+// the dem tile server: terrain geometry for the renderer and the dem fetches
+// of the route planner. the previous "alpine_png" dataset no longer exists on
+// the server; at_dtm_alpinemaps is the austrian DTM, so terrain data is only
+// available within austria's coverage
+inline constexpr auto dem_tile_server_url = "https://alpinemaps.cg.tuwien.ac.at/tiles/at_dtm_alpinemaps/";
+
 }

@@ -47,7 +47,7 @@ TrackManager::TrackManager(ShaderRegistry* shader_registry, QObject* parent)
 
 void TrackManager::draw(const nucleus::camera::Definition& camera) const
 {
-    if (m_tracks.empty()) {
+    if (m_tracks.empty() && m_planned_tracks.empty() && m_user_position.empty()) {
         return;
     }
 
@@ -66,36 +66,83 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
     m_shader->set_uniform("proj", proj);
     m_shader->set_uniform("view", view);
     m_shader->set_uniform("camera_position", glm::vec3(camera.position()));
-    m_shader->set_uniform("width", m_display_width);
     m_shader->set_uniform("texin_track", 8);
     m_shader->set_uniform("shading_method", static_cast<int>(m_shading_method));
     m_shader->set_uniform("max_speed", m_max_speed);
     m_shader->set_uniform("max_vertical_speed", m_max_vertical_speed);
-    m_shader->set_uniform("end_index", static_cast<int>(m_total_point_count));
 
-    for (const PolyLine& track : m_tracks) {
+    for (const std::vector<PolyLine>* track_list : { &m_tracks, &m_planned_tracks, &m_user_position }) {
+        const bool planned = track_list != &m_tracks;
 
-        track.texture->bind(8);
+        // during the camera fly-through no route is rendered at all
+        if (planned && m_flight_mode) {
+            continue;
+        }
 
-        track.vao->bind();
+        if (!planned) {
+            m_shader->set_uniform("width", m_display_width);
+        }
+        // planned geometry hugs the terrain and gets the opacity tolerance
+        // band; recorded tracks may dip into valleys and keep the fade
+        m_shader->set_uniform("terrain_tolerance", planned ? 25.f : 0.f);
 
-        GLsizei vertex_count = (track.point_count - 1) * 6;
+        for (const PolyLine& track : *track_list) {
 
-        m_shader->set_uniform("enable_intersection", true);
-        f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
+            // the planned line can be hidden via a ui switch; the point
+            // markers and the user position stay visible
+            if (planned && !m_planned_line_visible && !track.marker) {
+                continue;
+            }
 
-#if ENABLE_BOUNDING_QUADS
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-        if (funcs) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-#endif
+            if (planned) {
+                // scale the width with the distance to the nearest route
+                // point (not the route centre - zooming into one end of a
+                // long route would otherwise keep the line fat), so that the
+                // line covers roughly the target pixel width on screen at
+                // every zoom level
+                const glm::vec3 cam_pos = glm::vec3(camera.position());
+                float distance = glm::distance(cam_pos, track.center);
+                for (const glm::vec3& sample : track.width_samples) {
+                    distance = std::min(distance, glm::distance(cam_pos, sample));
+                }
+                const float pixel_to_world = 2.f * glm::tan(glm::radians(camera.field_of_view()) * 0.5f)
+                    / float(camera.viewport_size().y);
+                const float target_pixels = track.marker ? m_planned_marker_pixel_width : m_planned_target_pixel_width;
+                const float width = glm::clamp(distance * pixel_to_world * target_pixels,
+                    m_planned_min_world_width, m_planned_max_world_width);
+                m_shader->set_uniform("width", width);
+            }
 
-        shader->set_uniform("enable_intersection", false);
-        f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
+            track.texture->bind(8);
 
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-        if (funcs) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-#endif
-#endif
+            track.vao->bind();
+
+            GLsizei vertex_count = (track.point_count - 1) * 6;
+
+            m_shader->set_uniform("enable_intersection", true);
+            // vertex ids restart at zero for each polyline; end_index must
+            // select the last segment of *this* polyline, so that the shader
+            // skips the end clipping plane there (x3 would fetch out of range)
+            m_shader->set_uniform("end_index", static_cast<int>(track.point_count) - 1);
+            m_shader->set_uniform("use_color_override", planned);
+            glm::vec3 colour = track.marker ? m_planned_marker_color : glm::vec3(0.1f, 0.8f, 1.0f);
+            if (track.user_position) {
+                colour = m_user_position_color;
+            }
+            m_shader->set_uniform("color_is_marker", track.marker);
+            m_shader->set_uniform("color_override", colour);
+
+            if (track.marker) {
+                // draw the dots slightly towards the viewer, so the line does
+                // not swallow them where the two overlap
+                f->glEnable(GL_POLYGON_OFFSET_FILL);
+                f->glPolygonOffset(1.0f, 4.0f);
+            }
+            f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
+            if (track.marker) {
+                f->glDisable(GL_POLYGON_OFFSET_FILL);
+            }
+        }
     }
 
     m_shader->release();
@@ -103,59 +150,79 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
     f->glEnable(GL_CULL_FACE);
 }
 
-void TrackManager::add_track(const nucleus::track::Gpx& gpx)
+void TrackManager::add_track(const nucleus::track::Gpx& gpx, const TrackList destination, const bool markers)
 {
     using namespace nucleus::track;
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
-    qDebug() << "Segment Count: " << gpx.track.size();
+    // recorded tracks get smoothed and feed the speed shading; planned routes
+    // and the user position are already densely interpolated
+    const bool recorded = destination == TrackList::Recorded;
+
+    // a segment's points are uploaded into a 1d texture, so a long segment
+    // must be split into texture-sized chunks; adjacent chunks share their
+    // boundary point, which keeps the drawn line connected
+    int max_texture_size = 4096;
+    f->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+    const size_t chunk_point_limit = size_t(std::max(2, max_texture_size));
 
     for (const Segment& segment : gpx.track) {
 
-        qDebug() << "Point Count Per Segment: " << segment.size();
+        if (segment.size() < 2) {
+            continue;
+        }
 
         // transform from latitude and longitude into renderer world coordinates
         std::vector<glm::vec4> points = to_world_points(segment);
 
-        // data cleanup
-        apply_gaussian_filter(points, 1.0f);
+        // data cleanup (not for planned tracks, the points are already densely
+        // interpolated and smoothing would blur the point markers)
+        if (recorded) {
+            apply_gaussian_filter(points, 1.0f);
 
-        for (size_t i = 0; i < points.size() - 1; ++i) {
-            glm::vec4 a = points[i];
-            glm::vec4 b = points[i + 1];
-            float distance = glm::distance(glm::vec3(a), glm::vec3(b));
-            float time = b.w;
-            float speed = distance / time;
-            float vertical_speed = glm::abs(a.z - b.z) / time;
+            for (size_t i = 0; i < points.size() - 1; ++i) {
+                glm::vec4 a = points[i];
+                glm::vec4 b = points[i + 1];
+                float distance = glm::distance(glm::vec3(a), glm::vec3(b));
+                float time = b.w;
+                float speed = distance / time;
+                float vertical_speed = glm::abs(a.z - b.z) / time;
 
-            m_max_speed = glm::max(speed, m_max_speed);
-            m_max_vertical_speed = glm::max(vertical_speed, m_max_vertical_speed);
+                m_max_speed = glm::max(speed, m_max_speed);
+                m_max_vertical_speed = glm::max(vertical_speed, m_max_vertical_speed);
+            }
         }
 
-        size_t point_count = points.size();
+        size_t chunk_start = 0;
+        while (chunk_start + 1 < points.size()) {
+            const size_t chunk_count = std::min(chunk_point_limit, points.size() - chunk_start);
+            const auto chunk_first = points.begin() + long(chunk_start);
+            const std::vector<glm::vec4> chunk(chunk_first, chunk_first + long(chunk_count));
 
-        std::vector<glm::vec3> basic_ribbon = triangles_ribbon(points, 0.0f, 0);
+            size_t point_count = chunk.size();
 
-        PolyLine polyline = {};
+            std::vector<glm::vec3> basic_ribbon = triangles_ribbon(chunk, 0.0f, 0);
 
-
-
-        if (polyline.texture == nullptr) {
-
-            int max_texture_size;
-            f->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
-
-            qDebug() << "max texture size: " << max_texture_size;
-
-            if (max_texture_size < int(point_count)) {
-                qDebug() << "Unable to add track with " << point_count << "points, maximum is " << max_texture_size;
-                return;
+            PolyLine polyline = {};
+            polyline.marker = markers;
+            // decimated points for the camera-distance width scaling (the width
+            // follows the nearest route point, see draw())
+            const size_t sample_stride = std::max<size_t>(1, chunk.size() / 512);
+            for (size_t i = 0; i < chunk.size(); i += sample_stride) {
+                polyline.width_samples.push_back(glm::vec3(chunk[i]));
             }
+            polyline.width_samples.push_back(glm::vec3(chunk.back()));
+            // average of the world-space points, for distance-based width scaling
+            glm::vec3 center_sum(0.f);
+            for (const glm::vec4& point : chunk) {
+                center_sum += glm::vec3(point);
+            }
+            polyline.center = center_sum / float(chunk.size());
 
             // create texture to hold the point data
             polyline.texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
             polyline.texture->setFormat(QOpenGLTexture::TextureFormat::RGBA32F);
-            polyline.texture->setSize(point_count, 1);
+            polyline.texture->setSize(int(point_count), 1);
             polyline.texture->setAutoMipMapGenerationEnabled(false);
             polyline.texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
             polyline.texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
@@ -165,46 +232,58 @@ void TrackManager::add_track(const nucleus::track::Gpx& gpx)
                 qDebug() << "Could not allocate texture storage!";
                 return;
             }
+
+            polyline.texture->bind();
+            polyline.texture->setData(0, 0, 0, int(point_count), 1, 0, QOpenGLTexture::RGBA, QOpenGLTexture::Float32, chunk.data());
+
+            polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
+            polyline.point_count = point_count;
+            polyline.vao->create();
+            polyline.vao->bind();
+
+            polyline.vbo = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
+            polyline.vbo->create();
+
+            polyline.vbo->bind();
+            polyline.vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
+
+            polyline.vbo->allocate(basic_ribbon.data(), helpers::bufferLengthInBytes(basic_ribbon));
+
+            GLsizei stride = 3 * sizeof(glm::vec3);
+
+            const int position_attrib_location = m_shader->attribute_location("a_position");
+            f->glEnableVertexAttribArray(position_attrib_location);
+            f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
+
+            const int direction_attrib_location = m_shader->attribute_location("a_direction");
+            f->glEnableVertexAttribArray(direction_attrib_location);
+            f->glVertexAttribPointer(direction_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(1 * sizeof(glm::vec3)));
+
+            const int offset_attrib_location = m_shader->attribute_location("a_offset");
+            f->glEnableVertexAttribArray(offset_attrib_location);
+            f->glVertexAttribPointer(offset_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(2 * sizeof(glm::vec3)));
+
+            polyline.vao->release();
+
+            switch (destination) {
+            case TrackList::Recorded:
+                m_tracks.push_back(std::move(polyline));
+                break;
+            case TrackList::Planned:
+                m_planned_tracks.push_back(std::move(polyline));
+                break;
+            case TrackList::UserPosition:
+                polyline.user_position = true;
+                m_user_position.push_back(std::move(polyline));
+                break;
+            }
+
+            if (chunk_start + chunk_count >= points.size()) {
+                break;
+            }
+            chunk_start += chunk_count - 1; // share the boundary point
         }
-
-        polyline.texture->bind();
-        polyline.texture->setData(0, 0, 0, point_count, 1, 0, QOpenGLTexture::RGBA, QOpenGLTexture::Float32, points.data());
-
-        m_total_point_count += point_count;
-
-        polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
-        polyline.point_count = point_count;
-        polyline.vao->create();
-        polyline.vao->bind();
-
-        polyline.vbo = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
-        polyline.vbo->create();
-
-        polyline.vbo->bind();
-        polyline.vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
-
-        polyline.vbo->allocate(basic_ribbon.data(), helpers::bufferLengthInBytes(basic_ribbon));
-
-        GLsizei stride = 3 * sizeof(glm::vec3);
-
-        const int position_attrib_location = m_shader->attribute_location("a_position");
-        f->glEnableVertexAttribArray(position_attrib_location);
-        f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
-
-        const int direction_attrib_location = m_shader->attribute_location("a_direction");
-        f->glEnableVertexAttribArray(direction_attrib_location);
-        f->glVertexAttribPointer(direction_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(1 * sizeof(glm::vec3)));
-
-        const int offset_attrib_location = m_shader->attribute_location("a_offset");
-        f->glEnableVertexAttribArray(offset_attrib_location);
-        f->glVertexAttribPointer(offset_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(2 * sizeof(glm::vec3)));
-
-        polyline.vao->release();
-
-        m_tracks.push_back(std::move(polyline));
     }
-
-    qDebug() << "Total Point Count: " << m_total_point_count;
 }
 
 ShaderProgram* TrackManager::shader() const { return m_shader.get(); }
@@ -213,9 +292,46 @@ void TrackManager::change_tracks(const QVector<nucleus::track::Gpx>& tracks)
 {
     m_tracks.resize(0);
     for (const auto& t : tracks) {
-        add_track(t);
+        add_track(t, TrackList::Recorded);
     }
 }
+
+void TrackManager::change_planned_track(const nucleus::track::Gpx& line, const nucleus::track::Gpx& markers)
+{
+    m_planned_tracks.resize(0);
+    // render the line a little above the terrain: the capsules follow the dem
+    // exactly, and wherever they dip centimetres below the interpolated
+    // surface the shader fades them out, which reads as a wiggle. the lift is
+    // render-only; the exported gpx keeps the exact altitudes
+    nucleus::track::Gpx lifted_line = line;
+    for (auto& segment : lifted_line.track) {
+        for (auto& point : segment) {
+            point.elevation += 2.0;
+        }
+    }
+    add_track(lifted_line, TrackList::Planned);
+    add_track(markers, TrackList::Planned, true);
+}
+
+void TrackManager::clear_planned_track()
+{
+    m_planned_tracks.resize(0);
+}
+
+void TrackManager::change_user_position(const nucleus::track::Gpx& marker)
+{
+    m_user_position.resize(0);
+    add_track(marker, TrackList::UserPosition, true);
+}
+
+void TrackManager::clear_user_position()
+{
+    m_user_position.resize(0);
+}
+
+void TrackManager::change_planned_line_visible(bool visible) { m_planned_line_visible = visible; }
+
+void TrackManager::set_flight_mode(bool active) { m_flight_mode = active; }
 
 void TrackManager::change_display_width(float new_width) { m_display_width = new_width; }
 

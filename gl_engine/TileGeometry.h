@@ -19,23 +19,23 @@
 #pragma once
 
 #include <QObject>
+#include <QOpenGLBuffer>
+#include <QOpenGLVertexArrayObject>
 #include <nucleus/tile/DrawListGenerator.h>
 #include <nucleus/tile/GpuArrayHelper.h>
 #include <nucleus/tile/types.h>
 #include <radix/raster.h>
+#include "Texture.h"
 
 namespace camera {
 class Definition;
 }
 
 class QOpenGLShaderProgram;
-class QOpenGLBuffer;
-class QOpenGLVertexArrayObject;
 
 namespace gl_engine {
 class ShaderRegistry;
 class ShaderProgram;
-class Texture;
 
 class TileGeometry : public QObject {
     Q_OBJECT
