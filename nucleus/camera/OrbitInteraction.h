@@ -30,6 +30,7 @@ namespace gesture {
 class OrbitInteraction : public InteractionStyle {
     glm::dvec3 m_operation_centre = {};
     glm::vec2 m_operation_centre_screen = {};
+    double m_last_hit_distance = 10'000.0; // to the terrain under the cursor; stands in when the cursor is on the sky
     bool m_move_vertical = false;
     bool m_key_ctrl = false;
     bool m_key_alt = false;
@@ -52,5 +53,11 @@ private:
     void pan(const glm::vec2& position, const glm::vec2& last_position, Definition* camera, AbstractDepthTester* depth_tester);
     void orbit(const glm::vec2& position, const glm::vec2& last_position, Definition* camera, AbstractDepthTester* depth_tester);
     void zoom(float amount, Definition* camera, AbstractDepthTester* depth_tester);
+    /// Moves the camera `step` towards the operation centre (negative: away), but never closer
+    /// than MIN_DISTANCE_NEAR_PLANES near planes nor farther than MAX_DISTANCE.
+    void move_towards_centre(double step, Definition* camera) const;
+
+    static constexpr double MIN_DISTANCE_NEAR_PLANES = 10.0; // 50 world units (~35 m in the Alps) with the default near plane
+    static constexpr double MAX_DISTANCE = 500'000.0; // world units; half the far clipping distance
 };
 }
