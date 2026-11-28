@@ -54,12 +54,12 @@ public:
 
     enum class GraphRenderingMode { Default, Transparent, White };
 
+    // Loads a preset graph from a Qt resource path, wires signals, and inits.
+    void load_preset(const std::string& resource_path);
+
 private:
     // (Re)builds the node renderers for the currently loaded graph.
     void init(nodes::NodeGraph& node_graph);
-
-    // Loads a preset graph from a Qt resource path, wires signals, and inits.
-    void load_preset(const std::string& resource_path);
 
     // Replaces the current graph with a new empty graph.
     void new_graph();

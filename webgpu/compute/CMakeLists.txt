@@ -39,6 +39,7 @@ set(SOURCES
     nodes/TileStitchNode.h nodes/TileStitchNode.cpp
     nodes/HeightDecodeNode.h nodes/HeightDecodeNode.cpp
     nodes/IterativeSimulationNode.h nodes/IterativeSimulationNode.cpp
+    nodes/GeoRegionNode.h nodes/GeoRegionNode.cpp
     nodes/LoadTextureNode.h nodes/LoadTextureNode.cpp
     nodes/util.h nodes/util.cpp
 )
