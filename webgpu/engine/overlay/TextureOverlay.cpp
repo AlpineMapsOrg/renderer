@@ -43,7 +43,7 @@ TextureOverlay::TextureOverlay()
 void TextureOverlay::load_image(const QString& path)
 {
     Q_ASSERT(m_is_ready && "load_image must be called after ready()");
-    m_linked_texture = nullptr; // owned source takes over
+    m_linked_source = {}; // owned source takes over
     const auto image = nucleus::utils::image_loader::rgba8(path).value();
     create_texture(*m_ctx, uint32_t(image.width()), uint32_t(image.height()));
     m_overlay_texture->texture().write(m_ctx->queue(), image);
@@ -51,14 +51,23 @@ void TextureOverlay::load_image(const QString& path)
         webgpu::compute_mipmaps_for_texture(*m_ctx, &m_overlay_texture->texture());
 }
 
-void TextureOverlay::link_texture(const webgpu::raii::TextureWithSampler* texture) { m_linked_texture = texture; }
+void TextureOverlay::link_texture(const webgpu::raii::TextureWithSampler* texture)
+{
+    m_linked_source = texture != nullptr ? TextureSource([texture]() { return texture; }) : TextureSource {};
+}
+
+void TextureOverlay::link_texture_source(TextureSource source) { m_linked_source = std::move(source); }
+
+const webgpu::raii::TextureWithSampler* TextureOverlay::current_texture() const { return m_linked_source ? m_linked_source() : m_overlay_texture.get(); }
+
+bool TextureOverlay::can_draw() const { return m_pipeline != nullptr && current_texture() != nullptr; }
 
 void TextureOverlay::load_texture(const webgpu::raii::TextureWithSampler& source)
 {
     Q_ASSERT(m_is_ready && "load_texture must be called after ready()");
     Q_ASSERT(source.texture().descriptor().format == WGPUTextureFormat_RGBA8Unorm && "load_texture requires an RGBA8Unorm source texture");
 
-    m_linked_texture = nullptr; // owned source takes over
+    m_linked_source = {}; // owned source takes over
     create_texture(*m_ctx, uint32_t(source.texture().width()), uint32_t(source.texture().height()));
 
     // GPU -> GPU copy of mip 0 into our own texture
@@ -195,8 +204,8 @@ void TextureOverlay::draw(const WGPUCommandEncoder& command_encoder,
     webgpu::raii::TextureWithSampler& target_output,
     glm::uvec2 /*output_size*/)
 {
-    const webgpu::raii::TextureWithSampler* tex = m_linked_texture ? m_linked_texture : m_overlay_texture.get();
-    Q_ASSERT(tex && m_pipeline);
+    const webgpu::raii::TextureWithSampler* tex = current_texture();
+    Q_ASSERT(tex && m_pipeline && "OverlayRenderer draws only overlays that can_draw()");
 
     webgpu::raii::BindGroup bind_group(m_ctx->device(),
         m_ctx->resource_registry().bind_group_layout("texture_overlay"),
