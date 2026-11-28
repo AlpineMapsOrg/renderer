@@ -175,6 +175,34 @@ if (WIN32 AND NOT EMSCRIPTEN)
         ")
     endif()
     # ================================================
+elseif(APPLE AND NOT EMSCRIPTEN)
+    # Use Qt's macdeployqt to bundle Qt's own frameworks/plugins and fix up
+    # their install names/rpaths.
+    get_target_property(QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
+    get_filename_component(QT_BIN_DIR "${QMAKE_EXECUTABLE}" DIRECTORY)
+    find_program(MACDEPLOYQT_EXECUTABLE macdeployqt HINTS "${QT_BIN_DIR}")
+
+    if(MACDEPLOYQT_EXECUTABLE)
+        add_custom_command(TARGET webgpu_app POST_BUILD
+            COMMAND "${MACDEPLOYQT_EXECUTABLE}" "$<TARGET_BUNDLE_DIR:webgpu_app>"
+            COMMENT "Running macdeployqt for webgpu_app"
+        )
+    endif()
+
+    # macdeployqt only knows about Qt; bundle the remaining non-Qt shared
+    # libraries (SDL2, radix, glm, stb_slim, ktx) separately - see
+    # cmake/alp_macos_deploy.cmake for why this is needed.
+    include("${CMAKE_SOURCE_DIR}/cmake/alp_macos_deploy.cmake")
+    alp_macos_deploy_bundle(webgpu_app)
+
+    # === INSTALL CONFIGURATION FOR NATIVE MACOS BUILD ===
+    # install(TARGETS ... BUNDLE DESTINATION .) copies the whole .app tree,
+    # so the Frameworks folder macdeployqt/alp_macos_deploy_bundle already
+    # populated above comes along for free - no separate install-time
+    # deploy pass needed here (unlike Windows, where install() only copies
+    # the loose .exe and windeployqt has to be rerun against it).
+    install(TARGETS webgpu_app BUNDLE DESTINATION .)
+    # ================================================
 endif()
 
 if (EMSCRIPTEN)
