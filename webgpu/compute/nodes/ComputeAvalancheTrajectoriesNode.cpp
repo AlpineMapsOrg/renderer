@@ -128,7 +128,7 @@ ComputeAvalancheTrajectoriesNode::ComputeAvalancheTrajectoriesNode(webgpu::Conte
             std::vector<WGPUBindGroupLayoutEntry> { e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11 },
             "avalanche trajectories compute bind group layout");
     });
-    reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
+    m_pipeline_registration = reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
         m_pipeline = std::make_unique<webgpu::raii::CombinedComputePipeline>(device,
             reg.shader("avalanche_trajectories_compute"),
             std::vector<const webgpu::raii::BindGroupLayout*> { &reg.bind_group_layout("avalanche_trajectories_compute") });
@@ -271,21 +271,7 @@ void ComputeAvalancheTrajectoriesNode::run_impl()
         wgpuCommandBufferRelease(command);
     }
 
-    const auto on_work_done
-        = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
-              ComputeAvalancheTrajectoriesNode* _this = reinterpret_cast<ComputeAvalancheTrajectoriesNode*>(userdata);
-              _this->complete_run();
-          };
-
-    WGPUQueueWorkDoneCallbackInfo callback_info {
-        .nextInChain = nullptr,
-        .mode = WGPUCallbackMode_AllowProcessEvents,
-        .callback = on_work_done,
-        .userdata1 = this,
-        .userdata2 = nullptr,
-    };
-
-    wgpuQueueOnSubmittedWorkDone(m_ctx->queue(), callback_info);
+    on_submitted_work_done(m_ctx->queue(), [this]() { complete_run(); });
 }
 
 std::unique_ptr<webgpu::raii::Sampler> ComputeAvalancheTrajectoriesNode::create_normal_sampler(WGPUDevice device)

@@ -100,12 +100,15 @@ void WebGpuTimer::resolve()
 {
     if (m_ringbuffer_index_read < 0)
         return; // Nothing to resolve
-    m_timestamp_readback_buffer[m_ringbuffer_index_read]->read_back_async(m_device, [this](WGPUMapAsyncStatus status, std::vector<uint64_t> data) {
-        if (status == WGPUMapAsyncStatus_Success) {
-            const float result_in_s = (data[1] - data[0]) / 1e9;
-            add_result(result_in_s);
-        }
-    });
+    m_timestamp_readback_buffer[m_ringbuffer_index_read]->read_back_async(
+        m_device, [this, alive = std::weak_ptr<const bool>(m_lifetime)](WGPUMapAsyncStatus status, std::vector<uint64_t> data) {
+            if (alive.expired())
+                return; // the timer was destroyed while the read-back was in flight
+            if (status == WGPUMapAsyncStatus_Success) {
+                const float result_in_s = (data[1] - data[0]) / 1e9;
+                add_result(result_in_s);
+            }
+        });
     m_ringbuffer_index_read = -1;
 }
 

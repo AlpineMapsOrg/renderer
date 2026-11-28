@@ -62,6 +62,7 @@ private:
     webgpu::Buffer<HeightDecodeSettingsUniform> m_settings_uniform;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_output_texture;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
+    webgpu::PipelineRegistration m_pipeline_registration;
 };
 
 } // namespace webgpu_compute::nodes

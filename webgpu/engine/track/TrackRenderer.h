@@ -66,6 +66,7 @@ private:
     webgpu::Context* m_ctx;
 
     std::unique_ptr<webgpu::raii::RenderPipeline> m_pipeline;
+    webgpu::PipelineRegistration m_pipeline_registration;
 
     std::vector<std::unique_ptr<webgpu::raii::RawBuffer<glm::fvec4>>> m_position_buffers;
     std::vector<std::unique_ptr<webgpu::Buffer<TrackRenderer::LineConfig>>> m_line_config_buffers;

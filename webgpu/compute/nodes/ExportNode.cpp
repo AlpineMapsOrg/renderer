@@ -125,8 +125,8 @@ void ExportNode::run_impl()
     // Shared counter: both GPU readbacks are queued simultaneously; run_completed
     // fires only when all pending async ops have finished.
     auto pending = std::make_shared<int>(0);
-    auto on_done = [this, pending]() {
-        if (--(*pending) == 0)
+    auto on_done = [this, alive = lifetime_token(), pending]() {
+        if (!alive.expired() && --(*pending) == 0)
             complete_run();
     };
 

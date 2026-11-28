@@ -86,6 +86,7 @@ private:
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_ortho_textures;
     std::unique_ptr<webgpu::raii::BindGroup> m_tile_bind_group;
     std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_pipeline;
+    webgpu::PipelineRegistration m_pipeline_registration;
 };
 
 } // namespace webgpu_engine

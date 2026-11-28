@@ -76,7 +76,7 @@ void TileDebugOverlay::init(Context& context)
                 std::vector<WGPUBindGroupLayoutEntry> { overlay_entry, settings_entry, output_entry, prev_output_entry },
                 "tile debug overlay bind group layout");
         });
-    reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
+    m_pipeline_registration = reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
         m_pipeline = std::make_unique<webgpu::raii::CombinedComputePipeline>(device,
             reg.shader("gbuffer_debug_compute"),
             std::vector<const webgpu::raii::BindGroupLayout*> {

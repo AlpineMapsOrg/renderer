@@ -70,6 +70,7 @@ private:
     webgpu::Context* m_ctx = nullptr;
     Context* m_engine_ctx = nullptr; // for shared_config access (overlay_mode)
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
+    webgpu::PipelineRegistration m_pipeline_registration;
     std::unique_ptr<webgpu::Buffer<GpuSettings>> m_settings_uniform;
 };
 

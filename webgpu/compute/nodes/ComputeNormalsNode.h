@@ -65,6 +65,7 @@ private:
 
     webgpu::Buffer<NormalsSettingsUniform> m_normals_settings_uniform_buffer;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
+    webgpu::PipelineRegistration m_pipeline_registration;
 
     // output
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_output_texture; // normal texture

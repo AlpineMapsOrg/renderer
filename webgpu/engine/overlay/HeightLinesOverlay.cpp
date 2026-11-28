@@ -74,7 +74,7 @@ void HeightLinesOverlay::init(Context& context)
                 std::vector<WGPUBindGroupLayoutEntry> { position_entry, normal_entry, settings_entry, output_entry, prev_output_entry },
                 "height lines overlay bind group layout");
         });
-    reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
+    m_pipeline_registration = reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
         m_pipeline = std::make_unique<webgpu::raii::CombinedComputePipeline>(device,
             reg.shader("height_lines_compute"),
             std::vector<const webgpu::raii::BindGroupLayout*> {

@@ -84,7 +84,7 @@ IterativeSimulationNode::IterativeSimulationNode(webgpu::Context& ctx, const Ite
         return std::make_unique<webgpu::raii::BindGroupLayout>(
             dev, std::vector<WGPUBindGroupLayoutEntry> { e0, e1, e2, e3, e4, e5, e6 }, "iterative simulation bind group layout");
     });
-    reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
+    m_pipeline_registration = reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
         m_pipeline = std::make_unique<webgpu::raii::CombinedComputePipeline>(device,
             reg.shader("iterative_simulation_compute"),
             std::vector<const webgpu::raii::BindGroupLayout*> { &reg.bind_group_layout("iterative_simulation_compute") });
@@ -164,21 +164,7 @@ void IterativeSimulationNode::run_impl()
         wgpuCommandBufferRelease(command);
     }
 
-    const auto on_work_done
-        = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
-              IterativeSimulationNode* _this = reinterpret_cast<IterativeSimulationNode*>(userdata);
-              _this->complete_run();
-          };
-
-    WGPUQueueWorkDoneCallbackInfo callback_info {
-        .nextInChain = nullptr,
-        .mode = WGPUCallbackMode_AllowProcessEvents,
-        .callback = on_work_done,
-        .userdata1 = this,
-        .userdata2 = nullptr,
-    };
-
-    wgpuQueueOnSubmittedWorkDone(m_ctx->queue(), callback_info);
+    on_submitted_work_done(m_ctx->queue(), [this]() { complete_run(); });
 }
 
 std::unique_ptr<webgpu::raii::TextureWithSampler> IterativeSimulationNode::create_texture(

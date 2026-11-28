@@ -175,7 +175,9 @@ void Texture::copy_to_texture(WGPUCommandEncoder encoder, uint32_t source_layer,
 void Texture::read_back_async(WGPUDevice device, size_t layer_index, ReadBackCallback callback) const
 {
     ReadBackState* read_back_state = new ReadBackState {
-        this,
+        m_descriptor.size.height,
+        bytes_per_row(),
+        m_descriptor.size.width * get_bytes_per_element(m_descriptor.format),
         std::make_unique<raii::RawBuffer<char>>(
             device, WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead, single_layer_size_in_bytes(), "texture read back staging buffer"),
         callback,
@@ -193,11 +195,10 @@ void Texture::read_back_async(WGPUDevice device, size_t layer_index, ReadBackCal
             return;
         }
 
-        const Texture* texture = current_state->texture;
         const char* buffer_data = (const char*)wgpuBufferGetConstMappedRange(current_state->buffer->handle(), 0, current_state->buffer->size_in_byte());
         auto array = std::make_shared<QByteArray>();
-        for (uint32_t i = 0; i < texture->m_descriptor.size.height; i++) {
-            array->append(&buffer_data[i * texture->bytes_per_row()], texture->m_descriptor.size.width * get_bytes_per_element(texture->m_descriptor.format));
+        for (uint32_t i = 0; i < current_state->height; i++) {
+            array->append(&buffer_data[i * current_state->bytes_per_row], current_state->row_size_in_bytes);
         }
 
         current_state->callback(current_state->layer_index, array);

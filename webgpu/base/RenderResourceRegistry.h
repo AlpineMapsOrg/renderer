@@ -18,7 +18,9 @@
 
 #pragma once
 
+#include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -29,6 +31,36 @@
 #include <webgpu/webgpu.h>
 
 namespace webgpu {
+
+class RenderResourceRegistry;
+
+using PipelineFactory = std::function<void(WGPUDevice, const RenderResourceRegistry&)>;
+
+/// Keeps a pipeline factory registered with a RenderResourceRegistry. Destroying (or reset()ing) the
+/// handle unregisters the factory, so its owner must keep the handle alive for as long as the factory
+/// may be called - typically as a member next to the pipeline it creates. The handle may safely
+/// outlive the registry.
+class PipelineRegistration {
+public:
+    PipelineRegistration() = default;
+    ~PipelineRegistration();
+
+    PipelineRegistration(PipelineRegistration&& other) noexcept;
+    PipelineRegistration& operator=(PipelineRegistration&& other) noexcept;
+    PipelineRegistration(const PipelineRegistration&) = delete;
+    PipelineRegistration& operator=(const PipelineRegistration&) = delete;
+
+    void reset();
+
+private:
+    friend class RenderResourceRegistry;
+    using FactoryMap = std::map<uint64_t, PipelineFactory>;
+
+    PipelineRegistration(std::weak_ptr<FactoryMap> factories, uint64_t id);
+
+    std::weak_ptr<FactoryMap> m_factories;
+    uint64_t m_id = 0;
+};
 
 class RenderResourceRegistry {
 public:
@@ -47,9 +79,9 @@ public:
     [[nodiscard]] bool has_bind_group_layout(const std::string& name) const;
     const raii::BindGroupLayout& bind_group_layout(const std::string& name) const;
 
-    // Register a pipeline constructor
+    // Register a pipeline constructor. It stays registered until the returned handle is destroyed.
     // NOTE: Since we have multiple types of Pipelines its easier that the caller owns the pipeline object
-    void register_pipeline(std::function<void(WGPUDevice, const RenderResourceRegistry&)> recreate_fn);
+    [[nodiscard]] PipelineRegistration register_pipeline(PipelineFactory recreate_fn);
 
     // Recreate order: shaders -> layouts -> pipelines
     void recreate_all(WGPUDevice device);
@@ -83,7 +115,9 @@ private:
     std::unordered_map<std::string, size_t> m_layout_index;
     std::vector<LayoutEntry> m_layouts;
 
-    std::vector<std::function<void(WGPUDevice, const RenderResourceRegistry&)>> m_pipeline_fns;
+    // Ordered by id, i.e. by registration order. Shared with the PipelineRegistration handles.
+    std::shared_ptr<PipelineRegistration::FactoryMap> m_pipeline_fns = std::make_shared<PipelineRegistration::FactoryMap>();
+    uint64_t m_next_pipeline_id = 1;
 
     // Set by recreate_all(); non-null means resources can be created on demand.
     WGPUDevice m_device = nullptr;

@@ -106,6 +106,7 @@ private:
     std::unique_ptr<webgpu::Framebuffer> m_gbuffer;
 
     std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_compose_pipeline;
+    webgpu::PipelineRegistration m_pipeline_registration;
 
     // ToDo: Swapchain should get a raii class and the size could be saved in there
     glm::vec2 m_swapchain_size = glm::vec2(0.0f);

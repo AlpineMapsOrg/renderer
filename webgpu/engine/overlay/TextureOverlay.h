@@ -86,6 +86,7 @@ private:
     bool m_is_ready = false;
 
     std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_pipeline;
+    webgpu::PipelineRegistration m_pipeline_registration;
     std::unique_ptr<webgpu::Buffer<GpuSettings>> m_settings_uniform;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_overlay_texture; // owned source (load_image/load_texture)
     const webgpu::raii::TextureWithSampler* m_linked_texture = nullptr; // borrowed source (link_texture)

@@ -176,6 +176,7 @@ private:
     std::unique_ptr<webgpu::raii::Sampler> m_normal_sampler;
     std::unique_ptr<webgpu::raii::Sampler> m_height_sampler;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
+    webgpu::PipelineRegistration m_pipeline_registration;
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_output_storage_buffer;
 
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_layer1_zdelta_buffer;

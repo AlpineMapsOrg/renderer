@@ -161,7 +161,7 @@ void TileMeshRenderer::init(webgpu::Context& ctx)
                 n_vertices_entry, heightmap_texture_entry, heightmap_texture_sampler, ortho_texture_entry, ortho_texture_sampler },
             "tile bind group");
     });
-    reg.register_pipeline([this](WGPUDevice dev, const webgpu::RenderResourceRegistry& reg) {
+    m_pipeline_registration = reg.register_pipeline([this](WGPUDevice dev, const webgpu::RenderResourceRegistry& reg) {
         webgpu::util::SingleVertexBufferInfo bounds_buffer_info(WGPUVertexStepMode_Instance);
         bounds_buffer_info.add_attribute<float, 4>(0);
         webgpu::util::SingleVertexBufferInfo texture_layer_buffer_info(WGPUVertexStepMode_Instance);
